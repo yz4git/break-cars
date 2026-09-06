@@ -1,0 +1,164 @@
+:root{
+  --ui-bottom:max(10px,env(safe-area-inset-bottom));
+  --ui-left:max(10px,env(safe-area-inset-left));
+  --ui-right:max(10px,env(safe-area-inset-right));
+}
+html,body{height:100%;min-height:100dvh;}
+body{min-height:100dvh;}
+#scene,#vignette,#flash,.overlay,#controls{height:100dvh;}
+
+/* Larger steering pad: easier to grab and control without precise thumb placement. */
+#steer{
+  left:var(--ui-left);
+  bottom:var(--ui-bottom);
+  width:clamp(184px,29vw,238px);
+  height:clamp(112px,18dvh,138px);
+  border-radius:28px;
+  border:1px solid #ffffff55;
+  background:linear-gradient(180deg,#1b2b3ad9,#0e1824c9);
+  box-shadow:0 10px 30px #0007,inset 0 1px #ffffff20;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  overflow:hidden;
+}
+#steer::before{
+  content:"";
+  position:absolute;
+  left:32px;
+  right:32px;
+  top:50%;
+  height:8px;
+  transform:translateY(-50%);
+  border-radius:999px;
+  background:linear-gradient(90deg,#ff8b6338,#ffffff2f 46%,#ffffff2f 54%,#ff8b6338);
+  box-shadow:inset 0 1px 3px #0008;
+  pointer-events:none;
+}
+#steer::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:16px;
+  bottom:28px;
+  width:2px;
+  transform:translateX(-50%);
+  background:#ffffff45;
+  pointer-events:none;
+}
+#knob{
+  left:calc(50% - 34px);
+  top:calc(50% - 38px);
+  width:68px;
+  height:68px;
+  border:3px solid #ffffffdd;
+  background:radial-gradient(circle at 35% 30%,#ffffff40,#ff75451f 55%,#07111bd9);
+  box-shadow:0 4px 18px #0008,inset 0 0 0 7px #ffffff12;
+  transition:box-shadow .08s ease,background .08s ease;
+  will-change:transform;
+}
+#steer:active #knob{
+  background:radial-gradient(circle at 35% 30%,#ffffff55,#ff75455c 58%,#07111bd9);
+  box-shadow:0 0 0 5px #ff75452c,0 4px 18px #0008;
+}
+.arrow{
+  top:50%;
+  transform:translateY(-58%);
+  font-size:56px;
+  font-weight:800;
+  color:#ffffffa8;
+}
+.left-arrow{left:10px}.right-arrow{right:10px}
+#steer label{
+  bottom:8px;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:2.6px;
+  color:#d9e2e9c7;
+}
+
+/* Pedals stay within the current visual viewport and the home-indicator safe area. */
+.pedals{
+  right:var(--ui-right);
+  bottom:var(--ui-bottom);
+  gap:8px;
+  align-items:flex-end;
+}
+.pedals button{
+  width:clamp(66px,10vw,82px);
+  height:clamp(74px,12dvh,88px);
+  border-radius:14px;
+  background:#142334cf;
+  box-shadow:0 8px 24px #0007,inset 0 1px #ffffff20;
+}
+.pedals #gas{
+  width:clamp(74px,11vw,92px);
+  height:clamp(94px,16dvh,116px);
+  border-width:2px;
+}
+.pedals #hand{
+  width:clamp(60px,8vw,72px);
+  height:52px;
+  margin-bottom:6px;
+}
+
+#condition{bottom:calc(var(--ui-bottom) + 4px)}
+#speed{bottom:calc(var(--ui-bottom) + 55px)}
+#radar{right:var(--ui-right)}
+#hud{left:max(14px,env(safe-area-inset-left));right:max(14px,env(safe-area-inset-right))}
+
+@media (orientation:portrait){
+  #steer{
+    left:var(--ui-left);
+    bottom:var(--ui-bottom);
+    width:min(44vw,184px);
+    min-width:154px;
+    height:108px;
+    border-radius:25px;
+  }
+  #knob{width:64px;height:64px;left:calc(50% - 32px);top:18px}
+  .arrow{font-size:50px}
+  .pedals{
+    right:var(--ui-right);
+    bottom:var(--ui-bottom);
+    gap:6px;
+  }
+  .pedals button{width:min(16vw,66px);height:72px;border-radius:12px}
+  .pedals #gas{width:min(18vw,74px);height:96px}
+  .pedals #hand{
+    position:absolute;
+    right:0;
+    bottom:104px;
+    width:74px;
+    height:44px;
+    margin:0;
+  }
+  #condition{
+    width:142px;
+    bottom:calc(var(--ui-bottom) + 126px);
+  }
+  #speed{bottom:calc(var(--ui-bottom) + 170px)}
+  #radar{top:max(68px,calc(env(safe-area-inset-top) + 58px))}
+}
+
+@media (orientation:landscape) and (max-height:430px){
+  #steer{width:190px;height:102px;border-radius:24px}
+  #knob{width:60px;height:60px;left:calc(50% - 30px);top:16px}
+  .arrow{font-size:46px}
+  .pedals button{height:70px;width:66px}
+  .pedals #gas{height:90px;width:76px}
+  .pedals #hand{height:44px;width:60px;margin-bottom:3px}
+  #condition{width:150px;bottom:calc(var(--ui-bottom) + 2px)}
+  #speed{bottom:calc(var(--ui-bottom) + 50px)}
+  #speed b{font-size:34px}
+  #radar{top:max(58px,calc(env(safe-area-inset-top) + 48px));width:72px;height:72px}
+  #hud{top:max(8px,env(safe-area-inset-top));gap:14px}
+  .stat strong{font-size:24px}.stat small{font-size:8px}
+}
+
+@media (max-width:360px) and (orientation:portrait){
+  #steer{width:150px;height:102px}
+  #knob{width:58px;height:58px;left:calc(50% - 29px);top:18px}
+  .pedals button{width:54px}.pedals #gas{width:62px}.pedals #hand{width:62px}
+  #condition{bottom:calc(var(--ui-bottom) + 120px)}
+  #speed{bottom:calc(var(--ui-bottom) + 162px)}
+}
