@@ -22,7 +22,7 @@ jobs:
           mkdir -p visual-review
           python3 -m http.server 4173 --directory dist >/tmp/break-cars-http.log 2>&1 &
           for i in {1..20}; do curl -sf http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
-          cat > /tmp/review.mjs <<'JS'
+          cat > .visual-review.mjs <<'JS'
           import { chromium } from 'playwright';
           import fs from 'fs';
           const browser = await chromium.launch({headless:true});
@@ -79,8 +79,9 @@ jobs:
           fs.writeFileSync('visual-review/report.json',JSON.stringify(report,null,2));
           await browser.close();
           JS
-          node /tmp/review.mjs
+          node .visual-review.mjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: break-cars-visual-review
           path: visual-review
