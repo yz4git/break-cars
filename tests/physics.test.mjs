@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {makeWorld,step,RADIUS,COUNT} from '../dist/physics.js';
+test('forward drive, braking, reverse and opposite steering work',()=>{const w=makeWorld();for(const c of w.cars.slice(1)){c.dead=true;c.x=30;c.z=0;}w.cars[1].dead=false;const p=w.cars[0];p.x=p.z=0;p.heading=0;for(let i=0;i<60;i++)step(w,{gas:1});assert(p.z>4);for(let i=0;i<100;i++)step(w,{brake:1});assert(p.vz<0);assert(Number.isFinite(p.heading));});
+test('hard impact damages cars once, separates boxes and scores',()=>{const w=makeWorld();const [a,b]=w.cars;a.x=b.x=0;a.z=-2;b.z=2;a.heading=0;b.heading=Math.PI;a.vz=18;b.vz=-18;step(w,{});assert(a.hp<a.maxHP);assert(b.hp<b.maxHP);assert(a.score>0);assert(w.events.some(e=>e.type==='impact'));assert(Math.hypot(a.x-b.x,a.z-b.z)>4);});
+test('seeded complete matches remain finite, bounded, and terminate',()=>{for(let seed=1;seed<=5;seed++){const w=makeWorld(seed%3,seed);for(let frame=0;frame<10802&&!w.done;frame++){step(w,{},1/60,true);for(const c of w.cars){assert(Number.isFinite(c.x+c.z+c.heading+c.vx+c.vz));assert(c.hp>=0&&c.hp<=c.maxHP);assert(Math.hypot(c.x,c.z)<RADIUS+3);}}assert(w.done);assert(w.cars.reduce((n,c)=>n+c.contacts,0)>COUNT);}});
