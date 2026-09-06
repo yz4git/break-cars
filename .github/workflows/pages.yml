@@ -29,6 +29,7 @@ jobs:
           cp -a dist _site
           python3 scripts/apply-dramatic-car-reactions.py
           python3 scripts/fix-reaction-variable.py
+          python3 scripts/apply-reaction-ground-clearance.py
           python3 - <<'PY'
           import os
           from pathlib import Path
