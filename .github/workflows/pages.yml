@@ -27,6 +27,7 @@ jobs:
         run: |
           rm -rf _site
           cp -a dist _site
+          python3 scripts/apply-dramatic-car-reactions.py
           python3 - <<'PY'
           import os
           from pathlib import Path
@@ -75,6 +76,8 @@ jobs:
 
           Path('_site/build-id.txt').write_text(sha + '\n', encoding='utf-8')
           PY
+          node --check _site/game.js
+          node --check _site/physics.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
