@@ -1,0 +1,67 @@
+#impact-feedback{
+  position:fixed;
+  left:50%;
+  top:31%;
+  z-index:14;
+  pointer-events:none;
+  transform:translate(-50%,-50%) scale(.82) skew(-7deg);
+  opacity:0;
+  text-align:center;
+  filter:drop-shadow(0 5px 12px #000c);
+  transition:opacity .14s ease,transform .22s cubic-bezier(.2,.8,.2,1);
+}
+#impact-feedback.show{
+  opacity:1;
+  transform:translate(-50%,-50%) scale(1) skew(-7deg);
+}
+#impact-feedback b{
+  display:block;
+  font:950 clamp(24px,5vw,46px)/.9 Arial,sans-serif;
+  letter-spacing:.08em;
+  color:#ffe0a8;
+  text-shadow:0 2px 0 #7a2514,0 0 18px #ff6c38;
+}
+#impact-feedback span{
+  display:block;
+  margin-top:8px;
+  font:900 clamp(15px,2.6vw,24px)/1 Arial,sans-serif;
+  letter-spacing:.12em;
+  color:#fff;
+}
+#impact-feedback.big b{color:#ff9e68;text-shadow:0 2px 0 #6f1408,0 0 24px #ff4e24;}
+#impact-feedback.wreck b{color:#fff3bd;text-shadow:0 2px 0 #76150b,0 0 30px #ff3b20;}
+#impact-feedback.wreck span{color:#ffd36b;}
+
+@media (orientation:landscape) and (max-height:430px){
+  #steer{
+    width:174px;
+    height:92px;
+    border-radius:22px;
+  }
+  #steer::before{left:30px;right:30px;height:7px;}
+  #steer::after{top:14px;bottom:25px;}
+  #knob{
+    width:54px;
+    height:54px;
+    left:calc(50% - 27px);
+    top:14px;
+  }
+  .arrow{font-size:42px;}
+  .pedals{gap:7px;}
+  .pedals button{
+    width:60px;
+    height:64px;
+    border-radius:12px;
+    font-size:13px;
+  }
+  .pedals #gas{
+    width:69px;
+    height:82px;
+  }
+  .pedals #hand{
+    width:55px;
+    height:40px;
+    margin-bottom:2px;
+    font-size:10px;
+  }
+}
