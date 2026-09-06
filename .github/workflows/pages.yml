@@ -21,9 +21,63 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
+      - name: Prepare cache-busted Pages artifact
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          rm -rf _site
+          cp -a dist _site
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          sha = os.environ['DEPLOY_SHA'][:12]
+          index = Path('_site/index.html')
+          html = index.read_text(encoding='utf-8')
+          html = html.replace('href="style.css"', f'href="style.css?v={sha}"')
+          html = html.replace('href="mobile.css"', f'href="mobile.css?v={sha}"')
+          html = html.replace('src="game.js"', f'src="game.js?v={sha}"')
+
+          cache_guard = f'''<script>
+          window.__BREAK_CARS_BUILD__={sha!r};
+          (async()=>{{
+            try{{
+              const key='break-cars-build';
+              const current=window.__BREAK_CARS_BUILD__;
+              const previous=localStorage.getItem(key);
+              if(previous!==current){{
+                if('caches' in window){{
+                  for(const name of await caches.keys()){{
+                    if(/break[-_ ]?cars/i.test(name)) await caches.delete(name);
+                  }}
+                }}
+                if('serviceWorker' in navigator){{
+                  for(const registration of await navigator.serviceWorker.getRegistrations()){{
+                    try{{
+                      const scopePath=new URL(registration.scope).pathname;
+                      if(scopePath.includes('/break-cars/')) await registration.unregister();
+                    }}catch{{}}
+                  }}
+                }}
+                localStorage.setItem(key,current);
+              }}
+            }}catch{{}}
+          }})();
+          </script>'''
+          html = html.replace('<script type="module"', cache_guard + '<script type="module"', 1)
+          index.write_text(html, encoding='utf-8')
+
+          game = Path('_site/game.js')
+          js = game.read_text(encoding='utf-8')
+          js = js.replace("'./three.module.min.js'", f"'./three.module.min.js?v={sha}'")
+          js = js.replace("'./physics.js'", f"'./physics.js?v={sha}'")
+          game.write_text(js, encoding='utf-8')
+
+          Path('_site/build-id.txt').write_text(sha + '\n', encoding='utf-8')
+          PY
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: _site
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
