@@ -30,6 +30,7 @@ jobs:
           node --check _site/physics.js
           node --check _site/racing.js
           node --check _site/track-view.js
+          node --check _site/viewport-guard.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
