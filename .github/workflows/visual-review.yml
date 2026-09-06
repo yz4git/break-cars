@@ -1,0 +1,87 @@
+name: Visual Review
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  review:
+    if: github.event.head_commit.message == 'Visual review run'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Run visual gameplay review
+        run: |
+          mkdir -p visual-review
+          python3 -m http.server 4173 --directory dist >/tmp/break-cars-http.log 2>&1 &
+          for i in {1..20}; do curl -sf http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          cat > /tmp/review.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'fs';
+          const browser = await chromium.launch({headless:true});
+          const context = await browser.newContext({
+            viewport:{width:852,height:393},
+            deviceScaleFactor:2,
+            isMobile:true,
+            hasTouch:true,
+            userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1'
+          });
+          const page = await context.newPage();
+          const logs=[];
+          page.on('console',m=>logs.push(`console ${m.type()}: ${m.text()}`));
+          page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`));
+          await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+          await page.screenshot({path:'visual-review/01-menu.png'});
+          await page.click('button[data-mode="racing"]');
+          await page.waitForTimeout(300);
+          await page.screenshot({path:'visual-review/02-racing-selected.png'});
+          await page.click('#start');
+          await page.waitForTimeout(4300);
+          await page.screenshot({path:'visual-review/03-race-start.png'});
+          await page.keyboard.down('ArrowUp');
+          await page.keyboard.down('ArrowRight');
+          await page.waitForTimeout(2400);
+          await page.keyboard.up('ArrowRight');
+          await page.keyboard.down('ArrowLeft');
+          await page.waitForTimeout(1800);
+          await page.keyboard.up('ArrowLeft');
+          await page.waitForTimeout(3400);
+          await page.screenshot({path:'visual-review/04-midrace.png'});
+          await page.keyboard.up('ArrowUp');
+          await page.waitForTimeout(9000);
+          await page.screenshot({path:'visual-review/05-later.png'});
+          const viewport=await page.evaluate(()=>({
+            scale:visualViewport?.scale,
+            offsetLeft:visualViewport?.offsetLeft,
+            offsetTop:visualViewport?.offsetTop,
+            width:visualViewport?.width,
+            height:visualViewport?.height,
+            scrollX,scrollY,innerWidth,innerHeight
+          }));
+          const gestureBlocked=await page.evaluate(()=>{const e=new Event('gesturestart',{bubbles:true,cancelable:true});document.dispatchEvent(e);return e.defaultPrevented;});
+          const dblBlocked=await page.evaluate(()=>{const e=new MouseEvent('dblclick',{bubbles:true,cancelable:true});document.dispatchEvent(e);return e.defaultPrevented;});
+          const report={
+            title:await page.title(),
+            bodyClass:await page.locator('body').getAttribute('class'),
+            raceInfo:await page.locator('#race-info').innerText(),
+            score:await page.locator('#score').innerText(),
+            time:await page.locator('#time').innerText(),
+            speed:await page.locator('#speed').innerText(),
+            viewport,gestureBlocked,dblBlocked,logs
+          };
+          fs.writeFileSync('visual-review/report.json',JSON.stringify(report,null,2));
+          await browser.close();
+          JS
+          node /tmp/review.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: break-cars-visual-review
+          path: visual-review
+          retention-days: 1
