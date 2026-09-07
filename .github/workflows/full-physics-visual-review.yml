@@ -31,7 +31,7 @@ jobs:
       - name: Run rendered review
         run: |
           python3 -m http.server 4173 -d _site >/tmp/bc-server.log 2>&1 &
-          cat > /tmp/review.mjs <<'EOF'
+          cat > review.mjs <<'EOF'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
           const browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader','--disable-gpu-vsync']});
@@ -64,7 +64,7 @@ jobs:
           fs.writeFileSync('report.json',JSON.stringify({jump,loop,ride,viewport,logs},null,2));
           await browser.close();
           EOF
-          node /tmp/review.mjs
+          node review.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: break-cars-full-physics-review
