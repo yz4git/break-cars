@@ -22,17 +22,26 @@ assert.match(gameSource, /huntPriority/);
 assert.match(gameSource, /HUNT START — WRECK TARGETS/);
 assert.match(gameSource, /NEW TARGET/);
 assert.match(gameSource, /HUNT SCORE/);
+assert.match(gameSource, /Math\.max\(0,9-\(world\.time-h\.lastWreckAt\)\)/);
+assert.doesNotMatch(gameSource, /c\.id===huntPriority\|\|c\.hp\/c\.maxHP<=\.45/);
 assert.match(physicsSource, /huntDamage/);
+assert.match(physicsSource, /w\.mode==='wreck-hunt'\?\.62:\.82/);
+assert.match(physicsSource, /c\.id%3===0\?1\.04:\.58/);
+assert.match(physicsSource, /lastWreckAt<=9/);
+assert.match(physicsSource, /lastWreckAt>9/);
+assert.match(physicsSource, /other\.hp=Math\.min\(other\.maxHP,other\.hp\+other\.maxHP\*\.10\)/);
 assert.match(physicsSource, /1\.55\+w\.rand\(\)\*\.55/);
-assert.match(physicsSource, /wreck-hunt'\?\.52:1\.08/);
 assert.match(physicsSource, /r=22\+w\.rand\(\)\*7/);
 assert.match(indexSource, /id="score-label"/);
 
-// A deliberately lined-up finisher should award a hunt wreck and begin CHAIN.
+// A deliberately lined-up finisher should award a hunt wreck, start CHAIN,
+// and return a small amount of hull so a long score-attack run can continue.
 const combat = makeWorld(0, 33, 'wreck-hunt');
 const hunter = combat.cars[0];
 const victim = combat.cars[1];
 hunter.x = 0; hunter.z = 0; hunter.heading = 0; hunter.vx = 0; hunter.vz = 24;
+hunter.hp = hunter.maxHP * .42;
+const hpBeforeWreck = hunter.hp;
 victim.x = 0; victim.z = 3.4; victim.heading = Math.PI; victim.vx = 0; victim.vz = -4; victim.hp = 3;
 for (const c of combat.cars.slice(2)) { c.x = 30 + c.id; c.z = 30; }
 step(combat, {}, 1 / 60, false);
@@ -40,9 +49,18 @@ assert.equal(victim.dead, true, 'low-health target should be finishable in one c
 assert.equal(combat.hunt.wrecks, 1);
 assert.equal(combat.hunt.combo, 1);
 assert.ok(hunter.score >= 500);
+assert.ok(hunter.hp > hpBeforeWreck, 'a player-owned wreck should repair some hunter hull');
 assert.ok(victim.respawnAt > combat.time && victim.respawnAt < combat.time + 2.2);
 
-// Destroyed targets should recycle closer to the fight and enter with inward momentum.
+// CHAIN remains alive for nine seconds, then expires.
+combat.hunt.lastWreckAt = combat.time;
+combat.hunt.combo = 2;
+for (let i = 0; i < 8 * 60; i++) step(combat, {}, 1 / 60, false);
+assert.equal(combat.hunt.combo, 2, 'chain should survive through eight seconds');
+for (let i = 0; i < 2 * 60; i++) step(combat, {}, 1 / 60, false);
+assert.equal(combat.hunt.combo, 0, 'chain should expire after nine seconds without another wreck');
+
+// Destroyed targets recycle close to the fight with inward momentum.
 const target = w.cars[1];
 target.dead = true;
 target.wreckAt = 0;
@@ -58,8 +76,7 @@ assert.equal(w.hunt.respawns, 1);
 assert.ok(Math.hypot(target.x,target.z) >= 21 && Math.hypot(target.x,target.z) <= 30);
 assert.ok(Math.hypot(target.vx,target.vz) > 3.5, 'replacement target should launch inward instead of spawning stationary');
 
-// A short autoplay soak verifies finite state and that the tighter combat layout
-// creates actual contact rather than an empty outer-wall drive.
+// A short autoplay soak verifies finite state and dense, ongoing contact.
 for (let i = 0; i < 1200 && !w.done; i++) {
   step(w, {}, 1 / 60, true);
   for (const c of w.cars) {
