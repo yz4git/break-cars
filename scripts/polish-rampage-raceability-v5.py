@@ -1,8 +1,9 @@
 """Post-review RAMPAGE 3D raceability polish.
 
-Keep the loop physical/full-contact, but make it a stunt section rather than a
-first-lap mass grave. Also make the jump landing visually obvious and keep the
-chase camera looking at the landing road while airborne.
+Keep the loop physical/full-contact, but make the approach + loop a stunt
+safety zone rather than a first-lap mass grave. Also make the jump landing
+visually obvious and keep the chase camera looking at the landing road while
+airborne.
 """
 from pathlib import Path
 
@@ -22,31 +23,28 @@ def apply_rampage_raceability(target: Path) -> None:
 
     physics = target / 'physics3d.js'
     s = physics.read_text()
+    import_line = "import {sampleRaceSurface,racePointAt,race3DFeatureSpec} from './racing3d.js?v=wr3d-v1';\n"
+    helper = import_line + "const RAMPAGE_RACE_SPEC=race3DFeatureSpec();\nconst rampageStuntSafety=s=>{const L=RAMPAGE_RACE_SPEC.length,q=((s??0)%L+L)%L;let gap=RAMPAGE_RACE_SPEC.loop.startS-q;if(gap<0)gap+=L;return racePointAt(q).kind==='loop'||gap<38;};\n"
+    s = one(s, import_line, helper, 'stunt safety helper')
     s = one(
         s,
         "if (a.finished||b.finished) return; const A=a.p3,B=b.p3; if (!A||!B||Math.abs(A.px-B.px)>6||Math.abs(A.py-B.py)>4||Math.abs(A.pz-B.pz)>6) return;\n  const contacts=[];",
-        "if (a.finished||b.finished) return; const A=a.p3,B=b.p3; if (!A||!B||Math.abs(A.px-B.px)>6||Math.abs(A.py-B.py)>4||Math.abs(A.pz-B.pz)>6) return;\n  const loopPair=w.mode==='racing'&&racePointAt(a.trackS??0).kind==='loop'&&racePointAt(b.trackS??0).kind==='loop',contacts=[];",
-        'loop pair detection',
-    )
-    s = one(
-        s,
-        "const n=ct.n,rawCor=ct.over*.34/Math.min(3,contacts.length),cor=w.mode==='racing'?Math.min(rawCor,.14):rawCor;",
-        "const n=ct.n,rawCor=ct.over*.34/Math.min(3,contacts.length),cor=w.mode==='racing'?Math.min(rawCor,loopPair?.10:.14):rawCor;",
-        'loop depenetration',
+        "if (a.finished||b.finished) return; const A=a.p3,B=b.p3; if (!A||!B||Math.abs(A.px-B.px)>6||Math.abs(A.py-B.py)>4||Math.abs(A.pz-B.pz)>6) return;\n  const stuntPair=w.mode==='racing'&&rampageStuntSafety(a.trackS)&&rampageStuntSafety(b.trackS),contacts=[];",
+        'stunt pair detection',
     )
     s = one(
         s,
         "const j=closing*(rush ? 1.15 : 1)/Math.max(EPS,inv)*.46,J=mul(n,j);",
-        "const j=closing*(rush ? 1.15 : 1)/Math.max(EPS,inv)*(loopPair?.22:.46),J=mul(n,j);",
-        'loop contact impulse',
+        "const j=closing*(rush ? 1.15 : 1)/Math.max(EPS,inv)*(stuntPair?.22:.46),J=mul(n,j);",
+        'stunt contact impulse',
     )
     s = one(
         s,
         "damage=(peak-2)*.42*(w.mode==='racing' ? 1.28 : 1);",
-        "damage=(peak-2)*.42*(w.mode==='racing' ? (loopPair?.24:1.28) : 1);",
-        'loop contact damage',
+        "damage=(peak-2)*.42*(w.mode==='racing' ? (stuntPair?.24:1.28) : 1);",
+        'stunt contact damage',
     )
-    s = one(s, "if (w.mode==='racing'&&peak>6) for", "if (w.mode==='racing'&&!loopPair&&peak>6) for", 'loop spin suppression')
+    s = one(s, "if (w.mode==='racing'&&peak>6) for", "if (w.mode==='racing'&&!stuntPair&&peak>6) for", 'stunt spin suppression')
     physics.write_text(s)
 
     view = target / 'track-view.js'
