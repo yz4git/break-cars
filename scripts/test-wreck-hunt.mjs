@@ -67,7 +67,9 @@ assert.ok(hunter.score >= 500);
 assert.ok(hunter.hp > hpBeforeWreck, 'a player-owned wreck should repair some hunter hull');
 assert.ok(victim.respawnAt > combat.time && victim.respawnAt < combat.time + 2.2);
 
-// CHAIN remains alive for nine seconds, then expires.
+// CHAIN remains alive for nine seconds, then expires. Freeze all targets so the
+// timer test cannot accidentally extend itself with another real wreck.
+for (const c of combat.cars.slice(1)) { c.dead = true; c.respawnAt = Infinity; c.vx = 0; c.vz = 0; }
 combat.hunt.lastWreckAt = combat.time;
 combat.hunt.combo = 2;
 for (let i = 0; i < 8 * 60; i++) step(combat, {}, 1 / 60, false);
