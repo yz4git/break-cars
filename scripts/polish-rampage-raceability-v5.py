@@ -73,8 +73,8 @@ def apply_rampage_raceability(target: Path) -> None:
     )
     s = one(
         s,
-        "camera.up.lerp(physicsWorldUp,1-Math.exp(-8*dt));camera.fov=62;}else{const camDistance=distance,camLift=lift;",
-        "camera.up.lerp(physicsWorldUp,1-Math.exp(-8*dt));camera.fov=62;}else if(racingJump){const landingPose=trackPoint((p.trackS??0)+14,0);camTarget.set(b.px-racePose.forward.x*7,b.py+5.8,b.pz-racePose.forward.z*7);lookTarget.set(landingPose.x+landingPose.up.x*1.15,landingPose.y+landingPose.up.y*1.15,landingPose.z+landingPose.up.z*1.15);camera.up.lerp(physicsWorldUp,1-Math.exp(-9*dt));camera.fov=64;}else{const camDistance=distance,camLift=lift;",
+        "camera.fov=view===1?55:58;}else{const camDistance=distance,camLift=lift;",
+        "camera.fov=view===1?55:58;}else if(racingJump){const landingPose=trackPoint((p.trackS??0)+14,0);camTarget.set(b.px-racePose.forward.x*7,b.py+5.8,b.pz-racePose.forward.z*7);lookTarget.set(landingPose.x+landingPose.up.x*1.15,landingPose.y+landingPose.up.y*1.15,landingPose.z+landingPose.up.z*1.15);camera.up.lerp(physicsWorldUp,1-Math.exp(-9*dt));camera.fov=64;}else{const camDistance=distance,camLift=lift;",
         'jump landing look-ahead',
     )
     game.write_text(s)
