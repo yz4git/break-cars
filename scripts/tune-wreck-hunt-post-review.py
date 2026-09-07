@@ -106,6 +106,28 @@ def patch_game(path: Path) -> None:
         "quiet cpu wreck toast",
     )
 
+    # Wreck Hunt's rapid recycle creates many simultaneous smoke emitters. Keep
+    # the violent sparks/flames, but shrink and thin the black smoke so targets
+    # and the road remain readable at close range.
+    text = replace_once(
+        text,
+        "p.size=kind==='smoke'?.34+Math.random()*.25:kind==='flame'?.18+Math.random()*.3:kind==='debris'?.10+Math.random()*.18:.05+Math.random()*.12;",
+        "p.size=kind==='smoke'?(world.mode==='wreck-hunt'?.22:.34)+Math.random()*(world.mode==='wreck-hunt'?.16:.25):kind==='flame'?.18+Math.random()*.3:kind==='debris'?.10+Math.random()*.18:.05+Math.random()*.12;",
+        "hunt smoke size",
+    )
+    text = replace_once(
+        text,
+        "for(let i=0;i<16;i++)emit(e.x,1.1,e.z,e.power,'smoke');",
+        "for(let i=0;i<(world.mode==='wreck-hunt'?6:16);i++)emit(e.x,1.1,e.z,e.power,'smoke');",
+        "hunt wreck smoke burst",
+    )
+    text = replace_once(
+        text,
+        "if(c.dead&&smokeClock>.09){emit(c.x+Math.sin(c.heading)*.6,1.15,c.z+Math.cos(c.heading)*.6,4,'smoke');if(world.time-c.wreckAt<14&&Math.random()<.68)emit(c.x,1.0,c.z,8,'flame');}",
+        "if(c.dead&&smokeClock>.09){if(world.mode!=='wreck-hunt'||(world.time-c.wreckAt<8&&Math.random()<.42))emit(c.x+Math.sin(c.heading)*.6,1.15,c.z+Math.cos(c.heading)*.6,4,'smoke');if(world.time-c.wreckAt<(world.mode==='wreck-hunt'?8:14)&&Math.random()<(world.mode==='wreck-hunt'?.38:.68))emit(c.x,1.0,c.z,8,'flame');}",
+        "hunt wreck smoke trail",
+    )
+
     # Guarantee the score label is mode-correct every UI tick rather than only
     # at start, which also makes retry/home transitions robust.
     text = replace_once(
