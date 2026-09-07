@@ -34,9 +34,9 @@ def apply_rampage_raceability(target: Path) -> None:
     )
     s = one(
         s,
-        "const j=closing*(rush ? 1.15 : 1)/Math.max(EPS,inv)*.46,J=mul(n,j);",
-        "const j=closing*(rush ? 1.15 : 1)/Math.max(EPS,inv)*(stuntPair?.22:.46),J=mul(n,j);",
-        'stunt contact impulse',
+        "const j=closing*(rush ? 1.15 : 1)/Math.max(EPS,inv)*.46,J=mul(n,j); impulse(A,mul(J,-1),ct.pa.rel); impulse(B,J,ct.pb.rel);",
+        "const j=closing*(rush ? 1.15 : 1)/Math.max(EPS,inv)*(stuntPair?.20:.46),J=mul(n,j); if(stuntPair){impulse(A,mul(J,-1));impulse(B,J);}else{impulse(A,mul(J,-1),ct.pa.rel);impulse(B,J,ct.pb.rel);}",
+        'stunt contact impulse and torque',
     )
     s = one(
         s,
