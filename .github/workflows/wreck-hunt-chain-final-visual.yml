@@ -1,0 +1,59 @@
+name: Wreck Hunt Chain Final Visual
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install chromium --with-deps
+      - name: Prepare production build
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: python3 scripts/prepare-pages.py
+      - name: Guided Wreck Hunt playtest
+        run: |
+          cat > review.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import { spawn } from 'node:child_process';
+          import fs from 'node:fs';
+          const server=spawn('python3',['-m','http.server','4173','--directory','_site'],{stdio:'ignore'});
+          await new Promise(r=>setTimeout(r,900));
+          const browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader','--disable-gpu-vsync','--disable-frame-rate-limit']});
+          const context=await browser.newContext({viewport:{width:852,height:393},deviceScaleFactor:1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1'});
+          const page=await context.newPage();
+          const logs=[];page.on('console',m=>logs.push(`console ${m.type()}: ${m.text()}`));page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`));
+          await page.goto('http://127.0.0.1:4173',{waitUntil:'networkidle'});
+          await page.click('button[data-mode="wreck-hunt"]');await page.click('#start');
+          await page.waitForTimeout(3900);
+          await page.keyboard.down('ArrowUp');
+          const samples=[];let lastWreck='0',shot=0;
+          const read=()=>page.evaluate(()=>{const arrow=document.querySelector('#hunt-nav b');const m=(arrow?.style.transform||'').match(/rotate\(([-0-9.]+)rad\)/);return{bearing:m?Number(m[1]):0,nav:document.querySelector('#hunt-nav')?.innerText,wrecks:document.querySelector('#alive')?.textContent?.trim(),score:document.querySelector('#score')?.textContent?.trim(),chain:document.querySelector('#hunt-info')?.innerText?.trim(),time:document.querySelector('#time')?.textContent?.trim(),speed:document.querySelector('#speed')?.innerText?.trim(),hull:document.querySelector('#hp')?.textContent?.trim(),viewport:{scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,scrollX,scrollY}}});
+          for(let i=0;i<46;i++){
+            const before=await read();
+            const key=Math.abs(before.bearing)<.12?null:(before.bearing>0?'ArrowLeft':'ArrowRight');
+            if(key)await page.keyboard.down(key);
+            await page.waitForTimeout(360);
+            if(key)await page.keyboard.up(key);
+            const after=await read();samples.push({i,...after});
+            if(after.wrecks!==lastWreck||i%8===0){lastWreck=after.wrecks;await page.screenshot({path:`${String(++shot).padStart(2,'0')}-chain.png`});}
+            if(Number.parseInt(after.wrecks||'0',10)>=3)break;
+          }
+          await page.keyboard.up('ArrowUp');await page.waitForTimeout(400);await page.screenshot({path:`${String(++shot).padStart(2,'0')}-final.png`});
+          const report=await read();fs.writeFileSync('report.json',JSON.stringify({report,samples,logs},null,2));
+          await browser.close();server.kill('SIGTERM');
+          EOF
+          node review.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: break-cars-wreck-hunt-chain-final
+          path: |
+            *.png
+            report.json
