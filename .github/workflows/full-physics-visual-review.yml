@@ -19,8 +19,12 @@ jobs:
           window.__bcReview={
             world:()=>world,
             player:()=>world.cars[0],
-            teleport:(x,y,z,heading=0,vx=0,vy=0,vz=0)=>{const c=world.cars[0],h=heading*.5;c.x=x;c.z=z;c.heading=heading;c.vx=vx;c.vz=vz;c.omega=0;c.dead=false;c.hp=c.maxHP;c.p3={...(c.p3||{}),active:true,px:x,py:y,pz:z,qx:0,qy:Math.sin(h),qz:0,qw:Math.cos(h),vx,vy,vz,wx:0,wy:0,wz:0,grounded:false,groundedWheels:0,wheelCompression:[0,0,0,0],wheelNormal:[0,0,0,0],airTime:0,lastLandingAt:-99,lastSyncX:x,lastSyncZ:z,lastSyncVx:vx,lastSyncVz:vz};},
-            quietTargets:()=>{for(const c of world.cars.slice(1)){c.dead=true;c.respawnAt=Infinity;c.vx=0;c.vz=0;if(c.p3){c.p3.vx=c.p3.vy=c.p3.vz=0;}}if(world.hunt)world.hunt.focusId=-1;world.done=false;}
+            forcePlay:()=>{mode='race';count=0;world.done=false;document.body.classList.add('playing');},
+            advance:(frames,input={gas:0,brake:0,hand:0,steer:0})=>{let maxY=-Infinity,maxAir=0,minUpY=1,maxUpY=-1,maxWheels=0;for(let i=0;i<frames;i++){step(world,input,1/60,false);const b=world.cars[0].p3;if(b){maxY=Math.max(maxY,b.py);maxAir=Math.max(maxAir,b.airTime);const upY=1-2*(b.qx*b.qx+b.qz*b.qz);minUpY=Math.min(minUpY,upY);maxUpY=Math.max(maxUpY,upY);maxWheels=Math.max(maxWheels,b.groundedWheels||0);}}return{maxY,maxAir,minUpY,maxUpY,maxWheels,time:world.time};},
+            teleport:(x,y,z,heading=0,vx=0,vy=0,vz=0)=>{const c=world.cars[0],h=heading*.5;c.x=x;c.z=z;c.heading=heading;c.vx=vx;c.vz=vz;c.omega=0;c.dead=false;c.finished=false;c.hp=c.maxHP;c.p3={...(c.p3||{}),active:true,px:x,py:y,pz:z,qx:0,qy:Math.sin(h),qz:0,qw:Math.cos(h),vx,vy,vz,wx:0,wy:0,wz:0,grounded:false,groundedWheels:0,wheelCompression:[0,0,0,0],wheelNormal:[0,0,0,0],airTime:0,lastLandingAt:-99,lastSyncX:x,lastSyncZ:z,lastSyncVx:vx,lastSyncVz:vz};},
+            quietTargets:()=>{for(const c of world.cars.slice(1)){c.dead=true;c.finished=true;c.respawnAt=Infinity;c.vx=0;c.vz=0;if(c.p3){c.p3.vx=c.p3.vy=c.p3.vz=0;}}if(world.hunt)world.hunt.focusId=-1;world.done=false;},
+            loopSetup:()=>{const c=world.cars[0],b=c.p3,s=Math.SQRT1_2,x=25,y=5.5,z=14.6;c.x=x;c.z=z;c.heading=0;c.vx=0;c.vz=0;c.dead=false;c.finished=false;c.hp=c.maxHP;Object.assign(b,{active:true,px:x,py:y,pz:z,qx:-s,qy:0,qz:0,qw:s,vx:0,vy:16,vz:0,wx:0,wy:0,wz:0,grounded:false,groundedWheels:0,wheelCompression:[0,0,0,0],wheelNormal:[0,0,0,0],airTime:0,lastSyncX:x,lastSyncZ:z,lastSyncVx:0,lastSyncVz:0});world.done=false;},
+            rideSetup:()=>{const w=world,a=w.cars[0],v=w.cars[1];window.__bcReview.teleport(0,.9,-4.6,0,0,0,19);v.dead=false;v.finished=false;v.hp=v.maxHP;v.x=0;v.z=0;v.heading=0;v.vx=v.vz=0;v.target=0;v.aiTimer=99;v.p3={active:true,px:0,py:.9,pz:0,qx:0,qy:0,qz:0,qw:1,vx:0,vy:0,vz:0,wx:0,wy:0,wz:0,mass:1,invMass:1,invIx:1,invIy:1,invIz:1,grounded:false,groundedWheels:0,wheelCompression:[0,0,0,0],wheelNormal:[0,0,0,0],airTime:0,lastLandingAt:-99,lastSyncX:0,lastSyncZ:0,lastSyncVx:0,lastSyncVz:0};for(const c of w.cars.slice(2)){c.dead=true;c.finished=true;c.respawnAt=Infinity;}w.done=false;}
           };
           EOF
       - name: Install browser
@@ -39,29 +43,34 @@ jobs:
           const logs=[];page.on('console',m=>logs.push(`console ${m.type()}: ${m.text()}`));page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`));
           await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
           await page.screenshot({path:'01-menu.png'});
-          await page.click('[data-mode="wreck-hunt"]');
-          await page.click('#start');
-          await page.waitForTimeout(3900);
+          await page.click('[data-mode="wreck-hunt"]');await page.click('#start');
+          await page.waitForFunction(()=>window.__bcReview?.player());
+          await page.evaluate(()=>{window.__bcReview.forcePlay();window.__bcReview.advance(100,{gas:1,brake:0,hand:0,steer:0});});await page.waitForTimeout(120);
           await page.screenshot({path:'02-hunt-live.png'});
-          await page.waitForFunction(()=>window.__bcReview?.player()?.p3?.active);
-          await page.evaluate(()=>{window.__bcReview.quietTargets();window.__bcReview.teleport(-22,1.0,-14.6,0,0,0,19);});
-          await page.waitForTimeout(620);
+
+          // Clean deterministic jump pass.
+          await page.evaluate(()=>{window.__bcReview.quietTargets();window.__bcReview.forcePlay();window.__bcReview.teleport(-22,.9,-14.6,0,0,0,19);});
+          const jumpA=await page.evaluate(()=>window.__bcReview.advance(20,{gas:1,brake:0,hand:0,steer:0}));await page.waitForTimeout(100);
           await page.screenshot({path:'03-ramp-climb.png'});
-          await page.waitForTimeout(520);
+          const jumpB=await page.evaluate(()=>window.__bcReview.advance(32,{gas:1,brake:0,hand:0,steer:0}));await page.waitForTimeout(100);
           await page.screenshot({path:'04-jump-air.png'});
-          const jump=await page.evaluate(()=>{const p=window.__bcReview.player(),b=p.p3;return{y:b.py,vy:b.vy,air:b.airTime,q:[b.qx,b.qy,b.qz,b.qw],speed:Math.hypot(b.vx,b.vy,b.vz)};});
-          await page.evaluate(()=>{const r=window.__bcReview.player(),b=r.p3;const x=25,y=5.5,z=15.5;const yaw=Math.PI,roll=-Math.PI/2;const cy=Math.cos(yaw/2),sy=Math.sin(yaw/2),cr=Math.cos(roll/2),sr=Math.sin(roll/2);r.x=x;r.z=z;r.heading=Math.PI;b.px=x;b.py=y;b.pz=z;b.qx=cy*sr;b.qy=sy*cr;b.qz=-sy*sr;b.qw=cy*cr;b.vx=0;b.vy=12;b.vz=0;b.wx=b.wy=b.wz=0;b.lastSyncX=x;b.lastSyncZ=z;b.lastSyncVx=0;b.lastSyncVz=0;});
-          await page.waitForTimeout(160);
+          const jump=await page.evaluate(()=>{const b=window.__bcReview.player().p3;return{p:[b.px,b.py,b.pz],v:[b.vx,b.vy,b.vz],air:b.airTime,q:[b.qx,b.qy,b.qz,b.qw],wheels:b.groundedWheels};});
+
+          // Correct loop COM path: 0.9m inside the visible road radius.
+          await page.evaluate(()=>{window.__bcReview.quietTargets();window.__bcReview.forcePlay();window.__bcReview.loopSetup();});
+          const loopA=await page.evaluate(()=>window.__bcReview.advance(25,{gas:1,brake:0,hand:0,steer:0}));await page.waitForTimeout(100);
           await page.screenshot({path:'05-loop-side.png'});
-          await page.waitForTimeout(430);
-          await page.screenshot({path:'06-loop-climb.png'});
+          const loopB=await page.evaluate(()=>window.__bcReview.advance(34,{gas:1,brake:0,hand:0,steer:0}));await page.waitForTimeout(100);
+          await page.screenshot({path:'06-loop-top.png'});
           const loop=await page.evaluate(()=>{const b=window.__bcReview.player().p3;return{p:[b.px,b.py,b.pz],q:[b.qx,b.qy,b.qz,b.qw],up:[2*(b.qx*b.qy-b.qz*b.qw),1-2*(b.qx*b.qx+b.qz*b.qz),2*(b.qy*b.qz+b.qx*b.qw)],grounded:b.grounded,wheels:b.groundedWheels};});
-          await page.evaluate(()=>{const w=window.__bcReview.world(),v=w.cars[1];window.__bcReview.teleport(0,1.0,-5,0,0,0,18);v.dead=false;v.hp=v.maxHP;v.x=0;v.z=0;v.heading=0;v.vx=v.vz=0;v.p3={active:true,px:0,py:1,pz:0,qx:0,qy:0,qz:0,qw:1,vx:0,vy:0,vz:0,wx:0,wy:0,wz:0,mass:1,invMass:1,invIx:1,invIy:1,invIz:1,grounded:false,groundedWheels:0,wheelCompression:[0,0,0,0],wheelNormal:[0,0,0,0],airTime:0,lastLandingAt:-99,lastSyncX:0,lastSyncZ:0,lastSyncVx:0,lastSyncVz:0};for(const c of w.cars.slice(2)){c.dead=true;c.respawnAt=Infinity;}w.done=false;});
-          await page.waitForTimeout(460);
+
+          // Direct car-on-car ride-over contact.
+          await page.evaluate(()=>{window.__bcReview.forcePlay();window.__bcReview.rideSetup();});
+          const rideStats=await page.evaluate(()=>window.__bcReview.advance(18,{gas:1,brake:0,hand:0,steer:0}));await page.waitForTimeout(100);
           await page.screenshot({path:'07-ride-over.png'});
-          const ride=await page.evaluate(()=>{const w=window.__bcReview.world();return{hunter:{y:w.cars[0].p3.py,roll:[w.cars[0].p3.qx,w.cars[0].p3.qz]},victim:{y:w.cars[1].p3.py},contacts:w.cars[0].contacts};});
+          const ride=await page.evaluate(()=>{const w=window.__bcReview.world(),a=w.cars[0].p3,b=w.cars[1].p3;return{hunter:{p:[a.px,a.py,a.pz],q:[a.qx,a.qy,a.qz,a.qw]},victim:{p:[b.px,b.py,b.pz],q:[b.qx,b.qy,b.qz,b.qw]},contacts:w.cars[0].contacts};});
           const viewport=await page.evaluate(()=>({scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,scrollX,scrollY,innerWidth,innerHeight}));
-          fs.writeFileSync('report.json',JSON.stringify({jump,loop,ride,viewport,logs},null,2));
+          fs.writeFileSync('report.json',JSON.stringify({jumpA,jumpB,jump,loopA,loopB,loop,rideStats,ride,viewport,logs},null,2));
           await browser.close();
           EOF
           node review.mjs
@@ -74,6 +83,6 @@ jobs:
             03-ramp-climb.png
             04-jump-air.png
             05-loop-side.png
-            06-loop-climb.png
+            06-loop-top.png
             07-ride-over.png
             report.json
