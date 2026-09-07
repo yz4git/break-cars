@@ -1,0 +1,87 @@
+name: RAMPAGE 3D visual review
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare review build
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          python3 scripts/prepare-pages.py
+          cat >> _site/game.js <<'EOF'
+          window.__race3dReview={
+            world:()=>world,
+            player:()=>world.cars[0],
+            spec:()=>fullPhysicsSpec.race,
+            bank:()=>{let best={s:0,v:0};for(let i=0;i<360;i++){const s=i/360*LENGTH,p=trackPoint(s);if(Math.abs(p.bank||0)>best.v)best={s,v:Math.abs(p.bank||0)};}return best;},
+            quiet:()=>{for(let i=1;i<world.cars.length;i++){const c=world.cars[i];c.dead=true;c.respawnAt=Infinity;c.vx=c.vz=0;if(c.p3)c.p3.vx=c.p3.vy=c.p3.vz=0;if(carMeshes[i])carMeshes[i].g.visible=false;}world.done=false;world.endAt=999;world.limit=999;mode='race';},
+            place:(s,speed=20,lane=0)=>{const c=world.cars[0],p=trackPoint(s,lane);Object.assign(c,{trackS:p.s,raceDistance:s,lane,x:p.x,z:p.z,heading:p.heading,vx:p.forward.x*speed,vz:p.forward.z*speed,dead:false,finished:false,wrongWay:0});c.p3=null;if(carMeshes[0])carMeshes[0].g.visible=true;world.done=false;world.endAt=999;world.limit=999;mode='race';},
+            advance:(n,input={gas:1,brake:0,hand:0,steer:0})=>{for(let i=0;i<n&&!world.done;i++)step(world,input,1/60,false);},
+            pose:()=>{const c=world.cars[0],b=c.p3,p=trackPoint(c.trackS),upY=b?1-2*(b.qx*b.qx+b.qz*b.qz):1;return{s:c.trackS,kind:p.kind,y:b?.py??0,air:b?.airTime??0,upY,wheels:b?.groundedWheels??0,speed:b?Math.hypot(b.vx,b.vy,b.vz):0,lap:c.lap,position:trackPosition(world).findIndex(x=>x.id===0)+1};}
+          };
+          EOF
+      - name: Install Chromium
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 --no-save
+          npx playwright install chromium --with-deps
+      - name: Render and drive RAMPAGE 3D
+        run: |
+          python3 -m http.server 4173 -d _site >/tmp/rampage-server.log 2>&1 &
+          cat > review.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader','--disable-gpu-vsync']});
+          const page=await browser.newPage({viewport:{width:852,height:393},deviceScaleFactor:1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1'});
+          const logs=[];page.on('console',m=>logs.push(`console ${m.type()}: ${m.text()}`));page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`));
+          await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+          await page.click('[data-mode="racing"]');
+          await page.screenshot({path:'01-rampage-menu.png'});
+          await page.click('#start');
+          await page.waitForTimeout(3900);
+          await page.screenshot({path:'02-live-pack.png'});
+          await page.waitForFunction(()=>window.__race3dReview?.player()?.p3?.active);
+          const live=await page.evaluate(()=>({pose:window.__race3dReview.pose(),modeTag:document.getElementById('mode-tag')?.textContent,caption:document.getElementById('arena-caption')?.textContent,raceInfo:document.getElementById('race-info')?.textContent}));
+          await page.evaluate(()=>window.__race3dReview.quiet());
+          const feature=await page.evaluate(()=>({spec:window.__race3dReview.spec(),bank:window.__race3dReview.bank()}));
+          // Maximum bank: spawn aligned to the ribbon, settle suspension, then render.
+          await page.evaluate(({s})=>{window.__race3dReview.place(s,18,0);window.__race3dReview.advance(4);},feature.bank);
+          await page.waitForTimeout(120);await page.screenshot({path:'03-max-bank.png'});const bank=await page.evaluate(()=>window.__race3dReview.pose());
+          // Elevated over/under crossing.
+          await page.evaluate(({s})=>{window.__race3dReview.place(s,17,0);window.__race3dReview.advance(3);},feature.spec.bridge);
+          await page.waitForTimeout(120);await page.screenshot({path:'04-over-under.png'});const crossing=await page.evaluate(()=>window.__race3dReview.pose());
+          // Jump takeoff and true airborne gap.
+          await page.evaluate(({startS})=>{window.__race3dReview.place(startS-10,22,0);window.__race3dReview.advance(24);},feature.spec.jump);
+          await page.waitForTimeout(100);await page.screenshot({path:'05-jump-ramp.png'});
+          await page.evaluate(()=>{for(let i=0;i<150;i++){window.__race3dReview.advance(1);if(window.__race3dReview.pose().air>.30)break;}});
+          await page.waitForTimeout(100);await page.screenshot({path:'06-jump-air.png'});const jump=await page.evaluate(()=>window.__race3dReview.pose());
+          // Loop: side wall first, then inverted near the crown.
+          await page.evaluate(({startS})=>window.__race3dReview.place(startS+.35,24,0),feature.spec.loop);
+          await page.evaluate(()=>{for(let i=0;i<160;i++){window.__race3dReview.advance(1);const p=window.__race3dReview.pose();if(p.upY<.15&&p.upY>-.35&&p.y>5)break;}});
+          await page.waitForTimeout(100);await page.screenshot({path:'07-loop-side.png'});const loopSide=await page.evaluate(()=>window.__race3dReview.pose());
+          await page.evaluate(()=>{for(let i=0;i<160;i++){window.__race3dReview.advance(1);if(window.__race3dReview.pose().upY<-.82)break;}});
+          await page.waitForTimeout(100);await page.screenshot({path:'08-loop-inverted.png'});const loopTop=await page.evaluate(()=>window.__race3dReview.pose());
+          const viewport=await page.evaluate(()=>({scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,scrollX,scrollY,innerWidth,innerHeight}));
+          fs.writeFileSync('report.json',JSON.stringify({feature,live,bank,crossing,jump,loopSide,loopTop,viewport,logs},null,2));
+          await browser.close();
+          EOF
+          node review.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rampage-3d-visual-review
+          path: |
+            01-rampage-menu.png
+            02-live-pack.png
+            03-max-bank.png
+            04-over-under.png
+            05-jump-ramp.png
+            06-jump-air.png
+            07-loop-side.png
+            08-loop-inverted.png
+            report.json
