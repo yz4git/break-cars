@@ -68,6 +68,9 @@ apply_racing3d_ui(target)
 apply_player_auto_upright(target)
 apply_auto_upright_racing_hint(target)
 
+apply_course_pack = load_function('apply-course-pack.py', 'break_cars_courses', 'apply_course_pack')
+apply_course_pack(target)
+
 build = os.environ['DEPLOY_SHA'][:12]
 for path in target.glob('*.js'):
     text = path.read_text()
