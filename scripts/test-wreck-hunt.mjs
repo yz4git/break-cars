@@ -10,17 +10,23 @@ assert.equal(w.limit, 150);
 assert.ok(w.hunt);
 assert.equal(w.hunt.combo, 0);
 assert.ok(w.cars[0].maxHP > 138, 'hunter should have extra durability');
-assert.ok(w.cars.slice(1).every(c => c.maxHP >= 50 && c.maxHP <= 81), 'hunt targets should be substantially softer than survival cars');
+assert.ok(w.cars.slice(1).every(c => c.maxHP >= 46 && c.maxHP <= 72), 'hunt targets should be soft enough for fast finishers');
+assert.equal(w.cars[0].z, 10, 'hunter should start inside the action instead of on the outer ring');
+assert.ok(w.cars.slice(1).every(c => Math.hypot(c.x,c.z) >= 19 && Math.hypot(c.x,c.z) <= 26), 'targets should start on the inner combat ring');
 
-// The deployed runtime must contain the score-attack polish, not only the menu.
 const gameSource = fs.readFileSync(new URL('../_site/game.js', import.meta.url), 'utf8');
 const physicsSource = fs.readFileSync(new URL('../_site/physics.js', import.meta.url), 'utf8');
+const indexSource = fs.readFileSync(new URL('../_site/index.html', import.meta.url), 'utf8');
 assert.match(gameSource, /targetMarker/);
-assert.match(gameSource, /TARGET/);
-assert.match(gameSource, /dataset\.gameMode/);
+assert.match(gameSource, /huntPriority/);
+assert.match(gameSource, /HUNT START — WRECK TARGETS/);
 assert.match(gameSource, /NEW TARGET/);
+assert.match(gameSource, /HUNT SCORE/);
 assert.match(physicsSource, /huntDamage/);
-assert.match(physicsSource, /1\.9\+w\.rand\(\)\*\.7/);
+assert.match(physicsSource, /1\.55\+w\.rand\(\)\*\.55/);
+assert.match(physicsSource, /wreck-hunt'\?\.52:1\.08/);
+assert.match(physicsSource, /r=22\+w\.rand\(\)\*7/);
+assert.match(indexSource, /id="score-label"/);
 
 // A deliberately lined-up finisher should award a hunt wreck and begin CHAIN.
 const combat = makeWorld(0, 33, 'wreck-hunt');
@@ -34,9 +40,9 @@ assert.equal(victim.dead, true, 'low-health target should be finishable in one c
 assert.equal(combat.hunt.wrecks, 1);
 assert.equal(combat.hunt.combo, 1);
 assert.ok(hunter.score >= 500);
-assert.ok(victim.respawnAt > combat.time && victim.respawnAt < combat.time + 2.7);
+assert.ok(victim.respawnAt > combat.time && victim.respawnAt < combat.time + 2.2);
 
-// Verify destroyed targets are actually recycled back into the hunt.
+// Destroyed targets should recycle closer to the fight and enter with inward momentum.
 const target = w.cars[1];
 target.dead = true;
 target.wreckAt = 0;
@@ -49,16 +55,19 @@ assert.equal(target.hp, target.maxHP);
 assert.equal(target.respawnAt, Infinity);
 assert.ok(w.events.some(e => e.type === 'respawn' && e.car === target.id));
 assert.equal(w.hunt.respawns, 1);
+assert.ok(Math.hypot(target.x,target.z) >= 21 && Math.hypot(target.x,target.z) <= 30);
+assert.ok(Math.hypot(target.vx,target.vz) > 3.5, 'replacement target should launch inward instead of spawning stationary');
 
-// A short autoplay soak should keep the state finite and should not end just
-// because most targets are temporarily wrecked.
-for (let i = 0; i < 900 && !w.done; i++) {
+// A short autoplay soak verifies finite state and that the tighter combat layout
+// creates actual contact rather than an empty outer-wall drive.
+for (let i = 0; i < 1200 && !w.done; i++) {
   step(w, {}, 1 / 60, true);
   for (const c of w.cars) {
     assert.ok(Number.isFinite(c.x + c.z + c.heading + c.hp));
     assert.ok(c.hp >= 0 && c.hp <= c.maxHP);
   }
 }
-assert.ok(w.time > 10);
+assert.ok(w.time > 15);
 assert.equal(w.done, false);
-console.log(`Wreck Hunt runtime OK: ${w.time.toFixed(1)}s, respawns=${w.hunt.respawns}, wrecks=${w.hunt.wrecks}`);
+assert.ok(w.cars.some(c => c.contacts > 0), 'hunt should generate vehicle contact during a short soak');
+console.log(`Wreck Hunt runtime OK: ${w.time.toFixed(1)}s, respawns=${w.hunt.respawns}, wrecks=${w.hunt.wrecks}, playerScore=${w.cars[0].score}`);
