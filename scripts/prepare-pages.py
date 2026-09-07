@@ -71,6 +71,8 @@ apply_auto_upright_racing_hint(target)
 
 apply_course_pack = load_function('apply-course-pack.py', 'break_cars_courses', 'apply_course_pack')
 apply_course_pack(target)
+apply_extreme_courses = load_function('apply-extreme-courses.py', 'break_cars_extreme_courses', 'apply_extreme_courses')
+apply_extreme_courses(target)
 
 build = (os.environ.get('DEPLOY_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())[:12]
 for path in target.glob('*.js'):

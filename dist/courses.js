@@ -6,6 +6,7 @@ export const COURSES=[
  {id:'cross-fire',mode:'wreck-hunt',name:'CROSS FIRE',hint:'四方向の巨大キッカーから中央へ跳べ。空中交差と着地狩りでCHAIN。'},
  {id:'tidal-foundry',mode:'wreck-hunt',name:'TIDAL FOUNDRY',hint:'波状路面と斜めの土手。浮いた敵の着地に追撃しCHAINをつなげ。'},
  {id:'hunt-classic',mode:'wreck-hunt',name:'WRECK HUNT',hint:'既存の連続撃破アリーナ'},
+ {id:'double-orbit',mode:'racing',name:'DOUBLE ORBIT',hint:'2連垂直ループ、約40度バンク、14m高架。空と地面が入れ替わる4周。'},
  {id:'sky-forge',mode:'racing',name:'SKY FORGE',hint:'非対称の立体8字。大ループ、連続うねり、天空交差橋を4周。'},
  {id:'rampage-3d',mode:'racing',name:'RAMPAGE 3D',hint:'既存のBOOST LOOPコース'}
 ];
