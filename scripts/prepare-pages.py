@@ -26,6 +26,7 @@ apply_smooth_racing3d_boundary = load_function('smooth-racing3d-boundary.py', 'b
 apply_full_physics_loop_polish = load_function('polish-full-physics-loop-v2.py', 'break_cars_full_physics_loop_polish', 'apply_full_physics_loop_polish')
 apply_racing3d_ui = load_function('polish-racing3d-ui.py', 'break_cars_racing3d_ui', 'apply_racing3d_ui')
 apply_player_auto_upright = load_function('add-player-auto-upright.py', 'break_cars_player_auto_upright', 'apply_player_auto_upright')
+apply_auto_upright_racing_hint = load_function('fix-auto-upright-racing-hint.py', 'break_cars_auto_upright_racing_hint', 'apply_auto_upright_racing_hint')
 
 source = Path('dist')
 target = Path('_site')
@@ -53,6 +54,7 @@ apply_smooth_racing3d_boundary(target)
 apply_full_physics_loop_polish(target)
 apply_racing3d_ui(target)
 apply_player_auto_upright(target)
+apply_auto_upright_racing_hint(target)
 
 build = os.environ['DEPLOY_SHA'][:12]
 for path in target.glob('*.js'):
