@@ -1,0 +1,50 @@
+.mode-select{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.mode-select button{min-width:0;padding:10px 8px!important}
+.mode-select button b{font-size:11px}
+.mode-select button small{font-size:9px;line-height:1.25}
+.mode-select button[data-mode="wreck-hunt"].selected{border-color:#ffb548;background:#ff9d2226;color:#ffc06a}
+
+#hunt-info{
+  position:fixed;
+  top:max(70px,calc(env(safe-area-inset-top) + 56px));
+  left:50%;
+  transform:translateX(-50%) skew(-6deg);
+  z-index:6;
+  pointer-events:none;
+  text-align:center;
+  min-width:220px;
+}
+#hunt-info b{
+  display:block;
+  font:950 24px/.95 Arial,sans-serif;
+  letter-spacing:.08em;
+  color:#ffc269;
+  text-shadow:0 2px 12px #000,0 0 14px #ff6b2a77;
+}
+#hunt-info span{
+  display:block;
+  margin-top:6px;
+  font:900 12px/1 Arial,sans-serif;
+  letter-spacing:.16em;
+  color:#fff;
+}
+#hunt-info small{
+  display:block;
+  margin-top:6px;
+  font:800 9px/1 Arial,sans-serif;
+  letter-spacing:.12em;
+  color:#b9c3cb;
+}
+#hunt-info.hot b{color:#ff7650;font-size:29px;text-shadow:0 2px 12px #000,0 0 24px #ff401f}
+
+@media (orientation:landscape) and (max-height:430px){
+  .mode-select{gap:4px;margin:9px 0 8px}
+  .mode-select button{padding:7px 5px!important}
+  .mode-select button b{font-size:9px}
+  .mode-select button small{font-size:8px}
+  #hunt-info{top:max(58px,calc(env(safe-area-inset-top) + 48px));min-width:190px}
+  #hunt-info b{font-size:20px}
+  #hunt-info.hot b{font-size:25px}
+  #hunt-info span{font-size:10px}
+  #hunt-info small{font-size:8px}
+}
