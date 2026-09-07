@@ -9,6 +9,7 @@ assert.equal(w.mode, 'wreck-hunt');
 assert.equal(w.limit, 150);
 assert.ok(w.hunt);
 assert.equal(w.hunt.combo, 0);
+assert.equal(w.hunt.focusId, 1, 'opening bounty should be the initial focus');
 assert.ok(w.cars[0].maxHP > 138, 'hunter should have extra durability');
 assert.ok(w.cars.slice(1).every(c => c.maxHP >= 46 && c.maxHP <= 72), 'hunt targets should be soft enough for fast finishers');
 assert.equal(w.cars[0].z, 10, 'hunter should start inside the action instead of on the outer ring');
@@ -20,13 +21,20 @@ assert.ok(w.cars.slice(2).every(c => Math.hypot(c.x,c.z) >= 19 && Math.hypot(c.x
 const gameSource = fs.readFileSync(new URL('../_site/game.js', import.meta.url), 'utf8');
 const physicsSource = fs.readFileSync(new URL('../_site/physics.js', import.meta.url), 'utf8');
 const indexSource = fs.readFileSync(new URL('../_site/index.html', import.meta.url), 'utf8');
+const huntCss = fs.readFileSync(new URL('../_site/wreck-hunt.css', import.meta.url), 'utf8');
 assert.match(gameSource, /targetMarker/);
 assert.match(gameSource, /huntPriority/);
+assert.match(gameSource, /hunt-nav/);
+assert.match(gameSource, /huntNavArrow/);
+assert.match(gameSource, /TARGET \$\{String\(c\.id\+1\)/);
 assert.match(gameSource, /HUNT START — WRECK TARGETS/);
 assert.match(gameSource, /HUNT SCORE/);
 assert.match(gameSource, /Math\.max\(0,9-\(world\.time-h\.lastWreckAt\)\)/);
 assert.doesNotMatch(gameSource, /c\.id===huntPriority\|\|c\.hp\/c\.maxHP<=\.45/);
 assert.doesNotMatch(gameSource, /NEW TARGET — CAR/);
+assert.match(physicsSource, /chooseHuntFocus/);
+assert.match(physicsSource, /h\.focusId=chooseHuntFocus/);
+assert.match(physicsSource, /locked\.target=0/);
 assert.match(physicsSource, /huntDamage/);
 assert.match(physicsSource, /other\.id===0\?1\.82:\.28/);
 assert.match(physicsSource, /w\.mode==='wreck-hunt'\?\.62:\.82/);
@@ -38,6 +46,8 @@ assert.match(physicsSource, /r=18\+w\.rand\(\)\*6/);
 assert.match(physicsSource, /huntEdge/);
 assert.match(physicsSource, /bestCost/);
 assert.match(indexSource, /id="score-label"/);
+assert.match(huntCss, /#hunt-nav/);
+assert.match(huntCss, /#hunt-nav\.visible/);
 
 // With no steering input, the opening bounty should be contacted and finished
 // quickly enough that the player experiences the Wreck Hunt loop immediately.
@@ -48,9 +58,11 @@ for (let i = 0; i < 5 * 60 && !opening.done && opening.hunt.wrecks === 0; i++) {
 assert.ok(opening.cars[0].contacts > 0, 'straight opening rush should reach a target');
 assert.ok(opening.cars[0].score > 0, 'opening contact should award player impact score');
 assert.ok(opening.hunt.wrecks >= 1, 'opening bounty should be wrecked within five seconds');
+assert.ok(opening.hunt.focusId > 0, 'a new bounty should be selected immediately after the opening wreck');
+assert.equal(opening.cars[opening.hunt.focusId].dead, false, 'next bounty must be a live target');
 
 // A deliberately lined-up finisher should award a hunt wreck, start CHAIN,
-// and return a small amount of hull so a long score-attack run can continue.
+// repair some hull and lock the next bounty onto the hunter for a readable chase.
 const combat = makeWorld(0, 33, 'wreck-hunt');
 const hunter = combat.cars[0];
 const victim = combat.cars[1];
@@ -58,7 +70,7 @@ hunter.x = 0; hunter.z = 0; hunter.heading = 0; hunter.vx = 0; hunter.vz = 24;
 hunter.hp = hunter.maxHP * .42;
 const hpBeforeWreck = hunter.hp;
 victim.x = 0; victim.z = 3.4; victim.heading = Math.PI; victim.vx = 0; victim.vz = -4; victim.hp = 3;
-for (const c of combat.cars.slice(2)) { c.x = 30 + c.id; c.z = 30; }
+for (const c of combat.cars.slice(2)) { c.x = 18 + c.id; c.z = 12 + c.id * .35; c.dead = false; }
 step(combat, {}, 1 / 60, false);
 assert.equal(victim.dead, true, 'low-health target should be finishable in one committed ram');
 assert.equal(combat.hunt.wrecks, 1);
@@ -66,10 +78,16 @@ assert.equal(combat.hunt.combo, 1);
 assert.ok(hunter.score >= 500);
 assert.ok(hunter.hp > hpBeforeWreck, 'a player-owned wreck should repair some hunter hull');
 assert.ok(victim.respawnAt > combat.time && victim.respawnAt < combat.time + 2.2);
+assert.ok(combat.hunt.focusId >= 2, 'focus should move away from the wrecked bounty');
+const nextBounty = combat.cars[combat.hunt.focusId];
+assert.equal(nextBounty.dead, false);
+assert.equal(nextBounty.target, 0, 'chain bounty should actively re-engage the hunter');
+assert.ok(nextBounty.aiTimer >= .3, 'chain bounty lock should persist instead of instantly retargeting');
 
 // CHAIN remains alive for nine seconds, then expires. Freeze all targets so the
 // timer test cannot accidentally extend itself with another real wreck.
 for (const c of combat.cars.slice(1)) { c.dead = true; c.respawnAt = Infinity; c.vx = 0; c.vz = 0; }
+combat.hunt.focusId = -1;
 combat.hunt.lastWreckAt = combat.time;
 combat.hunt.combo = 2;
 for (let i = 0; i < 8 * 60; i++) step(combat, {}, 1 / 60, false);
@@ -104,4 +122,4 @@ for (let i = 0; i < 1200 && !w.done; i++) {
 assert.ok(w.time > 15);
 assert.equal(w.done, false);
 assert.ok(w.cars.some(c => c.contacts > 0), 'hunt should generate vehicle contact during a short soak');
-console.log(`Wreck Hunt runtime OK: ${w.time.toFixed(1)}s, respawns=${w.hunt.respawns}, wrecks=${w.hunt.wrecks}, playerScore=${w.cars[0].score}, openingWrecks=${opening.hunt.wrecks}`);
+console.log(`Wreck Hunt runtime OK: ${w.time.toFixed(1)}s, respawns=${w.hunt.respawns}, wrecks=${w.hunt.wrecks}, playerScore=${w.cars[0].score}, openingWrecks=${opening.hunt.wrecks}, focus=${w.hunt.focusId}`);
