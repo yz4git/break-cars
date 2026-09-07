@@ -4,6 +4,7 @@ export const COURSES=[
  {id:'crater-crown',mode:'colosseum',name:'CRATER CROWN',hint:'中央の王冠丘とリング状の斜面。高所から車体を重ねて押し込め。'},
  {id:'tidal-foundry',mode:'wreck-hunt',name:'TIDAL FOUNDRY',hint:'波状路面と斜めの土手。浮いた敵の着地に追撃しCHAINをつなげ。'},
  {id:'hunt-classic',mode:'wreck-hunt',name:'WRECK HUNT',hint:'既存の連続撃破アリーナ'},
+ {id:'sky-forge',mode:'racing',name:'SKY FORGE',hint:'非対称の立体8字。大ループ、連続うねり、天空交差橋を4周。'},
  {id:'rampage-3d',mode:'racing',name:'RAMPAGE 3D',hint:'既存のBOOST LOOPコース'}
 ];
 const requested=new URLSearchParams(globalThis.location?.search||'').get('course');

@@ -16,3 +16,12 @@ def apply_course_pack(target):
  s += "\nselectMode(activeCourse.mode);$('mode-tag').textContent=activeCourse.name+' / '+activeCourse.mode.toUpperCase();$('arena-caption').textContent=activeCourse.name;const courseHint=document.createElement('p');courseHint.className='course-hint';courseHint.textContent=activeCourse.hint;coursePicker.after(courseHint);\n"
  p.write_text(s)
  p=target/'index.html';s=p.read_text().replace('</head>','<link rel="stylesheet" href="courses.css"></head>');p.write_text(s)
+
+ # An asymmetric elevated ribbon retains the existing branch-aware projection and lap gates.
+ p=target/'racing3d.js';s=p.read_text();s="import {activeCourse} from './courses.js';\nconst skyForge=activeCourse.id==='sky-forge';\n"+s
+ s=s.replace("loopRadius:6.8", "loopRadius:skyForge?7.5:6.8")
+ s=s.replace("const x=62*Math.sin(t),z=40*Math.sin(t)*Math.cos(t);", "const x=(skyForge?70:62)*Math.sin(t)+(skyForge?7*Math.sin(2*t):0),z=(skyForge?47:40)*Math.sin(t)*Math.cos(t);")
+ s=s.replace("let y=7.4*gauss(t,Math.PI,.28)+2.4*gauss(t,1.82,.48)+1.6*gauss(t,4.02,.55);", "let y=(skyForge?10.5:7.4)*gauss(t,Math.PI,skyForge?.36:.28)+2.4*gauss(t,1.82,.48)+1.6*gauss(t,4.02,.55);if(skyForge)y+=1.3*gauss(t,1.55,.14)+1.7*gauss(t,2.05,.15)+1.3*gauss(t,2.50,.15);")
+ s=s.replace("clamp(.34*Math.sin(2*t),-.36,.36)", "clamp((skyForge?.43:.34)*Math.sin(2*t),-.44,.44)")
+ p.write_text(s)
+ p=target/'track-view.js';s=p.read_text();s="import {activeCourse} from './courses.js';\n"+s;s=s.replace("sign('RAMPAGE 3D',22,2.2)","sign(activeCourse.mode==='racing'?activeCourse.name:'RAMPAGE 3D',22,2.2)");s=s.replace("0xff7042","(activeCourse.id==='sky-forge'?0x72d8d3:0xff7042)");p.write_text(s)
