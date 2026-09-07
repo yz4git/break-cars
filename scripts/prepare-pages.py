@@ -95,3 +95,6 @@ html = html.replace('<script type="module"', guard + '<script type="module"', 1)
 index.write_text(html)
 (target / 'build-id.txt').write_text(build + '\n')
 print(f'Prepared {len(list(target.iterdir()))} assets, build {build}')
+
+# Sites accepts build/ as a static root; keep it byte-identical to Pages.
+shutil.copytree(target, Path('build'), dirs_exist_ok=True)
