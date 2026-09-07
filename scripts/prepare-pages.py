@@ -1,9 +1,15 @@
 """Publish the authored game with Wreck Hunt and versioned local dependencies."""
 from pathlib import Path
+import importlib.util
 import os
 import re
 import shutil
-from apply_wreck_hunt import apply_wreck_hunt
+
+patch_path = Path(__file__).with_name('apply-wreck-hunt.py')
+spec = importlib.util.spec_from_file_location('break_cars_wreck_hunt_patch', patch_path)
+patch_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(patch_module)
+apply_wreck_hunt = patch_module.apply_wreck_hunt
 
 source = Path('dist')
 target = Path('_site')
