@@ -1,4 +1,4 @@
-"""Publish the authored game with Wreck Hunt and versioned local dependencies."""
+"""Publish the authored game with Wreck Hunt, full 3D physics, and versioned local dependencies."""
 from pathlib import Path
 import importlib.util
 import os
@@ -19,6 +19,7 @@ apply_wreck_hunt_improvements = load_function('improve-wreck-hunt-v2.py', 'break
 apply_wreck_hunt_final_tuning = load_function('tune-wreck-hunt-post-review-v3.py', 'break_cars_wreck_hunt_final_tuning_v3', 'apply_wreck_hunt_final_tuning')
 apply_wreck_hunt_chain_tuning = load_function('tune-wreck-hunt-chain-v4.py', 'break_cars_wreck_hunt_chain_v4', 'apply_wreck_hunt_chain_tuning')
 apply_wreck_hunt_rush = load_function('tune-wreck-hunt-rush-v5.py', 'break_cars_wreck_hunt_rush_v5', 'apply_wreck_hunt_rush')
+apply_full_physics3d = load_function('apply-full-physics3d.py', 'break_cars_full_physics3d', 'apply_full_physics3d')
 
 source = Path('dist')
 target = Path('_site')
@@ -33,6 +34,9 @@ apply_wreck_hunt_improvements(target)
 apply_wreck_hunt_final_tuning(target)
 apply_wreck_hunt_chain_tuning(target)
 apply_wreck_hunt_rush(target)
+# Full vehicle physics is deliberately last: it consumes the final Hunt/Rush
+# rules but owns movement, suspension, contact impulses and chassis attitude.
+apply_full_physics3d(target)
 
 build = os.environ['DEPLOY_SHA'][:12]
 for path in target.glob('*.js'):
