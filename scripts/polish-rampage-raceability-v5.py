@@ -24,8 +24,8 @@ def apply_rampage_raceability(target: Path) -> None:
     s = physics.read_text()
     s = one(
         s,
-        "if (a.finished||b.finished) return; const A=a.p3,B=b.p3; if (!A||!B||Math.abs(A.px-B.px)>6||Math.abs(A.py-B.py)>4||Math.abs(A.pz-B.pz)>6) return; const contacts=[];",
-        "if (a.finished||b.finished) return; const A=a.p3,B=b.p3; if (!A||!B||Math.abs(A.px-B.px)>6||Math.abs(A.py-B.py)>4||Math.abs(A.pz-B.pz)>6) return; const loopPair=w.mode==='racing'&&racePointAt(a.trackS??0).kind==='loop'&&racePointAt(b.trackS??0).kind==='loop',contacts=[];",
+        "if (a.finished||b.finished) return; const A=a.p3,B=b.p3; if (!A||!B||Math.abs(A.px-B.px)>6||Math.abs(A.py-B.py)>4||Math.abs(A.pz-B.pz)>6) return;\n  const contacts=[];",
+        "if (a.finished||b.finished) return; const A=a.p3,B=b.p3; if (!A||!B||Math.abs(A.px-B.px)>6||Math.abs(A.py-B.py)>4||Math.abs(A.pz-B.pz)>6) return;\n  const loopPair=w.mode==='racing'&&racePointAt(a.trackS??0).kind==='loop'&&racePointAt(b.trackS??0).kind==='loop',contacts=[];",
         'loop pair detection',
     )
     s = one(
