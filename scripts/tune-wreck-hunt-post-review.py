@@ -49,15 +49,8 @@ def patch_physics(path: Path) -> None:
         "opening bounty",
     )
 
-    # Respawn closer and with stronger inward momentum so CHAIN targets arrive
-    # in time without materializing on top of the player.
+    # Respawn closer so the next target re-enters the action before CHAIN expires.
     text = replace_once(text, "r=22+w.rand()*7;", "r=18+w.rand()*6;", "respawn radius")
-    text = replace_once(
-        text,
-        "vx=-Math.sin(a)*4,vz=-Math.cos(a)*4",
-        "vx=-Math.sin(a)*5.5,vz=-Math.cos(a)*5.5",
-        "respawn inward speed",
-    )
 
     # Light steering magnetism only when a target is in the forward cone. It is
     # strongest with neutral steering and fades when the player deliberately
