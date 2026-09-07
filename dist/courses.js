@@ -1,5 +1,6 @@
 // Course selection is URL-backed: reloading creates one coherent physics/render world.
 export const COURSES=[
+ {id:'maelstrom-pit',mode:'colosseum',name:'MAELSTROM PIT',hint:'高さ8mの波打つ火口壁。急降下から中央へ飛び込み、空中で激突。'},
  {id:'classic',mode:'colosseum',name:'THE COLOSSEUM',hint:'既存のアリーナ'},
  {id:'crater-crown',mode:'colosseum',name:'CRATER CROWN',hint:'中央の王冠丘とリング状の斜面。高所から車体を重ねて押し込め。'},
  {id:'tidal-foundry',mode:'wreck-hunt',name:'TIDAL FOUNDRY',hint:'波状路面と斜めの土手。浮いた敵の着地に追撃しCHAINをつなげ。'},
@@ -8,9 +9,14 @@ export const COURSES=[
  {id:'rampage-3d',mode:'racing',name:'RAMPAGE 3D',hint:'既存のBOOST LOOPコース'}
 ];
 const requested=new URLSearchParams(globalThis.location?.search||'').get('course');
-export const activeCourse=COURSES.find(c=>c.id===requested)||COURSES[0];
+export const activeCourse=COURSES.find(c=>c.id===requested)||COURSES.find(c=>c.id==='classic');
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
 export function courseHeight(x,z){
+ if(activeCourse.id==='maelstrom-pit'){
+  const r=Math.hypot(x,z),a=Math.atan2(z,x),rim=8.2*Math.exp(-(((r-23)/7.5)**2))*(.80+.20*Math.cos(4*a));
+  const core=4.3*(1-smooth(r/9));
+  return (rim+core)*(1-smooth((r-36)/6));
+ }
  if(activeCourse.id==='crater-crown'){
   const r=Math.hypot(x,z),a=Math.atan2(z,x);
   const crown=3.8*(1-smooth((r-5)/12));
