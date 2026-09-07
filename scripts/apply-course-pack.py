@@ -13,6 +13,7 @@ def apply_course_pack(target):
  marker="for(const b of document.querySelectorAll('[data-mode]'))b.onclick=()=>selectMode(b.dataset.mode);"
  assert marker in s
  s=s.replace(marker,marker+"\nconst coursePicker=document.createElement('select');coursePicker.id='course-picker';coursePicker.setAttribute('aria-label','コース選択');for(const c of COURSES.filter(c=>c.mode===activeCourse.mode)){const o=document.createElement('option');o.value=c.id;o.textContent=c.name;coursePicker.appendChild(o);}coursePicker.value=activeCourse.id;coursePicker.onchange=()=>{location.search='?course='+encodeURIComponent(coursePicker.value);};document.querySelector('.mode-select').after(coursePicker);\n")
+ s=s.replace("inArenaLoop=gameMode!=='racing'&&","inArenaLoop=courseHeight(0,0)===null&&gameMode!=='racing'&&")
  s += "\nselectMode(activeCourse.mode);$('mode-tag').textContent=activeCourse.name+' / '+activeCourse.mode.toUpperCase();$('arena-caption').textContent=activeCourse.name;const courseHint=document.createElement('p');courseHint.className='course-hint';courseHint.textContent=activeCourse.hint;coursePicker.after(courseHint);\n"
  p.write_text(s)
  p=target/'index.html';s=p.read_text().replace('</head>','<link rel="stylesheet" href="courses.css"></head>');p.write_text(s)

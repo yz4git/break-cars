@@ -26,6 +26,8 @@ jobs:
           DEPLOY_SHA: ${{ github.sha }}
         run: |
           python3 scripts/prepare-pages.py
+          node --check _site/courses.js
+          node --check _site/course-view.js
           node --check _site/game.js
           node --check _site/physics.js
           node --check _site/physics3d.js
@@ -40,6 +42,7 @@ jobs:
           node scripts/test-rampage-raceability.mjs
           node scripts/test-rampage-boost.mjs
           node scripts/test-player-auto-upright.mjs
+          node scripts/test-courses.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

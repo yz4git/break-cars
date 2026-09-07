@@ -10,9 +10,9 @@ Last survivor wins. At the three-minute limit, surviving cars rank by impact sco
 
 ## Development
 
-Buildless, self-contained ES modules. Serve `dist/` with any static HTTP server (for example `python3 -m http.server 8000 --directory dist`). There is no CDN dependency. `node --test tests/physics.test.mjs` runs collision and complete-match simulation checks. `node --check dist/game.js` validates the entry module. Rendering uses the vendored Three.js r160 distribution, licensed under MIT; see `dist/THREE-LICENSE.txt`.
+Buildless, self-contained ES modules. Run `npm run build`, then serve `_site/` (for example `python3 -m http.server 8000 --directory _site`). There is no CDN dependency. `node --test tests/physics.test.mjs` runs collision and complete-match simulation checks. `node --check dist/game.js` validates the entry module. Rendering uses the vendored Three.js r160 distribution, licensed under MIT; see `dist/THREE-LICENSE.txt`.
 
-`dist/physics.js` is a deterministic 60 Hz planar oriented-box simulation, including linear collision impulses, angular response, wall impacts, directional damage and opponent steering. Rendering is full 3D with impact-scaled airborne, roll and pitch reactions and ground-clearance correction. The planar collision footprint remains on the road; this is an arcade reaction system rather than full suspension physics. `dist/game.js` owns visuals, audio, UI and captured-pointer input. Pointer cancellation, focus loss and page hiding release all controls. Pausing is manual to avoid touch-related focus changes opening the pause menu.
+The generated `physics3d.js` owns the existing 6DoF rigid-body simulation, four-wheel suspension, contact impulses and chassis attitude. `game.js` follows that physical pose. The preparation pipeline incorporates the latest loop boost, camera and automatic upright tuning before adding selectable courses.
 
 ## Hosting
 
@@ -39,3 +39,16 @@ Select **WRECKING RACING** at the title screen. Iron Loop is a 12-car, four-lap 
 `dist/racing.js` owns course geometry, gates, race AI and scoring. `dist/track-view.js` renders the same geometry. Nine automated tests cover both modes, including complete CPU races, reverse abuse and scoring. Runtime flow checks were performed with a stubbed renderer; actual GPU/mobile visual QA was not performed in this update.
 
 The former Pages-only reaction patches have been incorporated into `dist/game.js`. Historical patch scripts are retained but no longer run in the workflow. Both Sites and Pages use the same authored game. `scripts/prepare-pages.py` copies it and versions **all** local JavaScript module imports and CSS references, retaining game-scoped cache cleanup with no forced reload.
+
+
+## Selectable 3D courses (September 2026)
+
+Each mode retains its existing course and adds one selectable course in the garage:
+
+- **Colosseum / CRATER CROWN** — a 3.8 m central crown and undulating ring slopes encourage side loading, car-on-car climbing and elevated collisions.
+- **Wreck Hunt / TIDAL FOUNDRY** — a washboard lane, diagonal earth bank and east-side rollers create airborne approaches and landing interceptions; chain/rush/respawn rules remain intact.
+- **Wrecking Racing / SKY FORGE** — an asymmetric 416 m elevated figure eight, 7.5 m radius loop, three rolling crests, 10.6 m crossover bridge, banking and jump gap. Existing boost assistance, branch-aware projection and lap validation are reused.
+
+Course selection is stored in the URL (`?course=crater-crown`, `tidal-foundry`, `sky-forge`) and reloads into a fresh race. The garage dropdown preserves access to original courses. Arena render meshes and physics normals derive from the same height function. Course definitions live in `dist/courses.js`; the integration is applied last by `scripts/apply-course-pack.py`.
+
+Run `npm run build` to generate the complete `_site` runtime. Both Pages and Sites publish `_site`; raw `dist/game.js` is the input to the existing integration pipeline, not the final playable runtime. The existing Sites project ID is preserved. `npm run test:courses` verifies terrain mesh alignment, arena pack simulations and a natural Sky Forge lap plus pack flow. Existing physics/Hunt/boost/upright checks also pass. UI lifecycle checks use real Three scene objects with a stubbed WebGL renderer; actual GPU/iPhone visual testing was not performed in this update.

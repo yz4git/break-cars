@@ -1,10 +1,12 @@
 {
   "name": "break-cars",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check dist/game.js && node --check dist/physics.js && node --check dist/racing.js && node --check dist/track-view.js"
+    "check": "node --check dist/game.js && node --check dist/physics.js && node --check dist/racing.js && node --check dist/track-view.js",
+    "build": "python3 scripts/prepare-pages.py",
+    "test:courses": "node scripts/test-courses.mjs"
   }
 }

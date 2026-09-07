@@ -4,6 +4,7 @@ import importlib.util
 import os
 import re
 import shutil
+import subprocess
 
 
 def load_function(filename, module_name, function_name):
@@ -71,7 +72,7 @@ apply_auto_upright_racing_hint(target)
 apply_course_pack = load_function('apply-course-pack.py', 'break_cars_courses', 'apply_course_pack')
 apply_course_pack(target)
 
-build = os.environ['DEPLOY_SHA'][:12]
+build = (os.environ.get('DEPLOY_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())[:12]
 for path in target.glob('*.js'):
     text = path.read_text()
     text = re.sub(r"(['\"])(\./[^'\"?]+\.js)(?:\?v=[^'\"]+)?\1", lambda m: f'{m[1]}{m[2]}?v={build}{m[1]}', text)
