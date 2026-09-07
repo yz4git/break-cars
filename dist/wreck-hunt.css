@@ -53,6 +53,36 @@
 #hunt-info.hot{background:#2b100ce6;border-color:#ff6337aa}
 #hunt-info.hot b{color:#ff7650;font-size:27px;text-shadow:0 2px 12px #000,0 0 24px #ff401f}
 
+/* Stable bounty navigator: unlike the 3D marker this remains useful when the
+   next chain target is behind the camera or on the far side of the arena. */
+#hunt-nav{
+  position:fixed;
+  top:max(108px,calc(env(safe-area-inset-top) + 94px));
+  left:50%;
+  transform:translateX(-50%) translateY(-3px);
+  z-index:7;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:104px;
+  padding:4px 9px;
+  border:1px solid #ffb54855;
+  border-radius:999px;
+  background:#10171dd6;
+  box-shadow:0 5px 18px #0007;
+  color:#ffe1a3;
+  pointer-events:none;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .12s ease,transform .12s ease,background .12s ease;
+}
+#hunt-nav.visible{opacity:.94;visibility:visible;transform:translateX(-50%) translateY(0)}
+#hunt-nav b{display:inline-block;width:17px;text-align:center;font:950 15px/1 Arial,sans-serif;color:#ff7b45;text-shadow:0 0 10px #ff4a1f88;transition:transform .08s linear}
+#hunt-nav span{font:950 9px/1 Arial,sans-serif;letter-spacing:.12em;white-space:nowrap}
+#hunt-nav small{margin-left:auto;font:900 9px/1 Arial,sans-serif;color:#fff}
+#hunt-nav.near{background:#2b160de8;border-color:#ff713d99;box-shadow:0 5px 18px #0007,0 0 16px #ff5b2f44}
+body:not(.playing) #hunt-nav{display:none!important}
+
 /* Instant hit/wreck messages get their own visual lane below the chain. */
 body[data-game-mode="wreck-hunt"] #toast{top:34%}
 body[data-game-mode="wreck-hunt"] #impact-feedback{top:40%}
@@ -68,5 +98,8 @@ body[data-game-mode="wreck-hunt"] #impact-feedback{top:40%}
   #hunt-info.hot b{font-size:23px}
   #hunt-info small{font-size:7px}
   #hunt-info.active small{font-size:8px}
+  #hunt-nav{top:max(92px,calc(env(safe-area-inset-top) + 82px));min-width:94px;padding:3px 8px}
+  #hunt-nav b{font-size:13px}
+  #hunt-nav span,#hunt-nav small{font-size:8px}
   body[data-game-mode="wreck-hunt"] #toast{top:36%}
 }
