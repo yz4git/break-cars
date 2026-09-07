@@ -12,7 +12,10 @@ assert.equal(w.hunt.combo, 0);
 assert.ok(w.cars[0].maxHP > 138, 'hunter should have extra durability');
 assert.ok(w.cars.slice(1).every(c => c.maxHP >= 46 && c.maxHP <= 72), 'hunt targets should be soft enough for fast finishers');
 assert.equal(w.cars[0].z, 10, 'hunter should start inside the action instead of on the outer ring');
-assert.ok(w.cars.slice(1).every(c => Math.hypot(c.x,c.z) >= 19 && Math.hypot(c.x,c.z) <= 26), 'targets should start on the inner combat ring');
+assert.equal(w.cars[1].x, 0, 'opening bounty should be lined up with the hunter');
+assert.equal(w.cars[1].z, -8, 'opening bounty should be reachable in the first rush');
+assert.ok(w.cars[1].hp / w.cars[1].maxHP <= .4, 'opening bounty should already be finishable');
+assert.ok(w.cars.slice(2).every(c => Math.hypot(c.x,c.z) >= 19 && Math.hypot(c.x,c.z) <= 26), 'other targets should stay on the inner combat ring');
 
 const gameSource = fs.readFileSync(new URL('../_site/game.js', import.meta.url), 'utf8');
 const physicsSource = fs.readFileSync(new URL('../_site/physics.js', import.meta.url), 'utf8');
@@ -20,19 +23,31 @@ const indexSource = fs.readFileSync(new URL('../_site/index.html', import.meta.u
 assert.match(gameSource, /targetMarker/);
 assert.match(gameSource, /huntPriority/);
 assert.match(gameSource, /HUNT START — WRECK TARGETS/);
-assert.match(gameSource, /NEW TARGET/);
 assert.match(gameSource, /HUNT SCORE/);
 assert.match(gameSource, /Math\.max\(0,9-\(world\.time-h\.lastWreckAt\)\)/);
 assert.doesNotMatch(gameSource, /c\.id===huntPriority\|\|c\.hp\/c\.maxHP<=\.45/);
+assert.doesNotMatch(gameSource, /NEW TARGET — CAR/);
 assert.match(physicsSource, /huntDamage/);
+assert.match(physicsSource, /other\.id===0\?1\.82:\.28/);
 assert.match(physicsSource, /w\.mode==='wreck-hunt'\?\.62:\.82/);
-assert.match(physicsSource, /c\.id%3===0\?1\.04:\.58/);
+assert.match(physicsSource, /c\.id%3===0\?1\.04:\.48/);
 assert.match(physicsSource, /lastWreckAt<=9/);
 assert.match(physicsSource, /lastWreckAt>9/);
 assert.match(physicsSource, /other\.hp=Math\.min\(other\.maxHP,other\.hp\+other\.maxHP\*\.10\)/);
-assert.match(physicsSource, /1\.55\+w\.rand\(\)\*\.55/);
-assert.match(physicsSource, /r=22\+w\.rand\(\)\*7/);
+assert.match(physicsSource, /r=18\+w\.rand\(\)\*6/);
+assert.match(physicsSource, /huntEdge/);
+assert.match(physicsSource, /bestCost/);
 assert.match(indexSource, /id="score-label"/);
+
+// With no steering input, the opening bounty should be contacted and finished
+// quickly enough that the player experiences the Wreck Hunt loop immediately.
+const opening = makeWorld(0, 77, 'wreck-hunt');
+for (let i = 0; i < 5 * 60 && !opening.done && opening.hunt.wrecks === 0; i++) {
+  step(opening, {gas:1,brake:0,hand:0,steer:0}, 1 / 60, false);
+}
+assert.ok(opening.cars[0].contacts > 0, 'straight opening rush should reach a target');
+assert.ok(opening.cars[0].score > 0, 'opening contact should award player impact score');
+assert.ok(opening.hunt.wrecks >= 1, 'opening bounty should be wrecked within five seconds');
 
 // A deliberately lined-up finisher should award a hunt wreck, start CHAIN,
 // and return a small amount of hull so a long score-attack run can continue.
@@ -60,7 +75,7 @@ assert.equal(combat.hunt.combo, 2, 'chain should survive through eight seconds')
 for (let i = 0; i < 2 * 60; i++) step(combat, {}, 1 / 60, false);
 assert.equal(combat.hunt.combo, 0, 'chain should expire after nine seconds without another wreck');
 
-// Destroyed targets recycle close to the fight with inward momentum.
+// Destroyed targets recycle closer to the fight and enter with inward momentum.
 const target = w.cars[1];
 target.dead = true;
 target.wreckAt = 0;
@@ -73,8 +88,8 @@ assert.equal(target.hp, target.maxHP);
 assert.equal(target.respawnAt, Infinity);
 assert.ok(w.events.some(e => e.type === 'respawn' && e.car === target.id));
 assert.equal(w.hunt.respawns, 1);
-assert.ok(Math.hypot(target.x,target.z) >= 21 && Math.hypot(target.x,target.z) <= 30);
-assert.ok(Math.hypot(target.vx,target.vz) > 3.5, 'replacement target should launch inward instead of spawning stationary');
+assert.ok(Math.hypot(target.x,target.z) >= 17 && Math.hypot(target.x,target.z) <= 25);
+assert.ok(Math.hypot(target.vx,target.vz) > 5, 'replacement target should launch inward instead of spawning stationary');
 
 // A short autoplay soak verifies finite state and dense, ongoing contact.
 for (let i = 0; i < 1200 && !w.done; i++) {
@@ -87,4 +102,4 @@ for (let i = 0; i < 1200 && !w.done; i++) {
 assert.ok(w.time > 15);
 assert.equal(w.done, false);
 assert.ok(w.cars.some(c => c.contacts > 0), 'hunt should generate vehicle contact during a short soak');
-console.log(`Wreck Hunt runtime OK: ${w.time.toFixed(1)}s, respawns=${w.hunt.respawns}, wrecks=${w.hunt.wrecks}, playerScore=${w.cars[0].score}`);
+console.log(`Wreck Hunt runtime OK: ${w.time.toFixed(1)}s, respawns=${w.hunt.respawns}, wrecks=${w.hunt.wrecks}, playerScore=${w.cars[0].score}, openingWrecks=${opening.hunt.wrecks}`);
