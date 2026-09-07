@@ -1,0 +1,66 @@
+name: Wreck Hunt Chain Visual
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install chromium --with-deps
+      - name: Prepare production build
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: python3 scripts/prepare-pages.py
+      - name: Render chain review
+        run: |
+          cat > /tmp/review.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import { spawn } from 'node:child_process';
+          import fs from 'node:fs';
+          const server=spawn('python3',['-m','http.server','4173','--directory','_site'],{stdio:'ignore'});
+          await new Promise(r=>setTimeout(r,900));
+          const browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader','--disable-gpu-vsync','--disable-frame-rate-limit']});
+          const context=await browser.newContext({viewport:{width:852,height:393},deviceScaleFactor:1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1'});
+          const page=await context.newPage();
+          const logs=[];
+          page.on('console',m=>logs.push(`console ${m.type()}: ${m.text()}`));
+          page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`));
+          await page.goto('http://127.0.0.1:4173',{waitUntil:'networkidle'});
+          await page.click('button[data-mode="wreck-hunt"]');
+          await page.screenshot({path:'01-selected.png'});
+          await page.click('#start');
+          await page.waitForTimeout(3800);
+          await page.screenshot({path:'02-opening-rush.png'});
+          await page.keyboard.down('ArrowUp');
+          const shots=[];
+          const pattern=[['ArrowLeft',850],['ArrowRight',1500],['ArrowLeft',1200],['ArrowRight',1500],['ArrowLeft',1400],['ArrowRight',1600],['ArrowLeft',1200],['ArrowRight',1600],['ArrowLeft',1500],['ArrowRight',1600]];
+          let idx=0;
+          for(const [key,ms] of pattern){
+            await page.keyboard.down(key); await page.waitForTimeout(ms); await page.keyboard.up(key);
+            const hud=await page.evaluate(()=>({time:document.querySelector('#time')?.textContent,score:document.querySelector('#score')?.textContent,alive:document.querySelector('#alive')?.textContent,hunt:document.querySelector('#hunt-info')?.innerText,toast:document.querySelector('#toast')?.textContent,speed:document.querySelector('#speed')?.innerText,hull:document.querySelector('#hp')?.textContent,viewport:{scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,scrollX,scrollY}}));
+            shots.push({idx,hud});
+            if([0,2,4,6,8,9].includes(idx)) await page.screenshot({path:`${String(idx+3).padStart(2,'0')}-drive.png`});
+            idx++;
+          }
+          await page.keyboard.up('ArrowUp');
+          await page.waitForTimeout(500);
+          await page.screenshot({path:'13-final.png'});
+          const report=await page.evaluate(()=>({title:document.title,time:document.querySelector('#time')?.textContent,score:document.querySelector('#score')?.textContent,alive:document.querySelector('#alive')?.textContent,hunt:document.querySelector('#hunt-info')?.innerText,toast:document.querySelector('#toast')?.textContent,speed:document.querySelector('#speed')?.innerText,hull:document.querySelector('#hp')?.textContent,bodyClass:document.body.className,viewport:{scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,width:visualViewport?.width,height:visualViewport?.height,scrollX,scrollY,innerWidth,innerHeight}}));
+          fs.writeFileSync('report.json',JSON.stringify({report,shots,logs},null,2));
+          await browser.close(); server.kill('SIGTERM');
+          EOF
+          node /tmp/review.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: break-cars-wreck-hunt-chain-review
+          path: |
+            *.png
+            report.json
