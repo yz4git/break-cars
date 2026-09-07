@@ -37,6 +37,7 @@ jobs:
           node scripts/test-wreck-hunt.mjs
           node scripts/test-full-physics3d.mjs
           node scripts/test-racing3d.mjs
+          node scripts/test-player-auto-upright.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
