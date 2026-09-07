@@ -17,7 +17,7 @@ jobs:
           cat >> _site/game.js <<'EOF'
           window.__courseReview={
             showPlayView:()=>{$('menu').classList.add('hidden');$('modal').classList.add('hidden');$('hud').classList.remove('hidden');$('driving').classList.remove('hidden');$('race-info').classList.remove('hidden');$('recover').classList.remove('hidden');$('countdown').textContent='';document.body.classList.add('playing');camHeading=world.cars[0].heading;const c=world.cars[0];camera.position.set(c.x-Math.sin(camHeading)*9.8,5,c.z-Math.cos(camHeading)*9.8);smoothLook.set(c.x,1.1,c.z);},
-            resetSolo:(value=2468)=>{seed=value>>>0;gameMode='racing';selection=0;resetWorld();mode='review';count=0;world.done=false;world.endAt=999;world.limit=999;for(let i=1;i<world.cars.length;i++){const c=world.cars[i];c.dead=true;c.finished=false;c.respawnAt=Infinity;c.vx=c.vz=0;if(c.p3)c.p3.vx=c.p3.vy=c.p3.vz=0;if(carMeshes[i])carMeshes[i].g.visible=false;}window.__courseReview.showPlayView();return window.__courseReview.state();},
+            resetSolo:(value=2468)=>{seed=value>>>0;gameMode='racing';selection=0;resetWorld();mode='review';count=0;world.done=false;world.endAt=999;world.limit=999;for(let i=1;i<world.cars.length;i++){const c=world.cars[i];c.dead=true;c.finished=true;c.respawnAt=Infinity;c.x=900+i*12;c.z=900;c.vx=c.vz=0;if(c.p3){c.p3.px=900+i*12;c.p3.py=0;c.p3.pz=900;c.p3.vx=c.p3.vy=c.p3.vz=0;c.p3.wx=c.p3.wy=c.p3.wz=0;}if(carMeshes[i])carMeshes[i].g.visible=false;}window.__courseReview.showPlayView();return window.__courseReview.state();},
             resetPack:(value=144)=>{seed=value>>>0;gameMode='racing';selection=0;resetWorld();mode='review';count=0;world.done=false;world.endAt=999;world.limit=999;for(const m of carMeshes)m.g.visible=true;window.__courseReview.showPlayView();return window.__courseReview.state();},
             spec:()=>fullPhysicsSpec.race,
             state:()=>{const c=world.cars[0],b=c.p3,p=trackPoint(c.trackS),upY=b?1-2*(b.qx*b.qx+b.qz*b.qz):1;return{time:world.time,lap:c.lap,raceDistance:c.raceDistance,trackS:c.trackS,kind:p.kind,bank:p.bank,lane:p.lane,x:b?.px??c.x,y:b?.py??0,z:b?.pz??c.z,speed:b?Math.hypot(b.vx,b.vy,b.vz):Math.hypot(c.vx,c.vz),upY,wheels:b?.groundedWheels??0,air:b?.airTime??0,hp:c.hp,dead:c.dead,finished:c.finished,recoveryAt:c.recoveryAt,autoUprightTime:c.autoUprightTime||0};},
@@ -39,12 +39,12 @@ jobs:
           const page=await browser.newPage({viewport:{width:852,height:393},deviceScaleFactor:1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1'});
           const logs=[];page.on('console',m=>logs.push(`console ${m.type()}: ${m.text()}`));page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`));
           await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__courseReview);
-          const spec=await page.evaluate(()=>window.__courseReview.spec());let state=await page.evaluate(()=>window.__courseReview.resetSolo(2468));const startDistance=state.raceDistance;
+          const spec=await page.evaluate(()=>window.__courseReview.spec());let state=await page.evaluate(()=>window.__courseReview.resetSolo(2468));const startDistance=state.raceDistance,targetDistance=startDistance+spec.length;
           const agg={maxMove:0,maxSJump:0,maxProgressJump:0,maxCenter:0,wall:0,recover:0,auto:0,impact:0,longestStuck:0,minSpeed:Infinity,features:new Set()};
-          const shots=new Set();const capture=async(name)=>{if(shots.has(name))return;shots.add(name);await page.waitForTimeout(220);await page.screenshot({path:`${String(shots.size).padStart(2,'0')}-${name}.png`});};
+          const shots=new Set();const capture=async(name)=>{if(shots.has(name))return;shots.add(name);await page.waitForTimeout(260);await page.screenshot({path:`${String(shots.size).padStart(2,'0')}-${name}.png`});};
           await capture('start');
           let frames=0,loopEntered=false,loopExited=false,jumpEntered=false,jumpLanded=false;
-          while(frames<3000&&!state.dead&&!state.finished&&state.raceDistance<startDistance+spec.length*1.03){
+          while(frames<3600&&!state.dead&&!state.finished&&state.raceDistance<targetDistance){
             const r=await page.evaluate(()=>window.__courseReview.tick(6));frames+=6;state=r;
             for(const k of ['maxMove','maxSJump','maxProgressJump','maxCenter','wall','recover','auto','impact','longestStuck'])agg[k]=Math.max(agg[k],r[k]??0);agg.minSpeed=Math.min(agg.minSpeed,r.minSpeed);for(const f of r.features)agg.features.add(f);
             if(Math.abs(state.bank)>.29)await capture('max-bank');
@@ -53,14 +53,14 @@ jobs:
             if(loopEntered&&state.kind!=='loop'&&!loopExited){loopExited=true;await capture('loop-exit');}
             if(state.kind==='bridge')await capture('elevated-crossing');
             if(state.kind==='jump-ramp'&&!jumpEntered){jumpEntered=true;await capture('jump-ramp');}
-            if((state.kind==='jump-gap'||state.air>.12))await capture('jump-air');
+            if(state.kind==='jump-gap')await capture('jump-air');
             if(jumpEntered&&state.kind==='jump-landing'&&!jumpLanded){jumpLanded=true;await capture('jump-landing');}
             if(state.speed<1.2&&frames>120)await capture('low-speed');
           }
           await capture('solo-end');const soloFinal=state;
-          let pack=await page.evaluate(()=>window.__courseReview.resetPack(144));const packAgg={maxMove:0,maxSJump:0,maxProgressJump:0,maxCenter:0,recover:0,auto:0,impact:0,longestStuck:0};for(let i=0;i<120;i++){const r=await page.evaluate(()=>window.__courseReview.tick(6));for(const k of Object.keys(packAgg))packAgg[k]=Math.max(packAgg[k],r[k]??0);}await page.waitForTimeout(550);await page.screenshot({path:'99-pack.png'});pack=await page.evaluate(()=>window.__courseReview.state());
+          let pack=await page.evaluate(()=>window.__courseReview.resetPack(144));const packAgg={maxMove:0,maxSJump:0,maxProgressJump:0,maxCenter:0,recover:0,auto:0,impact:0,longestStuck:0};for(let i=0;i<90;i++){const r=await page.evaluate(()=>window.__courseReview.tick(6));for(const k of Object.keys(packAgg))packAgg[k]=Math.max(packAgg[k],r[k]??0);}await page.waitForTimeout(650);await page.screenshot({path:'99-pack.png'});pack=await page.evaluate(()=>window.__courseReview.state());
           const viewport=await page.evaluate(()=>({scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,scrollX,scrollY,innerWidth,innerHeight}));
-          const report={spec,startDistance,frames,simSeconds:frames/60,soloFinal,aggregate:{...agg,features:[...agg.features]},checks:{completedDistance:soloFinal.raceDistance>=startDistance+spec.length*.96,loopEntered,loopInverted:shots.has('loop-inverted'),loopExited,jumpEntered,jumpAir:shots.has('jump-air'),jumpLanded,bridgeSeen:shots.has('elevated-crossing'),bankSeen:shots.has('max-bank'),noRecover:agg.recover===0&&agg.auto===0,noWarp:agg.maxMove<2.2&&agg.maxSJump<5.5&&agg.maxProgressJump<5.5,noLongStuck:agg.longestStuck<3},pack,packAgg,logs,viewport,shots:[...shots]};
+          const report={spec,startDistance,targetDistance,frames,simSeconds:frames/60,soloFinal,aggregate:{...agg,features:[...agg.features]},checks:{completedDistance:soloFinal.raceDistance>=targetDistance-.5,loopEntered,loopInverted:shots.has('loop-inverted'),loopExited,jumpEntered,jumpAir:shots.has('jump-air'),jumpLanded,bridgeSeen:shots.has('elevated-crossing'),bankSeen:shots.has('max-bank'),noRecover:agg.recover===0&&agg.auto===0,noWarp:agg.maxMove<2.2&&agg.maxSJump<5.5&&agg.maxProgressJump<5.5,noLongStuck:agg.longestStuck<3},pack,packAgg,logs,viewport,shots:[...shots]};
           fs.writeFileSync('full-lap-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));await browser.close();
           EOF
           node review.mjs
