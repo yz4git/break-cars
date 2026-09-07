@@ -15,7 +15,7 @@ def load_function(filename, module_name, function_name):
 
 
 apply_wreck_hunt = load_function('apply-wreck-hunt.py', 'break_cars_wreck_hunt_patch', 'apply_wreck_hunt')
-apply_wreck_hunt_improvements = load_function('improve-wreck-hunt.py', 'break_cars_wreck_hunt_polish', 'apply_wreck_hunt_improvements')
+apply_wreck_hunt_improvements = load_function('improve-wreck-hunt-v2.py', 'break_cars_wreck_hunt_polish_v2', 'apply_wreck_hunt_improvements')
 
 source = Path('dist')
 target = Path('_site')
