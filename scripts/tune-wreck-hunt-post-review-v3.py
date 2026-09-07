@@ -67,6 +67,22 @@ def patch_game(path: Path):
         "else if(e.car!==0&&toastTime<.2)toast(`CAR ${String(e.car+1).padStart(2,'0')} DESTROYED`,1.6);",
         "else if(e.car!==0&&world.mode!=='wreck-hunt'&&toastTime<.2)toast(`CAR ${String(e.car+1).padStart(2,'0')} DESTROYED`,1.6);",
         "quiet cpu wreck")
+
+    # Wreck Hunt recycles targets rapidly, so the survival-mode smoke volume
+    # becomes opaque. Preserve sparks/flames but thin and shrink smoke only in Hunt.
+    s = one(s,
+        "p.size=kind==='smoke'?.34+Math.random()*.25:kind==='flame'?.18+Math.random()*.3:kind==='debris'?.10+Math.random()*.18:.05+Math.random()*.12;",
+        "p.size=kind==='smoke'?(world.mode==='wreck-hunt'?.22:.34)+Math.random()*(world.mode==='wreck-hunt'?.16:.25):kind==='flame'?.18+Math.random()*.3:kind==='debris'?.10+Math.random()*.18:.05+Math.random()*.12;",
+        "hunt smoke size")
+    s = one(s,
+        "for(let i=0;i<16;i++)emit(e.x,1.1,e.z,e.power,'smoke');",
+        "for(let i=0;i<(world.mode==='wreck-hunt'?6:16);i++)emit(e.x,1.1,e.z,e.power,'smoke');",
+        "hunt wreck smoke burst")
+    s = one(s,
+        "if(c.dead&&smokeClock>.09){emit(c.x+Math.sin(c.heading)*.6,1.15,c.z+Math.cos(c.heading)*.6,4,'smoke');if(world.time-c.wreckAt<14&&Math.random()<.68)emit(c.x,1.0,c.z,8,'flame');}",
+        "if(c.dead&&smokeClock>.09){if(world.mode!=='wreck-hunt'||(world.time-c.wreckAt<8&&Math.random()<.42))emit(c.x+Math.sin(c.heading)*.6,1.15,c.z+Math.cos(c.heading)*.6,4,'smoke');if(world.time-c.wreckAt<(world.mode==='wreck-hunt'?8:14)&&Math.random()<(world.mode==='wreck-hunt'?.38:.68))emit(c.x,1.0,c.z,8,'flame');}",
+        "hunt smoke trail")
+
     s = one(s,
         "$('score').textContent=String(p.score).padStart(5,'0');const remain=",
         "$('score').textContent=String(p.score).padStart(5,'0');if($('score-label'))$('score-label').textContent=world.mode==='wreck-hunt'?'HUNT SCORE':'IMPACT SCORE';const remain=",
