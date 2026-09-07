@@ -24,6 +24,7 @@ apply_full_physics3d = load_function('apply-racing3d-full-physics.py', 'break_ca
 apply_racing3d_surface_hint = load_function('fix-racing3d-surface-hint.py', 'break_cars_racing3d_surface_hint', 'apply_racing3d_surface_hint')
 apply_smooth_racing3d_boundary = load_function('smooth-racing3d-boundary.py', 'break_cars_smooth_racing3d_boundary', 'apply_smooth_racing3d_boundary')
 apply_full_physics_loop_polish = load_function('polish-full-physics-loop-v2.py', 'break_cars_full_physics_loop_polish', 'apply_full_physics_loop_polish')
+apply_racing3d_loop_camera = load_function('polish-racing3d-loop-camera-v3.py', 'break_cars_racing3d_loop_camera_v3', 'apply_racing3d_loop_camera')
 apply_racing3d_ui = load_function('polish-racing3d-ui.py', 'break_cars_racing3d_ui', 'apply_racing3d_ui')
 apply_player_auto_upright = load_function('add-player-auto-upright.py', 'break_cars_player_auto_upright', 'apply_player_auto_upright')
 apply_auto_upright_racing_hint = load_function('fix-auto-upright-racing-hint.py', 'break_cars_auto_upright_racing_hint', 'apply_auto_upright_racing_hint')
@@ -52,6 +53,9 @@ apply_racing3d_surface_hint(target)
 # one-frame visual warps.
 apply_smooth_racing3d_boundary(target)
 apply_full_physics_loop_polish(target)
+# The racing loop uses an exterior, world-up camera so the road surface cannot
+# swallow the chase camera while the chassis is vertical or inverted.
+apply_racing3d_loop_camera(target)
 apply_racing3d_ui(target)
 apply_player_auto_upright(target)
 apply_auto_upright_racing_hint(target)
