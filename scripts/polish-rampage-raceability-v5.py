@@ -1,9 +1,8 @@
 """Post-review RAMPAGE 3D raceability polish.
 
-Keep the loop physical/full-contact, but make the approach + loop a stunt
-safety zone rather than a first-lap mass grave. Also make the jump landing
-visually obvious and keep the chase camera looking at the landing road while
-airborne.
+Keep the loop physical/full-contact, but make the opening grid + approach +
+loop a stunt flow zone rather than a first-lap traffic jam. Targeted combat
+returns immediately after the first loop exit. Also keep jump landings clear.
 """
 from pathlib import Path
 
@@ -19,17 +18,20 @@ def apply_rampage_raceability(target: Path) -> None:
     racing = target / 'racing.js'
     s = racing.read_text()
     s = one(s, "const loopLanes=[-4.4,-1.5,1.5,4.4];", "const loopLanes=[-5.8,-2.9,2.9,5.8];", 'loop lane spread')
+    old = "const loopGap=forwardGap(COURSE_SPEC.loop.startS,p.s),loopApproach=p.kind!=='loop'&&loopGap>0&&loopGap<50,loopLane=c.id===0?0:(c.loopLane??0);\n if(loopApproach){"
+    new = "const loopGap=forwardGap(COURSE_SPEC.loop.startS,p.s),loopApproach=p.kind!=='loop'&&loopGap>0&&loopGap<50,loopLane=c.id===0?0:(c.loopLane??0),openingStunt=c.raceDistance>-60&&c.raceDistance<COURSE_SPEC.loop.endS+10;\n if(openingStunt&&!loopApproach&&p.kind!=='loop'){\n  c.battleTarget=-1;c.aiReverse=0;\n  const launchLane=c.raceDistance<5?c.lane:loopLane,target=trackPoint(p.s+clamp(12+speed*.32,13,21),launchLane),delta=angle(Math.atan2(target.x-c.x,target.z-c.z)-c.heading),laneFix=clamp((launchLane-p.lane)*.10,-.30,.30);\n  return{gas:1,brake:0,steer:clamp(delta*1.5+laneFix,-.68,.68),hand:0};\n }\n if(loopApproach){"
+    s = one(s, old, new, 'opening stunt AI')
     racing.write_text(s)
 
     physics = target / 'physics3d.js'
     s = physics.read_text()
     import_line = "import {sampleRaceSurface,racePointAt,race3DFeatureSpec} from './racing3d.js?v=wr3d-v1';\n"
-    helper = import_line + "const RAMPAGE_RACE_SPEC=race3DFeatureSpec();\nconst rampageStuntSafety=s=>{const L=RAMPAGE_RACE_SPEC.length,q=((s??0)%L+L)%L;let gap=RAMPAGE_RACE_SPEC.loop.startS-q;if(gap<0)gap+=L;return racePointAt(q).kind==='loop'||gap<38;};\n"
+    helper = import_line + "const RAMPAGE_RACE_SPEC=race3DFeatureSpec();\nconst rampageStuntSafety=c=>{const rd=c?.raceDistance??0;if(rd>-60&&rd<RAMPAGE_RACE_SPEC.loop.endS+10)return true;const L=RAMPAGE_RACE_SPEC.length,q=((c?.trackS??0)%L+L)%L;let gap=RAMPAGE_RACE_SPEC.loop.startS-q;if(gap<0)gap+=L;return racePointAt(q).kind==='loop'||gap<38;};\n"
     s = one(s, import_line, helper, 'stunt safety helper')
     s = one(
         s,
         "if (a.finished||b.finished) return; const A=a.p3,B=b.p3; if (!A||!B||Math.abs(A.px-B.px)>6||Math.abs(A.py-B.py)>4||Math.abs(A.pz-B.pz)>6) return;\n  const contacts=[];",
-        "if (a.finished||b.finished) return; const A=a.p3,B=b.p3; if (!A||!B||Math.abs(A.px-B.px)>6||Math.abs(A.py-B.py)>4||Math.abs(A.pz-B.pz)>6) return;\n  const stuntPair=w.mode==='racing'&&rampageStuntSafety(a.trackS)&&rampageStuntSafety(b.trackS),contacts=[];",
+        "if (a.finished||b.finished) return; const A=a.p3,B=b.p3; if (!A||!B||Math.abs(A.px-B.px)>6||Math.abs(A.py-B.py)>4||Math.abs(A.pz-B.pz)>6) return;\n  const stuntPair=w.mode==='racing'&&rampageStuntSafety(a)&&rampageStuntSafety(b),contacts=[];",
         'stunt pair detection',
     )
     s = one(
