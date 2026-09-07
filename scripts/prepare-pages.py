@@ -21,6 +21,7 @@ apply_wreck_hunt_chain_tuning = load_function('tune-wreck-hunt-chain-v4.py', 'br
 apply_wreck_hunt_rush = load_function('tune-wreck-hunt-rush-v5.py', 'break_cars_wreck_hunt_rush_v5', 'apply_wreck_hunt_rush')
 apply_racing3d_projection_fix = load_function('fix-racing3d-projection.py', 'break_cars_racing3d_projection_fix', 'apply_racing3d_projection_fix')
 apply_full_physics3d = load_function('apply-racing3d-full-physics.py', 'break_cars_racing3d_full_physics', 'apply_full_physics3d')
+apply_racing3d_surface_hint = load_function('fix-racing3d-surface-hint.py', 'break_cars_racing3d_surface_hint', 'apply_racing3d_surface_hint')
 apply_smooth_racing3d_boundary = load_function('smooth-racing3d-boundary.py', 'break_cars_smooth_racing3d_boundary', 'apply_smooth_racing3d_boundary')
 apply_full_physics_loop_polish = load_function('polish-full-physics-loop-v2.py', 'break_cars_full_physics_loop_polish', 'apply_full_physics_loop_polish')
 apply_racing3d_ui = load_function('polish-racing3d-ui.py', 'break_cars_racing3d_ui', 'apply_racing3d_ui')
@@ -42,9 +43,12 @@ apply_wreck_hunt_rush(target)
 # Stabilize the self-crossing race projection before the 6DoF layer consumes it.
 apply_racing3d_projection_fix(target)
 # Full vehicle physics consumes the final Hunt/Rush rules and owns movement,
-# suspension, contact impulses and chassis attitude. Then smooth any course-edge
-# depenetration so hard landings and pile-ups cannot produce one-frame warps.
+# suspension, contact impulses and chassis attitude. Then force wheel/chassis
+# samples to remain on the same self-crossing branch as each car's trackS.
 apply_full_physics3d(target)
+apply_racing3d_surface_hint(target)
+# Smooth course-edge and pile-up depenetration so hard landings cannot produce
+# one-frame visual warps.
 apply_smooth_racing3d_boundary(target)
 apply_full_physics_loop_polish(target)
 apply_racing3d_ui(target)
