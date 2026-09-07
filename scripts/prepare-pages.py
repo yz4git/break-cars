@@ -26,6 +26,7 @@ apply_smooth_racing3d_boundary = load_function('smooth-racing3d-boundary.py', 'b
 apply_full_physics_loop_polish = load_function('polish-full-physics-loop-v2.py', 'break_cars_full_physics_loop_polish', 'apply_full_physics_loop_polish')
 apply_racing3d_loop_camera = load_function('polish-racing3d-loop-camera-v3.py', 'break_cars_racing3d_loop_camera_v3', 'apply_racing3d_loop_camera')
 apply_rampage_raceability = load_function('polish-rampage-raceability-v5.py', 'break_cars_rampage_raceability_v5', 'apply_rampage_raceability')
+apply_rampage_loop_boost_v6 = load_function('boost-rampage-loop-v6.py', 'break_cars_rampage_loop_boost_v6', 'apply_rampage_loop_boost_v6')
 apply_racing3d_ui = load_function('polish-racing3d-ui.py', 'break_cars_racing3d_ui', 'apply_racing3d_ui')
 apply_player_auto_upright = load_function('add-player-auto-upright.py', 'break_cars_player_auto_upright', 'apply_player_auto_upright')
 apply_auto_upright_racing_hint = load_function('fix-auto-upright-racing-hint.py', 'break_cars_auto_upright_racing_hint', 'apply_auto_upright_racing_hint')
@@ -60,6 +61,9 @@ apply_racing3d_loop_camera(target)
 # Post-review course polish: spread loop traffic, soften only loop contacts,
 # and keep the jump landing visible while the car is airborne.
 apply_rampage_raceability(target)
+# Make the visible BOOST LOOP a high-confidence stunt assist: physical forward
+# force targets ~103 km/h on approach and ~112 km/h in the loop.
+apply_rampage_loop_boost_v6(target)
 apply_racing3d_ui(target)
 apply_player_auto_upright(target)
 apply_auto_upright_racing_hint(target)
