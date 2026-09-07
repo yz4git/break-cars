@@ -1,0 +1,102 @@
+name: Wreck Hunt Polish Review
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  review:
+    if: github.event.head_commit.message == 'Run Wreck Hunt polish visual review'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Prepare deployed build
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: python3 scripts/prepare-pages.py
+      - name: Run visual gameplay review
+        run: |
+          mkdir -p visual-review
+          python3 -m http.server 4173 --directory _site >/tmp/break-cars-http.log 2>&1 &
+          for i in {1..20}; do curl -sf http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          cat > .wreck-hunt-review.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'fs';
+          const browser = await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader','--disable-gpu-vsync','--disable-frame-rate-limit']});
+          const context = await browser.newContext({
+            viewport:{width:852,height:393},deviceScaleFactor:1,isMobile:true,hasTouch:true,
+            userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1'
+          });
+          const page = await context.newPage();
+          const logs=[]; page.on('console',m=>logs.push(`console ${m.type()}: ${m.text()}`)); page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`));
+          const snap=async(name)=>{await page.screenshot({path:`visual-review/${name}.png`});};
+          const hud=async()=>page.evaluate(()=>({
+            score:document.querySelector('#score')?.innerText,
+            alive:document.querySelector('#alive')?.innerText,
+            time:document.querySelector('#time')?.innerText,
+            hp:document.querySelector('#hp')?.innerText,
+            speed:document.querySelector('#speed b')?.innerText,
+            combo:document.querySelector('#hunt-combo')?.innerText,
+            state:document.querySelector('#hunt-state')?.innerText,
+            toast:document.querySelector('#toast')?.innerText,
+            impact:document.querySelector('#impact-feedback')?.innerText,
+            targetMarkers:[...document.querySelectorAll('canvas')].length,
+            viewport:{scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,scrollX,scrollY,innerWidth,innerHeight}
+          }));
+          const samples=[];
+          await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+          await snap('01-menu');
+          await page.click('button[data-mode="wreck-hunt"]');
+          await page.click('button[data-car="0"]');
+          await snap('02-selected');
+          await page.click('#start');
+          await page.waitForTimeout(5200);
+          samples.push({label:'opening',...(await hud())}); await snap('03-opening');
+          await page.keyboard.down('ArrowUp');
+          const seq=[
+            ['ArrowLeft',1000,1000],['ArrowRight',1400,700],['ArrowLeft',1200,900],['ArrowRight',1700,600],
+            ['ArrowLeft',1600,800],['ArrowRight',1500,900],['ArrowLeft',1300,700],['ArrowRight',1800,700],
+            ['ArrowLeft',1500,900],['ArrowRight',1300,800],['ArrowLeft',1800,700],['ArrowRight',1600,900]
+          ];
+          let shot=4, lastWrecks='';
+          for(const [key,hold,straight] of seq){
+            await page.keyboard.down(key); await page.waitForTimeout(hold); await page.keyboard.up(key); await page.waitForTimeout(straight);
+            const s=await hud(); samples.push({label:`phase-${shot}`,...s});
+            if(shot<=10) await snap(String(shot).padStart(2,'0')+'-play');
+            if(s.alive!==lastWrecks){lastWrecks=s.alive; if(shot>10) await snap(`wreck-${shot}`);}
+            shot++;
+          }
+          // Recovery check: brake/reverse and steer if nearly stopped at wall.
+          await page.keyboard.up('ArrowUp');
+          await page.keyboard.down('ArrowDown'); await page.keyboard.down('ArrowLeft'); await page.waitForTimeout(1800); await page.keyboard.up('ArrowLeft'); await page.keyboard.up('ArrowDown');
+          samples.push({label:'recovery',...(await hud())}); await snap('11-recovery');
+          const final=await page.evaluate(()=>({
+            selectedMode:document.querySelector('.mode-select [data-mode].selected')?.dataset.mode,
+            bodyClass:document.body.className,
+            positionLabel:document.querySelector('#position-label')?.textContent,
+            alive:document.querySelector('#alive')?.innerText,score:document.querySelector('#score')?.innerText,time:document.querySelector('#time')?.innerText,
+            hp:document.querySelector('#hp')?.innerText,speed:document.querySelector('#speed b')?.innerText,
+            combo:document.querySelector('#hunt-combo')?.innerText,state:document.querySelector('#hunt-state')?.innerText,
+            huntInfoRect:document.querySelector('#hunt-info')?.getBoundingClientRect().toJSON(),
+            toastRect:document.querySelector('#toast')?.getBoundingClientRect().toJSON(),
+            controls:[...document.querySelectorAll('#steer,.pedals button')].map(el=>({id:el.id,rect:el.getBoundingClientRect().toJSON()})),
+            viewport:{scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,scrollX,scrollY,innerWidth,innerHeight}
+          }));
+          final.samples=samples; final.logs=logs;
+          fs.writeFileSync('visual-review/report.json',JSON.stringify(final,null,2));
+          await browser.close();
+          JS
+          node .wreck-hunt-review.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: break-cars-wreck-hunt-polish-review
+          path: visual-review
+          retention-days: 1
