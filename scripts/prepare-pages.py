@@ -5,11 +5,17 @@ import os
 import re
 import shutil
 
-patch_path = Path(__file__).with_name('apply-wreck-hunt.py')
-spec = importlib.util.spec_from_file_location('break_cars_wreck_hunt_patch', patch_path)
-patch_module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(patch_module)
-apply_wreck_hunt = patch_module.apply_wreck_hunt
+
+def load_function(filename, module_name, function_name):
+    module_path = Path(__file__).with_name(filename)
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return getattr(module, function_name)
+
+
+apply_wreck_hunt = load_function('apply-wreck-hunt.py', 'break_cars_wreck_hunt_patch', 'apply_wreck_hunt')
+apply_wreck_hunt_improvements = load_function('improve-wreck-hunt.py', 'break_cars_wreck_hunt_polish', 'apply_wreck_hunt_improvements')
 
 source = Path('dist')
 target = Path('_site')
@@ -17,9 +23,10 @@ if target.exists():
     shutil.rmtree(target)
 shutil.copytree(source, target)
 
-# Keep the large shared runtime single-source in dist; apply the Wreck Hunt
-# integration to the deploy copy and fail loudly if upstream code drifts.
+# Keep the large shared runtime single-source in dist; apply mode integration
+# and its focused tuning to the deploy copy, failing loudly if upstream drifts.
 apply_wreck_hunt(target)
+apply_wreck_hunt_improvements(target)
 
 build = os.environ['DEPLOY_SHA'][:12]
 for path in target.glob('*.js'):
