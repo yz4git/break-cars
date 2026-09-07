@@ -1,0 +1,80 @@
+name: Full physics visual review
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare production artifact
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          python3 scripts/prepare-pages.py
+          cat >> _site/game.js <<'EOF'
+          window.__bcReview={
+            world:()=>world,
+            player:()=>world.cars[0],
+            teleport:(x,y,z,heading=0,vx=0,vy=0,vz=0)=>{const c=world.cars[0],h=heading*.5;c.x=x;c.z=z;c.heading=heading;c.vx=vx;c.vz=vz;c.omega=0;c.dead=false;c.hp=c.maxHP;c.p3={...(c.p3||{}),active:true,px:x,py:y,pz:z,qx:0,qy:Math.sin(h),qz:0,qw:Math.cos(h),vx,vy,vz,wx:0,wy:0,wz:0,grounded:false,groundedWheels:0,wheelCompression:[0,0,0,0],wheelNormal:[0,0,0,0],airTime:0,lastLandingAt:-99,lastSyncX:x,lastSyncZ:z,lastSyncVx:vx,lastSyncVz:vz};},
+            quietTargets:()=>{for(const c of world.cars.slice(1)){c.dead=true;c.respawnAt=Infinity;c.vx=0;c.vz=0;if(c.p3){c.p3.vx=c.p3.vy=c.p3.vz=0;}}if(world.hunt)world.hunt.focusId=-1;world.done=false;}
+          };
+          EOF
+      - name: Install browser
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 --no-save
+          npx playwright install chromium --with-deps
+      - name: Run rendered review
+        run: |
+          python3 -m http.server 4173 -d _site >/tmp/bc-server.log 2>&1 &
+          cat > /tmp/review.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader','--disable-gpu-vsync']});
+          const page=await browser.newPage({viewport:{width:852,height:393},deviceScaleFactor:1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1'});
+          const logs=[];page.on('console',m=>logs.push(`console ${m.type()}: ${m.text()}`));page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`));
+          await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+          await page.screenshot({path:'01-menu.png'});
+          await page.click('[data-mode="wreck-hunt"]');
+          await page.click('#start');
+          await page.waitForTimeout(3900);
+          await page.screenshot({path:'02-hunt-live.png'});
+          await page.waitForFunction(()=>window.__bcReview?.player()?.p3?.active);
+          await page.evaluate(()=>{window.__bcReview.quietTargets();window.__bcReview.teleport(-22,1.0,-14.6,0,0,0,19);});
+          await page.waitForTimeout(620);
+          await page.screenshot({path:'03-ramp-climb.png'});
+          await page.waitForTimeout(520);
+          await page.screenshot({path:'04-jump-air.png'});
+          const jump=await page.evaluate(()=>{const p=window.__bcReview.player(),b=p.p3;return{y:b.py,vy:b.vy,air:b.airTime,q:[b.qx,b.qy,b.qz,b.qw],speed:Math.hypot(b.vx,b.vy,b.vz)};});
+          // Put the car on the right side of the loop with its forward tangent aimed upward.
+          // roll -90deg rotates local up toward loop center (-Z), yaw PI keeps tangent climbing.
+          await page.evaluate(()=>{const r=window.__bcReview.player(),b=r.p3;const x=25,y=5.5,z=15.5;const yaw=Math.PI,roll=-Math.PI/2;const cy=Math.cos(yaw/2),sy=Math.sin(yaw/2),cr=Math.cos(roll/2),sr=Math.sin(roll/2);r.x=x;r.z=z;r.heading=Math.PI;b.px=x;b.py=y;b.pz=z;b.qx=cy*sr;b.qy=sy*cr;b.qz=-sy*sr;b.qw=cy*cr;b.vx=0;b.vy=12;b.vz=0;b.wx=b.wy=b.wz=0;b.lastSyncX=x;b.lastSyncZ=z;b.lastSyncVx=0;b.lastSyncVz=0;});
+          await page.waitForTimeout(160);
+          await page.screenshot({path:'05-loop-side.png'});
+          await page.waitForTimeout(430);
+          await page.screenshot({path:'06-loop-climb.png'});
+          const loop=await page.evaluate(()=>{const b=window.__bcReview.player().p3;return{p:[b.px,b.py,b.pz],q:[b.qx,b.qy,b.qz,b.qw],up:[2*(b.qx*b.qy-b.qz*b.qw),1-2*(b.qx*b.qx+b.qz*b.qz),2*(b.qy*b.qz+b.qx*b.qw)],grounded:b.grounded,wheels:b.groundedWheels};});
+          // Vehicle-on-vehicle ride-over setup: stationary victim and moving hunter, slightly offset vertically.
+          await page.evaluate(()=>{const w=window.__bcReview.world(),a=w.cars[0],v=w.cars[1];window.__bcReview.teleport(0,1.0,-5,0,0,0,18);v.dead=false;v.hp=v.maxHP;v.x=0;v.z=0;v.heading=0;v.vx=v.vz=0;v.p3={active:true,px:0,py:1,pz:0,qx:0,qy:0,qz:0,qw:1,vx:0,vy:0,vz:0,wx:0,wy:0,wz:0,mass:1,invMass:1,invIx:1,invIy:1,invIz:1,grounded:false,groundedWheels:0,wheelCompression:[0,0,0,0],wheelNormal:[0,0,0,0],airTime:0,lastLandingAt:-99,lastSyncX:0,lastSyncZ:0,lastSyncVx:0,lastSyncVz:0};for(const c of w.cars.slice(2)){c.dead=true;c.respawnAt=Infinity;}w.done=false;});
+          await page.waitForTimeout(460);
+          await page.screenshot({path:'07-ride-over.png'});
+          const ride=await page.evaluate(()=>{const w=window.__bcReview.world();return{hunter:{y:w.cars[0].p3.py,roll:[w.cars[0].p3.qx,w.cars[0].p3.qz]},victim:{y:w.cars[1].p3.py},contacts:w.cars[0].contacts};});
+          const viewport=await page.evaluate(()=>({scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,scrollX,scrollY,innerWidth,innerHeight}));
+          fs.writeFileSync('report.json',JSON.stringify({jump,loop,ride,viewport,logs},null,2));
+          await browser.close();
+          EOF
+          node /tmp/review.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: break-cars-full-physics-review
+          path: |
+            01-menu.png
+            02-hunt-live.png
+            03-ramp-climb.png
+            04-jump-air.png
+            05-loop-side.png
+            06-loop-climb.png
+            07-ride-over.png
+            report.json
