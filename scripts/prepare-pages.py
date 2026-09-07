@@ -21,6 +21,7 @@ apply_wreck_hunt_chain_tuning = load_function('tune-wreck-hunt-chain-v4.py', 'br
 apply_wreck_hunt_rush = load_function('tune-wreck-hunt-rush-v5.py', 'break_cars_wreck_hunt_rush_v5', 'apply_wreck_hunt_rush')
 apply_full_physics3d = load_function('apply-racing3d-full-physics.py', 'break_cars_racing3d_full_physics', 'apply_full_physics3d')
 apply_full_physics_loop_polish = load_function('polish-full-physics-loop-v2.py', 'break_cars_full_physics_loop_polish', 'apply_full_physics_loop_polish')
+apply_racing3d_ui = load_function('polish-racing3d-ui.py', 'break_cars_racing3d_ui', 'apply_racing3d_ui')
 
 source = Path('dist')
 target = Path('_site')
@@ -40,6 +41,7 @@ apply_wreck_hunt_rush(target)
 # only after that integration so it cannot alter the physical surface itself.
 apply_full_physics3d(target)
 apply_full_physics_loop_polish(target)
+apply_racing3d_ui(target)
 
 build = os.environ['DEPLOY_SHA'][:12]
 for path in target.glob('*.js'):
