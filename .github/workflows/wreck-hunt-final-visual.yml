@@ -1,0 +1,50 @@
+name: Wreck Hunt Final Visual
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  review:
+    if: github.event.head_commit.message == 'Run final Wreck Hunt visual verification'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install chromium
+      - name: Prepare production build
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: python3 scripts/prepare-pages.py
+      - name: Render final Wreck Hunt
+        run: |
+          mkdir -p visual-review
+          python3 -m http.server 4173 --directory _site >/tmp/server.log 2>&1 &
+          for i in {1..20}; do curl -sf http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          cat > .final-review.mjs <<'JS'
+          import {chromium} from 'playwright'; import fs from 'fs';
+          const browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader','--disable-gpu-vsync','--disable-frame-rate-limit']});
+          const context=await browser.newContext({viewport:{width:852,height:393},deviceScaleFactor:1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1'});
+          const page=await context.newPage(); const logs=[]; page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`)); page.on('console',m=>logs.push(`${m.type()}: ${m.text()}`));
+          const snap=n=>page.screenshot({path:`visual-review/${n}.png`});
+          const read=()=>page.evaluate(()=>({score:document.querySelector('#score')?.innerText,wrecks:document.querySelector('#alive')?.innerText,time:document.querySelector('#time')?.innerText,hp:document.querySelector('#hp')?.innerText,speed:document.querySelector('#speed b')?.innerText,combo:document.querySelector('#hunt-combo')?.innerText,chain:document.querySelector('#hunt-state')?.innerText,scoreLabel:document.querySelector('#score-label')?.innerText,toast:document.querySelector('#toast')?.innerText,viewport:{scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,scrollX,scrollY}}));
+          const samples=[];
+          await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'}); await page.click('[data-mode="wreck-hunt"]'); await snap('01-selected'); await page.click('#start'); await page.waitForTimeout(4400); samples.push({label:'go',...(await read())}); await snap('02-go');
+          await page.keyboard.down('ArrowUp');
+          await page.waitForTimeout(2600); samples.push({label:'first-rush',...(await read())}); await snap('03-first-rush');
+          await page.keyboard.down('ArrowLeft'); await page.waitForTimeout(700); await page.keyboard.up('ArrowLeft'); await page.waitForTimeout(2600); samples.push({label:'mid',...(await read())}); await snap('04-mid');
+          await page.keyboard.down('ArrowRight'); await page.waitForTimeout(900); await page.keyboard.up('ArrowRight'); await page.waitForTimeout(3400); samples.push({label:'later',...(await read())}); await snap('05-later');
+          await page.keyboard.up('ArrowUp');
+          const final=await read(); final.samples=samples; final.logs=logs; fs.writeFileSync('visual-review/report.json',JSON.stringify(final,null,2)); await browser.close();
+          JS
+          node .final-review.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: break-cars-wreck-hunt-final-visual
+          path: visual-review
+          retention-days: 1
