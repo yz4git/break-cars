@@ -4,47 +4,69 @@
 .mode-select button small{font-size:9px;line-height:1.25}
 .mode-select button[data-mode="wreck-hunt"].selected{border-color:#ffb548;background:#ff9d2226;color:#ffc06a}
 
+/* WRECKS and SCORE live in the regular top-left HUD. Keep this widget only
+   for chain state so it never fights with impact / wreck messages. */
 #hunt-info{
   position:fixed;
-  top:max(70px,calc(env(safe-area-inset-top) + 56px));
+  top:max(72px,calc(env(safe-area-inset-top) + 58px));
   left:50%;
   transform:translateX(-50%) skew(-6deg);
   z-index:6;
   pointer-events:none;
   text-align:center;
-  min-width:220px;
+  min-width:112px;
+  padding:5px 12px 6px;
+  border:1px solid #ffffff1d;
+  border-radius:5px;
+  background:#0b121aa8;
+  opacity:.72;
+  transition:opacity .16s ease,transform .18s ease,background .16s ease;
 }
 #hunt-info b{
   display:block;
-  font:950 24px/.95 Arial,sans-serif;
-  letter-spacing:.08em;
+  font:950 13px/.95 Arial,sans-serif;
+  letter-spacing:.16em;
+  color:#c5cbd0;
+  text-shadow:0 2px 8px #000;
+  transition:font-size .16s ease,color .16s ease;
+}
+#hunt-info span{display:none}
+#hunt-info small{
+  display:block;
+  margin-top:4px;
+  font:850 7px/1 Arial,sans-serif;
+  letter-spacing:.18em;
+  color:#8996a1;
+}
+#hunt-info.active{
+  opacity:1;
+  background:#1d1510d9;
+  border-color:#ffb54866;
+  transform:translateX(-50%) skew(-6deg) scale(1.04);
+}
+#hunt-info.active b{
+  font-size:20px;
   color:#ffc269;
   text-shadow:0 2px 12px #000,0 0 14px #ff6b2a77;
 }
-#hunt-info span{
-  display:block;
-  margin-top:6px;
-  font:900 12px/1 Arial,sans-serif;
-  letter-spacing:.16em;
-  color:#fff;
-}
-#hunt-info small{
-  display:block;
-  margin-top:6px;
-  font:800 9px/1 Arial,sans-serif;
-  letter-spacing:.12em;
-  color:#b9c3cb;
-}
-#hunt-info.hot b{color:#ff7650;font-size:29px;text-shadow:0 2px 12px #000,0 0 24px #ff401f}
+#hunt-info.active small{font-size:9px;color:#fff0c5}
+#hunt-info.hot{background:#2b100ce6;border-color:#ff6337aa}
+#hunt-info.hot b{color:#ff7650;font-size:27px;text-shadow:0 2px 12px #000,0 0 24px #ff401f}
+
+/* Instant hit/wreck messages get their own visual lane below the chain. */
+body[data-game-mode="wreck-hunt"] #toast{top:34%}
+body[data-game-mode="wreck-hunt"] #impact-feedback{top:40%}
 
 @media (orientation:landscape) and (max-height:430px){
   .mode-select{gap:4px;margin:9px 0 8px}
   .mode-select button{padding:7px 5px!important}
   .mode-select button b{font-size:9px}
   .mode-select button small{font-size:8px}
-  #hunt-info{top:max(58px,calc(env(safe-area-inset-top) + 48px));min-width:190px}
-  #hunt-info b{font-size:20px}
-  #hunt-info.hot b{font-size:25px}
-  #hunt-info span{font-size:10px}
-  #hunt-info small{font-size:8px}
+  #hunt-info{top:max(58px,calc(env(safe-area-inset-top) + 48px));min-width:96px;padding:4px 9px 5px}
+  #hunt-info b{font-size:11px}
+  #hunt-info.active b{font-size:17px}
+  #hunt-info.hot b{font-size:23px}
+  #hunt-info small{font-size:7px}
+  #hunt-info.active small{font-size:8px}
+  body[data-game-mode="wreck-hunt"] #toast{top:36%}
 }
