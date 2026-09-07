@@ -30,11 +30,13 @@ jobs:
           node --check _site/physics.js
           node --check _site/physics3d.js
           node --check _site/racing.js
+          node --check _site/racing3d.js
           node --check _site/track-view.js
           node --check _site/viewport-guard.js
           node --check _site/colosseum-ui.js
           node scripts/test-wreck-hunt.mjs
           node scripts/test-full-physics3d.mjs
+          node scripts/test-racing3d.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
