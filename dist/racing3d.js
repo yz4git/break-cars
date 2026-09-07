@@ -1,7 +1,7 @@
 // BREAK CARS — dedicated 3D Wrecking Racing course.
 // A sampled self-crossing ribbon with elevation, banking, jump gap and a true vertical loop.
-export const RACE3D_ID='wrecking-racing-3d-v1';
-export const RACE3D_TRACK={halfWidth:8.5,loopRadius:7.2};
+export const RACE3D_ID='wrecking-racing-3d-v2';
+export const RACE3D_TRACK={halfWidth:8.5,loopRadius:6.8};
 
 const TAU=Math.PI*2, BASE_STEPS=260, LOOP_STEPS=76, CELL=9, EPS=1e-7;
 const LOOP_T=.88, LOOP_R=RACE3D_TRACK.loopRadius;
