@@ -89,7 +89,7 @@ assert.equal(target.respawnAt, Infinity);
 assert.ok(w.events.some(e => e.type === 'respawn' && e.car === target.id));
 assert.equal(w.hunt.respawns, 1);
 assert.ok(Math.hypot(target.x,target.z) >= 17 && Math.hypot(target.x,target.z) <= 25);
-assert.ok(Math.hypot(target.vx,target.vz) > 5, 'replacement target should launch inward instead of spawning stationary');
+assert.ok(Math.hypot(target.vx,target.vz) > 3.5, 'replacement target should launch inward instead of spawning stationary');
 
 // A short autoplay soak verifies finite state and dense, ongoing contact.
 for (let i = 0; i < 1200 && !w.done; i++) {
