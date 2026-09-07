@@ -1,10 +1,12 @@
-import {RACE3D_LENGTH,RACE3D_TRACK,racePointAt,projectRacePoint,race3DFeatureSpec} from './racing3d.js?v=wr3d-v1';
+import {RACE3D_LENGTH,RACE3D_TRACK,racePointAt,projectRacePoint,race3DFeatureSpec} from './racing3d.js?v=wr3d-v2';
 
 export const TRACK={straight:0,radius:0,halfWidth:RACE3D_TRACK.halfWidth,laps:4,limit:165,grace:24,name:'RAMPAGE 3D'};
 export const LENGTH=RACE3D_LENGTH;
+const COURSE_SPEC=race3DFeatureSpec();
 const wrap=s=>(s%LENGTH+LENGTH)%LENGTH;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const angle=v=>Math.atan2(Math.sin(v),Math.cos(v));
+const forwardGap=(target,current)=>{let d=target-current;if(d<0)d+=LENGTH;return d;};
 const carY=c=>c.p3?.py;
 const projectCar=c=>projectTrack(c.x,c.z,carY(c),c.trackS);
 const dist3=(a,b)=>Math.hypot(a.x-b.x,(a.p3?.py??0)-(b.p3?.py??0),a.z-b.z);
@@ -15,9 +17,10 @@ export {race3DFeatureSpec};
 
 export function setupRace(w){
  w.mode='racing';w.limit=TRACK.limit;w.finishCount=0;w.endAt=TRACK.limit;w.raceCourse='rampage-3d';
+ const loopLanes=[-4.4,-1.5,1.5,4.4];
  for(const c of w.cars){
-  const slot=c.id===0?11:c.id-1,grid=-9-Math.floor(slot/2)*6.5,lane=(slot%2?1:-1)*2.8,p=trackPoint(grid,lane);
-  Object.assign(c,{x:p.x,z:p.z,heading:p.heading,hp:c.hp*1.75,maxHP:c.maxHP*1.75,raceDistance:grid,trackS:wrap(grid),nextGate:0,lap:0,finished:false,finishTime:null,finishOrder:0,lane:lane+(w.rand()-.5)*1.25,wrongWay:0,gateDistance:0,aiReverse:0,stallTime:0,recoveryAt:-10,raceAggro:clamp(.72+(c.id%4)*.07+(w.rand()-.5)*.1,.66,.98),battleTarget:-1,battleTimer:.08+w.rand()*.35,battleSide:c.id%2?1:-1,brawlTimer:.6+w.rand()*1.5});
+  const slot=c.id===0?11:c.id-1,grid=-9-Math.floor(slot/2)*6.5,lane=(slot%2?1:-1)*2.8,p=trackPoint(grid,lane),loopLane=c.id===0?0:loopLanes[(c.id-1)%loopLanes.length];
+  Object.assign(c,{x:p.x,z:p.z,heading:p.heading,hp:c.hp*1.75,maxHP:c.maxHP*1.75,raceDistance:grid,trackS:wrap(grid),nextGate:0,lap:0,finished:false,finishTime:null,finishOrder:0,lane:lane+(w.rand()-.5)*1.25,loopLane,wrongWay:0,gateDistance:0,aiReverse:0,stallTime:0,recoveryAt:-10,raceAggro:clamp(.72+(c.id%4)*.07+(w.rand()-.5)*.1,.66,.98),battleTarget:-1,battleTimer:.08+w.rand()*.35,battleSide:c.id%2?1:-1,brawlTimer:.6+w.rand()*1.5});
  }
  return w;
 }
@@ -47,8 +50,19 @@ export function racingAI(w,c,dt){
  if(c.finished)return{gas:0,brake:1,steer:0};
  const p=projectCar(c),speed=Math.hypot(c.vx,c.vz),aggro=c.raceAggro??.8;if(!p)return{gas:1,brake:0,steer:0,hand:0};
  c.stallTime=speed<2?c.stallTime+dt:Math.max(0,c.stallTime-dt);if(c.stallTime>1.6&&p.kind!=='loop'){c.aiReverse=1.0;c.stallTime=0;}
- // The loop is a precision stunt: stay centered and committed instead of trying to ram halfway up a wall.
- if(p.kind==='loop'){c.battleTarget=-1;return{gas:1,brake:0,steer:clamp(-p.lane*.16,-.42,.42),hand:0};}
+ // Enter the vertical loop as a stunt, not as a braking corner. Cars spread over
+ // four dedicated lanes before entry so the full-contact pack does not collapse
+ // into one pile-up, while the player line stays centered and predictable.
+ const loopGap=forwardGap(COURSE_SPEC.loop.startS,p.s),loopApproach=p.kind!=='loop'&&loopGap>0&&loopGap<50,loopLane=c.id===0?0:(c.loopLane??0);
+ if(loopApproach){
+  c.battleTarget=-1;c.aiReverse=0;
+  const target=trackPoint(p.s+clamp(loopGap*.42,12,22),loopLane),delta=angle(Math.atan2(target.x-c.x,target.z-c.z)-c.heading),laneFix=clamp((loopLane-p.lane)*.10,-.32,.32);
+  return{gas:1,brake:0,steer:clamp(delta*1.55+laneFix,-.72,.72),hand:0};
+ }
+ if(p.kind==='loop'){
+  c.battleTarget=-1;c.aiReverse=0;
+  return{gas:1,brake:0,steer:clamp((loopLane-p.lane)*.18,-.48,.48),hand:0};
+ }
  const stunt=p.kind==='jump-ramp'||p.kind==='jump-gap'||p.kind==='jump-landing';
  c.brawlTimer=(c.brawlTimer??0)-dt;if(c.brawlTimer<=0){c.brawlTimer=.7+w.rand()*1.4;if(w.rand()<.6)c.battleSide*=-1;}
  c.battleTimer=(c.battleTimer??0)-dt;const current=w.cars[c.battleTarget],currentGap=current?current.raceDistance-c.raceDistance:99;
