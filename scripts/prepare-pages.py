@@ -19,6 +19,7 @@ apply_wreck_hunt_improvements = load_function('improve-wreck-hunt-v2.py', 'break
 apply_wreck_hunt_final_tuning = load_function('tune-wreck-hunt-post-review-v3.py', 'break_cars_wreck_hunt_final_tuning_v3', 'apply_wreck_hunt_final_tuning')
 apply_wreck_hunt_chain_tuning = load_function('tune-wreck-hunt-chain-v4.py', 'break_cars_wreck_hunt_chain_v4', 'apply_wreck_hunt_chain_tuning')
 apply_wreck_hunt_rush = load_function('tune-wreck-hunt-rush-v5.py', 'break_cars_wreck_hunt_rush_v5', 'apply_wreck_hunt_rush')
+apply_racing3d_projection_fix = load_function('fix-racing3d-projection.py', 'break_cars_racing3d_projection_fix', 'apply_racing3d_projection_fix')
 apply_full_physics3d = load_function('apply-racing3d-full-physics.py', 'break_cars_racing3d_full_physics', 'apply_full_physics3d')
 apply_full_physics_loop_polish = load_function('polish-full-physics-loop-v2.py', 'break_cars_full_physics_loop_polish', 'apply_full_physics_loop_polish')
 apply_racing3d_ui = load_function('polish-racing3d-ui.py', 'break_cars_racing3d_ui', 'apply_racing3d_ui')
@@ -37,6 +38,8 @@ apply_wreck_hunt_improvements(target)
 apply_wreck_hunt_final_tuning(target)
 apply_wreck_hunt_chain_tuning(target)
 apply_wreck_hunt_rush(target)
+# Stabilize the self-crossing race projection before the 6DoF layer consumes it.
+apply_racing3d_projection_fix(target)
 # Full vehicle physics consumes the final Hunt/Rush rules and owns movement,
 # suspension, contact impulses and chassis attitude. Presentation polish follows
 # only after that integration so it cannot alter the physical surface itself.
