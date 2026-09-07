@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {spawnSync} from 'node:child_process';
-if(!process.env.COURSE_TEST){for(const id of ['crater-crown','tidal-foundry','sky-forge']){const r=spawnSync(process.execPath,[import.meta.filename],{env:{...process.env,COURSE_TEST:id},encoding:'utf8'});process.stdout.write(r.stdout);process.stderr.write(r.stderr);assert.equal(r.status,0,id);}process.exit(0);}
+if(!process.env.COURSE_TEST){for(const id of ['crater-crown','tidal-foundry','sky-forge','maelstrom-pit','cross-fire','double-orbit']){const r=spawnSync(process.execPath,[import.meta.filename],{env:{...process.env,COURSE_TEST:id},encoding:'utf8'});process.stdout.write(r.stdout);process.stderr.write(r.stderr);assert.equal(r.status,0,id);}process.exit(0);}
 globalThis.location={search:'?course='+process.env.COURSE_TEST};
 const html=fs.readFileSync(new URL('../_site/index.html',import.meta.url),'utf8'),version=html.match(/game.js\?v=([^"']+)/)[1];
 const load=p=>import(new URL('../_site/'+p+'?v='+version,import.meta.url));
 const {activeCourse,courseHeight}=await load('courses.js'),{makeWorld,step}=await load('physics.js');
-if(activeCourse.mode==='racing'){await import('./test-rampage-raceability.mjs');}
+if(activeCourse.id==='double-orbit'){await import('./test-double-orbit.mjs');}
+else if(activeCourse.mode==='racing'){await import('./test-rampage-raceability.mjs');}
 else{
  const {buildCourseTerrain}=await load('course-view.js'),g=buildCourseTerrain(),pos=g.children[0].geometry.attributes.position;
  for(let i=0;i<pos.count;i+=19)assert(Math.abs(pos.getY(i)-courseHeight(pos.getX(i),pos.getZ(i))-.015)<.001);

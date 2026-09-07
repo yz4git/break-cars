@@ -52,3 +52,18 @@ Each mode retains its existing course and adds one selectable course in the gara
 Course selection is stored in the URL (`?course=crater-crown`, `tidal-foundry`, `sky-forge`) and reloads into a fresh race. The garage dropdown preserves access to original courses. Arena render meshes and physics normals derive from the same height function. Course definitions live in `dist/courses.js`; the integration is applied last by `scripts/apply-course-pack.py`.
 
 Run `npm run build` to generate the complete `_site` runtime. Pages publishes `_site` and Sites publishes the identical `build` copy; raw `dist/game.js` is the input to the existing integration pipeline, not the final playable runtime. The existing Sites project ID is preserved. `npm run test:courses` verifies terrain mesh alignment, arena pack simulations and a natural Sky Forge lap plus pack flow. Existing physics/Hunt/boost/upright checks also pass. UI lifecycle checks use real Three scene objects with a stubbed WebGL renderer; actual GPU/iPhone visual testing was not performed in this update.
+
+
+## Extreme course pack (v1.3)
+
+Three more courses are selectable without replacing any previous course:
+
+- **MAELSTROM PIT / Colosseum**: an 8.2 m scalloped crater rim, steep inner descent and central launch crown. Orange crest stripes identify the high ground.
+- **CROSS FIRE / Wreck Hunt**: four 7.2 m inward-facing launch crests around an open central combat bowl. Wide approaches allow opposing cars to meet in the air; yellow crest stripes mark the launch ridges.
+- **DOUBLE ORBIT / Racing**: a 486 m asymmetric elevated circuit with two 8.6 m radius vertical loops, a 14.5 m bridge, approximately 40-degree banking and a jump gap. Both loops have visible boost strips. AI approach steering, force-based boost and camera framing select each loop separately. Banking eases to zero at loop joints to prevent unintended exit launches.
+
+Direct links use `?course=maelstrom-pit`, `?course=cross-fire`, or `?course=double-orbit`. Default loading still selects the original Colosseum.
+
+Each course was committed after a basic build/start check, followed by combined checks and a separate correction commit. New arena pack simulations remained finite with car collisions and over two seconds of airtime. Double Orbit completed a natural lap in 27.7 seconds with both loops inverted and no recovery; 10 of 12 cars cleared both loops during a 60-second pack run. The prior course/boost checks passed, and menu/start/pause/garage navigation was checked with a stubbed renderer. Real-device visual/playfeel checks remain outstanding.
+
+`npm run build` then `npm run test:courses` covers all six added courses. `scripts/test-double-orbit.mjs` specifically checks both inversions and multi-car flow. The existing Pages workflow runs these alongside the original physics checks.
