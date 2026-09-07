@@ -21,7 +21,7 @@ jobs:
         run: python3 scripts/prepare-pages.py
       - name: Render chain review
         run: |
-          cat > /tmp/review.mjs <<'EOF'
+          cat > review.mjs <<'EOF'
           import { chromium } from 'playwright';
           import { spawn } from 'node:child_process';
           import fs from 'node:fs';
@@ -57,7 +57,7 @@ jobs:
           fs.writeFileSync('report.json',JSON.stringify({report,shots,logs},null,2));
           await browser.close(); server.kill('SIGTERM');
           EOF
-          node /tmp/review.mjs
+          node review.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: break-cars-wreck-hunt-chain-review
