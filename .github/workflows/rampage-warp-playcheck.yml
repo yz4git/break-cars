@@ -1,0 +1,68 @@
+name: RAMPAGE 3D warp playcheck
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  playcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare instrumented game
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          python3 scripts/prepare-pages.py
+          cat >> _site/game.js <<'EOF'
+          window.__warpCheck={
+            reset:(value)=>{seed=value>>>0;gameMode='racing';selection=0;resetWorld();mode='race';count=0;world.done=false;return {length:LENGTH};},
+            tick:()=>{step(world,{},1/60,true);},
+            state:()=>({done:world.done,time:world.time,events:world.events.map(e=>e.type),cars:world.cars.map(c=>{const b=c.p3,p=trackPoint(c.trackS||0),upY=b?1-2*(b.qx*b.qx+b.qz*b.qz):1;return{id:c.id,dead:c.dead,finished:c.finished,lap:c.lap,trackS:c.trackS,raceDistance:c.raceDistance,kind:p.kind,lane:c.lane,px:b?.px??c.x,py:b?.py??0,pz:b?.pz??c.z,vx:b?.vx??c.vx,vy:b?.vy??0,vz:b?.vz??c.vz,upY,wheels:b?.groundedWheels??0,centerDistance:b?Math.hypot(b.px-p.x,b.py-p.y,b.pz-p.z):0};})})
+          };
+          EOF
+      - name: Install Chromium
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 --no-save
+          npx playwright install chromium --with-deps
+      - name: Play and inspect warp behavior
+        run: |
+          python3 -m http.server 4173 -d _site >/tmp/rampage-warp-server.log 2>&1 &
+          cat > warp-check.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader','--disable-gpu-vsync','--disable-frame-rate-limit']});
+          const page=await browser.newPage({viewport:{width:852,height:393},deviceScaleFactor:1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1'});
+          const logs=[];page.on('console',m=>logs.push(`console ${m.type()}: ${m.text()}`));page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`));
+          await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});
+          await page.click('[data-mode="racing"]');await page.click('#start');await page.waitForTimeout(4300);await page.screenshot({path:'live-rampage.png'});
+          await page.waitForFunction(()=>window.__warpCheck);
+          const seeds=[41,73,144,233,377,610];const runs=[];let shot=0;
+          const wrapDelta=(a,b,L)=>{let d=a-b;if(d>L/2)d-=L;if(d<-L/2)d+=L;return d;};
+          for(const seed of seeds){
+            const meta=await page.evaluate(s=>window.__warpCheck.reset(s),seed),L=meta.length;let prev=await page.evaluate(()=>window.__warpCheck.state());
+            const anomalies=[];let maxFrameMove=0,maxTrackJump=0,maxProgressJump=0,maxCenterDistance=0,minY=Infinity,maxY=-Infinity,frames=0,finished=0;
+            for(let frame=0;frame<6200&&!prev.done;frame++){
+              await page.evaluate(()=>window.__warpCheck.tick());const cur=await page.evaluate(()=>window.__warpCheck.state());frames=frame+1;
+              const intentional=cur.events.includes('auto-upright')||cur.events.includes('recover');
+              for(const c of cur.cars){const p=prev.cars[c.id];if(!p||c.dead)continue;const move=Math.hypot(c.px-p.px,c.py-p.py,c.pz-p.pz),ds=Math.abs(wrapDelta(c.trackS,p.trackS,L)),dr=Math.abs(c.raceDistance-p.raceDistance);maxFrameMove=Math.max(maxFrameMove,move);maxTrackJump=Math.max(maxTrackJump,ds);maxProgressJump=Math.max(maxProgressJump,dr);maxCenterDistance=Math.max(maxCenterDistance,c.centerDistance);minY=Math.min(minY,c.py);maxY=Math.max(maxY,c.py);
+                const reasons=[];if(move>6&&!intentional)reasons.push(`position ${move.toFixed(2)}m/frame`);if(ds>8)reasons.push(`trackS ${ds.toFixed(2)}m/frame`);if(dr>6)reasons.push(`progress ${dr.toFixed(2)}m/frame`);if(c.centerDistance>24&&c.kind!=='jump-gap')reasons.push(`off-course ${c.centerDistance.toFixed(2)}m`);if(c.py<-12||c.py>36)reasons.push(`Y ${c.py.toFixed(2)}`);if(!Number.isFinite(c.px+c.py+c.pz+c.trackS+c.raceDistance))reasons.push('non-finite');
+                if(reasons.length&&anomalies.length<30)anomalies.push({frame,time:cur.time,car:c.id,kind:c.kind,reasons,from:{x:p.px,y:p.py,z:p.pz,s:p.trackS},to:{x:c.px,y:c.py,z:c.pz,s:c.trackS},events:cur.events});
+              }
+              if(anomalies.length&&shot<6){await page.waitForTimeout(30);await page.screenshot({path:`anomaly-${shot+1}.png`});shot++;}
+              prev=cur;
+            }
+            finished=prev.cars.filter(c=>c.finished).length;runs.push({seed,frames,time:prev.time,finished,playerLap:prev.cars[0].lap,playerFinished:prev.cars[0].finished,maxFrameMove,maxTrackJump,maxProgressJump,maxCenterDistance,minY,maxY,anomalies});
+          }
+          fs.writeFileSync('warp-report.json',JSON.stringify({runs,logs,viewport:await page.evaluate(()=>({scale:visualViewport?.scale,offsetLeft:visualViewport?.offsetLeft,offsetTop:visualViewport?.offsetTop,scrollX,scrollY,innerWidth,innerHeight}))},null,2));
+          await browser.close();
+          EOF
+          node warp-check.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rampage-warp-playcheck
+          path: |
+            live-rampage.png
+            anomaly-*.png
+            warp-report.json
