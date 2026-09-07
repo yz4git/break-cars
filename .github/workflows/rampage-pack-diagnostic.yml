@@ -1,0 +1,43 @@
+name: RAMPAGE pile-up diagnostic
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and inspect deterministic pile-up
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          python3 scripts/prepare-pages.py
+          cat > /tmp/diagnose.mjs <<'EOF'
+          import fs from 'node:fs';
+          const physics=await import(`file://${process.cwd()}/_site/physics.js?diag=${Date.now()}`);
+          const {makeWorld,step}=physics;
+          const w=makeWorld(1,144,'racing');
+          const rows=[];let max={move:0,frame:-1,car:-1};
+          let prev=w.cars.map(c=>({x:c.x,y:c.p3?.py??0,z:c.z}));
+          for(let frame=0;frame<510&&!w.done;frame++){
+            step(w,{},1/60,true);
+            for(const c of w.cars){
+              const b=c.p3,p=prev[c.id];if(!b)continue;
+              const move=Math.hypot(b.px-p.x,b.py-p.y,b.pz-p.z);if(move>max.move)max={move,frame,car:c.id};
+              if(frame>=484&&frame<=494&&(c.id===8||move>1.5)){
+                const near=w.cars.filter(o=>o.id!==c.id&&o.p3).map(o=>({id:o.id,d:Math.hypot(o.p3.px-b.px,o.p3.py-b.py,o.p3.pz-b.pz),v:Math.hypot(o.p3.vx,o.p3.vy,o.p3.vz)})).filter(o=>o.d<12).sort((a,b)=>a.d-b.d);
+                rows.push({frame,time:w.time,id:c.id,move,pos:{x:b.px,y:b.py,z:b.pz},vel:{x:b.vx,y:b.vy,z:b.vz,speed:Math.hypot(b.vx,b.vy,b.vz)},ang:{x:b.wx,y:b.wy,z:b.wz},trackS:c.trackS,raceDistance:c.raceDistance,lane:c.lane,hp:c.hp,dead:c.dead,contacts:c.contacts,events:w.events.map(e=>({...e})),near});
+              }
+              prev[c.id]={x:b.px,y:b.py,z:b.pz};
+            }
+          }
+          fs.writeFileSync('diag-report.json',JSON.stringify({max,rows},null,2));
+          console.log(JSON.stringify({max,rows:rows.filter(r=>r.move>1.5)},null,2));
+          EOF
+          node /tmp/diagnose.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rampage-pack-diagnostic
+          path: diag-report.json
