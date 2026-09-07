@@ -3,8 +3,8 @@ import fs from 'node:fs';
 
 const core = await import(`../_site/physics3d.js?full3d-test=${Date.now()}`);
 const physics = await import(`../_site/physics.js?full3d-test=${Date.now()}`);
-const { samplePhysicsSurface, fullPhysicsFeatureSpec, FULL_PHYSICS_ID } = core;
-const { makeWorld, step } = physics;
+const { samplePhysicsSurface, fullPhysicsFeatureSpec, FULL_PHYSICS_ID, ensureFullPhysics } = core;
+const { makeWorld, step, TYPES } = physics;
 
 assert.match(FULL_PHYSICS_ID, /works-full-physics3d/);
 const source = fs.readFileSync(new URL('../_site/physics.js', import.meta.url), 'utf8');
@@ -66,4 +66,26 @@ for (let i=0;i<240&&!jump.done;i++) {
 assert.ok(maxY>1.55, `jump ramp should lift chassis, maxY=${maxY.toFixed(2)}`);
 assert.ok(maxAir>.08, `jump ramp should create airborne time, maxAir=${maxAir.toFixed(2)}`);
 
-console.log(`Full physics OK: id=${FULL_PHYSICS_ID}, maxJumpY=${maxY.toFixed(2)}, maxAir=${maxAir.toFixed(2)}, cars=${w.cars.length}`);
+// Start on the loop's right side with the chassis COM 0.9m inside the road,
+// local up aimed at loop center and local forward tangent pointed upward.
+// The body must stay attached long enough to rotate its up-vector through the
+// ceiling; this proves the loop is suspension/normal-force driven, not animation.
+const loopWorld = makeWorld(0, 913, 'wreck-hunt');
+for (const c of loopWorld.cars.slice(1)) { c.dead=true;c.respawnAt=Infinity;c.x=36;c.z=36;c.vx=0;c.vz=0; }
+loopWorld.hunt.focusId=-1;
+ensureFullPhysics(loopWorld,TYPES);
+const lp=loopWorld.cars[0],lb=lp.p3,s=Math.SQRT1_2;
+const loopComRadius=spec.loop.r-.9;
+lp.x=spec.loop.x;lp.z=spec.loop.z+loopComRadius;lp.heading=0;lp.vx=0;lp.vz=0;
+Object.assign(lb,{px:lp.x,py:spec.loop.y,pz:lp.z,qx:-s,qy:0,qz:0,qw:s,vx:0,vy:16,vz:0,wx:0,wy:0,wz:0,lastSyncX:lp.x,lastSyncZ:lp.z,lastSyncVx:0,lastSyncVz:0,airTime:0});
+let loopMaxY=lb.py,minLoopUpY=1,maxGrounded=0;
+for (let i=0;i<110&&!loopWorld.done;i++) {
+  step(loopWorld,{gas:1,brake:0,hand:0,steer:0},1/60,false);
+  const b=lp.p3,upY=1-2*(b.qx*b.qx+b.qz*b.qz);
+  loopMaxY=Math.max(loopMaxY,b.py);minLoopUpY=Math.min(minLoopUpY,upY);maxGrounded=Math.max(maxGrounded,b.groundedWheels);
+}
+assert.ok(loopMaxY>spec.loop.y+3.4, `loop should carry car well above side height, maxY=${loopMaxY.toFixed(2)}`);
+assert.ok(minLoopUpY<-.35, `loop chassis up-vector should rotate past horizontal toward ceiling, minUpY=${minLoopUpY.toFixed(2)}`);
+assert.ok(maxGrounded>=2, `loop suspension should retain wheel contact, maxGrounded=${maxGrounded}`);
+
+console.log(`Full physics OK: id=${FULL_PHYSICS_ID}, maxJumpY=${maxY.toFixed(2)}, maxAir=${maxAir.toFixed(2)}, loopMaxY=${loopMaxY.toFixed(2)}, loopMinUpY=${minLoopUpY.toFixed(2)}, cars=${w.cars.length}`);
