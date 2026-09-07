@@ -1,14 +1,20 @@
-"""Publish the same authored game used by Sites, with versioned local dependencies."""
+"""Publish the authored game with Wreck Hunt and versioned local dependencies."""
 from pathlib import Path
 import os
 import re
 import shutil
+from apply_wreck_hunt import apply_wreck_hunt
 
 source = Path('dist')
 target = Path('_site')
 if target.exists():
     shutil.rmtree(target)
 shutil.copytree(source, target)
+
+# Keep the large shared runtime single-source in dist; apply the Wreck Hunt
+# integration to the deploy copy and fail loudly if upstream code drifts.
+apply_wreck_hunt(target)
+
 build = os.environ['DEPLOY_SHA'][:12]
 for path in target.glob('*.js'):
     text = path.read_text()
