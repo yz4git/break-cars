@@ -15,9 +15,9 @@ def apply_extreme_courses(target):
  # Replace the old closed-circle insertion with a road-continuous open twist loop.
  # The authored base road itself is the loop spine: entry and exit remain exact
  # base-course points, while every loop sample advances along that original road.
- # Because the circular offset starts/ends at zero and its endpoint derivative is
- # purely forward, both position, heading and road normal flow continuously into
- # and out of the stunt instead of entering through the underside of another mesh.
+ # The loop rotation uses smootherstep, so angular speed and angular acceleration
+ # both reach zero at each gate. This makes position, tangent, normal *and curvature*
+ # blend into the ordinary road instead of behaving like a separate loop mesh.
  start=s.index('const raw=[];')
  end=s.index('// Remove accidental duplicate',start)
  open_loop="""const LOOP_HALF_T=.18,LOOP_TWIST=LOOP_R*.32;
@@ -38,7 +38,7 @@ for(const t of ts){
   insertedLoops.add(startCenter);
   const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T;
   const sample=u=>{
-   const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),th=-Math.PI/2+u*TAU,c=Math.cos(th),sn=Math.sin(th),crown=Math.sin(Math.PI*u),radialScale=1-.16*crown,verticalScale=1+.045*crown;
+   const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),turn=u*u*u*(u*(u*6-15)+10),th=-Math.PI/2+turn*TAU,c=Math.cos(th),sn=Math.sin(th),crown=Math.sin(Math.PI*u),radialScale=1-.16*crown,verticalScale=1+.045*crown;
    const lateral=LOOP_TWIST*crown*crown*Math.sin(TAU*u),center=add(frame.p,mul(frame.up,LOOP_R*verticalScale));
    const pos=add(add(add(frame.p,mul(frame.forward,LOOP_R*radialScale*c)),mul(frame.up,LOOP_R*verticalScale*(1+sn))),mul(frame.right,lateral));
    return{pos,center,frame};
