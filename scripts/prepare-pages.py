@@ -34,6 +34,7 @@ apply_auto_upright_racing_hint = load_function('fix-auto-upright-racing-hint.py'
 apply_nine_course_review_polish = load_function('polish-nine-course-review-v1.py', 'break_cars_nine_course_review_v1', 'apply_nine_course_review_polish')
 apply_nine_course_review_v2 = load_function('polish-nine-course-review-v2.py', 'break_cars_nine_course_review_v2', 'apply_nine_course_review_v2')
 apply_rampage_exit_stabilizer_v3 = load_function('stabilize-rampage-loop-exit-v3.py', 'break_cars_rampage_exit_v3', 'apply_rampage_exit_stabilizer_v3')
+apply_racing_sign_visibility_v4 = load_function('polish-racing-sign-visibility-v4.py', 'break_cars_racing_sign_visibility_v4', 'apply_racing_sign_visibility_v4')
 
 source = Path('dist')
 target = Path('_site')
@@ -82,6 +83,9 @@ apply_nine_course_review_polish(target)
 apply_nine_course_review_v2(target)
 # RAMPAGE-only post-loop guide: physical forces only, no pose/track snapping.
 apply_rampage_exit_stabilizer_v3(target)
+# Keep loop branding visible as track dressing without blocking chase-camera
+# views during jump, crown and exit-stabilizer stunt moments.
+apply_racing_sign_visibility_v4(target)
 
 build = (os.environ.get('DEPLOY_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())[:12]
 for path in target.glob('*.js'):
