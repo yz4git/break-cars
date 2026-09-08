@@ -12,17 +12,18 @@ def apply_extreme_courses(target):
  s=s.replace('(skyForge?10.5:7.4)', '(doubleOrbit?14.5:skyForge?10.5:7.4)').replace('skyForge?.36:.28','doubleOrbit?.43:skyForge?.36:.28')
  s=s.replace('clamp((skyForge?.43:.34)*Math.sin(2*t),-.44,.44)', 'clamp((doubleOrbit?.72:skyForge?.43:.34)*Math.sin(2*t),doubleOrbit?-.74:-.44,doubleOrbit?.74:.44)*(doubleOrbit?(1-gauss(t,.88,.35))*(1-gauss(t,3.85,.35)):1)')
 
- # Build the loop like a physical toy/race-track loop: the road itself leaves
- # the ordinary spine, turns through one vertical revolution, and returns to
- # the outgoing road.  Ordinary road samples are removed across the gate span,
- # so there is never a flat ribbon underneath the loop.
+ # A real toy-track loop is not a closed circle laid on top of a road.  Its
+ # bottom arc is open: the incoming road becomes one lower leg, joins the ring
+ # on the near/ascending side, travels around the ring, then leaves through a
+ # separate descending leg.  The two legs are allowed to cross/offset at the
+ # bottom exactly like the reference track, but the drivable face is continuous.
  #
- # The loop body is deliberately kept in one vertical plane.  Only short edge
- # blends align that plane to the exact incoming/outgoing road tangents.  This
- # avoids the old side-to-side helix while retaining smooth gate continuity.
+ # Crucially the ring orientation comes from the INCOMING ROAD DIRECTION, not
+ # from the vector between the two gate positions.  Using the gate chord as the
+ # ring axis was what could make the car drive into the back face of the loop.
  start=s.index('const raw=[];')
  end=s.index('// Remove accidental duplicate',start)
- open_loop="""const LOOP_HALF_T=.10;
+ open_loop="""const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;
 const loopCenters=doubleOrbit?[LOOP_T,3.85]:[LOOP_T];
 const raw=[];
 const ts=[];for(let i=0;i<=BASE_STEPS;i++)ts.push(i/BASE_STEPS*TAU);for(const c of loopCenters)ts.push(c-LOOP_HALF_T,c+LOOP_HALF_T);ts.sort((a,b)=>a-b);
@@ -35,29 +36,50 @@ const roadFrameAt=t=>{
 };
 const mixV=(a,b,u)=>norm({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u});
 const smooth01=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
+const horizontal=v=>{const h={x:v.x,y:0,z:v.z},l=len(h);return l>.2?mul(h,1/l):null;};
+const hermite=(p0,t0,p1,t1,scale,u)=>{const u2=u*u,u3=u2*u,h00=2*u3-3*u2+1,h10=u3-2*u2+u,h01=-2*u3+3*u2,h11=u3-u2;return{x:h00*p0.x+h10*scale*t0.x+h01*p1.x+h11*scale*t1.x,y:h00*p0.y+h10*scale*t0.y+h01*p1.y+h11*scale*t1.y,z:h00*p0.z+h10*scale*t0.z+h01*p1.z+h11*scale*t1.z};};
+const orthoUp=(seed,tangent,fallback)=>{const p=sub(seed,mul(tangent,dot(seed,tangent)));return len(p)>.15?norm(p):fallback;};
 for(const t of ts){
  if(t>TAU+EPS)continue;
  const startCenter=loopCenters.find(c=>Math.abs(t-(c-LOOP_HALF_T))<1e-6),insideLoop=loopCenters.some(c=>t>=c-LOOP_HALF_T-EPS&&t<=c+LOOP_HALF_T+EPS);
  if(startCenter!==undefined&&!insertedLoops.has(startCenter)){
   insertedLoops.add(startCenter);
-  const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T,startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),gateVec=sub(endFrame.p,startFrame.p),gateChord=len(gateVec),gateScale=Math.max(1.25,gateChord*.38);
-  const worldUp={x:0,y:1,z:0},gateHorizontal=norm({x:gateVec.x,y:0,z:gateVec.z});
-  let fixedForward=len(gateHorizontal)>.2?gateHorizontal:mixV(startFrame.forward,endFrame.forward,.5),fixedRight=norm(cross(worldUp,fixedForward));if(len(fixedRight)<.2)fixedRight=startFrame.right;
-  const fixedUp=norm(cross(fixedForward,fixedRight));
-  const sample=u=>{
-   const u2=u*u,u3=u2*u,h00=2*u3-3*u2+1,h10=u3-2*u2+u,h01=-2*u3+3*u2,h11=u3-u2;
-   const base={x:h00*startFrame.p.x+h10*gateScale*startFrame.forward.x+h01*endFrame.p.x+h11*gateScale*endFrame.forward.x,y:h00*startFrame.p.y+h10*gateScale*startFrame.forward.y+h01*endFrame.p.y+h11*gateScale*endFrame.forward.y,z:h00*startFrame.p.z+h10*gateScale*startFrame.forward.z+h01*endFrame.p.z+h11*gateScale*endFrame.forward.z};
-   const edgeForward=mixV(startFrame.forward,endFrame.forward,u),edgeUp=mixV(startFrame.up,endFrame.up,u),planeWeight=smooth01(Math.min(u/.13,(1-u)/.13));
-   const forwardAxis=mixV(edgeForward,fixedForward,planeWeight),planeUp=mixV(norm(cross(forwardAxis,norm(cross(edgeUp,forwardAxis)))),fixedUp,planeWeight);
-   const phase=u-.18*Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),pos=add(add(base,mul(forwardAxis,LOOP_R*sn)),mul(planeUp,LOOP_R*(1-c)));
-   const loopUp=norm(add(mul(planeUp,c),mul(forwardAxis,-sn))),center=add(base,mul(planeUp,LOOP_R));
-   return{pos,center,forwardAxis,planeUp,loopUp};
+  const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T,startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),gateVec=sub(endFrame.p,startFrame.p),gateChord=len(gateVec),worldUp={x:0,y:1,z:0};
+
+  // Face the ring in the actual driving direction.  The exit direction only
+  // softens the choice; it is never allowed to flip the ring behind the entry.
+  const startH=horizontal(startFrame.forward)||norm(startFrame.forward),rawEndH=horizontal(endFrame.forward)||norm(endFrame.forward),endH=dot(startH,rawEndH)<0?mul(rawEndH,-1):rawEndH;
+  let ringForward=norm(add(startH,endH));if(len(ringForward)<.2)ringForward=startH;if(dot(ringForward,startH)<0)ringForward=mul(ringForward,-1);
+  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));
+
+  // Remove the bottom part of the circle.  The ring starts/ends a little above
+  // ground, leaving room for two distinct road legs just like the photo.
+  const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=clamp(gateChord*.22,1.8,3.6);
+  const desiredEntry=add(startFrame.p,mul(startFrame.forward,legLead)),desiredExit=sub(endFrame.p,mul(endFrame.forward,legLead));
+  const baseFromEntry=sub(sub(desiredEntry,mul(ringForward,gapAlong)),mul(ringUp,joinRise)),baseFromExit=sub(add(desiredExit,mul(ringForward,gapAlong)),mul(ringUp,joinRise)),ringBase=mul(add(baseFromEntry,baseFromExit),.5);
+  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),tangent=norm(add(mul(ringForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(ringForward,-sn)));return{pos,tangent,up};};
+  const ringEntry=circleAt(open),ringExit=circleAt(TAU-open),entryScale=Math.max(2.4,len(sub(ringEntry.pos,startFrame.p))*.58),exitScale=Math.max(2.4,len(sub(endFrame.p,ringExit.pos))*.58);
+  const LEG_STEPS=Math.max(10,Math.round(LOOP_STEPS*.16)),RING_STEPS=Math.max(48,LOOP_STEPS-LEG_STEPS*2);
+  const pushLeg=(p0,t0,u0,p1,t1,u1,scale,steps,skipFirst=false)=>{
+   for(let j=skipFirst?1:0;j<=steps;j++){
+    const q=j/steps,dq=.18/steps,pos=hermite(p0,t0,p1,t1,scale,q),prev=hermite(p0,t0,p1,t1,scale,Math.max(0,q-dq)),next=hermite(p0,t0,p1,t1,scale,Math.min(1,q+dq)),tangent=norm(sub(next,prev)),w=smooth01(q),seed=mixV(u0,u1,w),up=orthoUp(seed,tangent,ringUp);
+    raw.push({x:pos.x,y:pos.y,z:pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});
+   }
   };
-  for(let j=0;j<=LOOP_STEPS;j++){
-   const u=j/LOOP_STEPS,du=.25/LOOP_STEPS,here=sample(u),prev=sample(Math.max(0,u-du)),next=sample(Math.min(1,u+du)),tangent=norm(sub(next.pos,prev.pos));
-   const roll=.02*Math.sin(Math.PI*u)*Math.sin(TAU*u),up=norm(rotateAround(here.loopUp,tangent,roll));
-   raw.push({x:here.pos.x,y:here.pos.y,z:here.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});
+
+  // Entry leg: road surface stays front-facing and rises in the same direction
+  // the car was already travelling before it reaches the circular ring.
+  pushLeg(startFrame.p,startFrame.forward,startFrame.up,ringEntry.pos,ringEntry.tangent,ringEntry.up,entryScale,LEG_STEPS,false);
+
+  // Main ring: nearly planar and vertical; no closed bottom arc exists.
+  for(let j=1;j<=RING_STEPS;j++){
+   const q=j/RING_STEPS,th=open+(TAU-open*2)*q,p=circleAt(th);
+   raw.push({x:p.pos.x,y:p.pos.y,z:p.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:p.up,explicitForward:p.tangent});
   }
+
+  // Exit leg: descend from the opposite lower side and merge into the outgoing
+  // road without ever requiring the car to pass through the ring's back face.
+  pushLeg(ringExit.pos,ringExit.tangent,ringExit.up,endFrame.p,endFrame.forward,endFrame.up,exitScale,LEG_STEPS,true);
   continue;
  }
  if(insideLoop)continue;
