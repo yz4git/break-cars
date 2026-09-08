@@ -8,9 +8,9 @@ RAMPAGE and SKY therefore use a true two-leg open loop:
 - cut a longer section out of the authored road so entry and exit gates are
   physically separated;
 - narrow the loop ribbon relative to the normal road;
-- curve the entry leg laterally into an oblique ring;
-- keep the descending half displaced to the outgoing side all the way to the
-  ring exit instead of folding it back over the approach;
+- keep the lower entry leg mostly in the incoming road direction;
+- push the descending half strongly to the outgoing side instead of folding it
+  back over the approach;
 - let a separate, long-tangent exit leg converge onto the outgoing authored road.
 
 DOUBLE ORBIT keeps its proven 8.6 m radius and short gate interval because its
@@ -37,33 +37,39 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
     s = one(s, "loopRadius:doubleOrbit?8.6:skyForge?7.5:7.2", "loopRadius:doubleOrbit?8.6:skyForge?12.5:11.5", 'loop radii')
     s = one(s, "const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;", "const LOOP_HALF_T=doubleOrbit?.10:.20,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=.60;", 'open gate spacing and loop lane scale')
 
-    # The anti-overlap work is handled mainly by the lateral ring/descending
-    # separation below. Keep ring yaw modest so the approach road does not have
-    # to rotate nearly sideways before it starts climbing.
+    # Keep the ring itself close to the incoming heading. The visual clearance
+    # now comes from the descending-half separation, not from forcing the entry
+    # road to make a near-sideways turn before it can climb.
     s = one(
         s,
         "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),ringForward=startH;\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));",
-        "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),exitSide=dot(gateVec,startFrame.right),yawSign=exitSide>=0?-1:1,ringYaw=doubleOrbit?.52:skyForge?.50:.52,ringForward=norm(rotateAround(startH,worldUp,yawSign*ringYaw));\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));",
-        'oblique ring orientation',
+        "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),exitSide=dot(gateVec,startFrame.right),yawSign=exitSide>=0?-1:1,ringYaw=doubleOrbit?.52:skyForge?.32:.34,ringForward=norm(rotateAround(startH,worldUp,yawSign*ringYaw));\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));",
+        'open ring orientation',
     )
 
+    # Only a modest ring-centre offset is needed at entry. This keeps the lower
+    # leg visibly and physically continuous with the incoming road while leaving
+    # enough room for the separated descending branch farther around the loop.
     s = one(
         s,
         "const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=clamp(gateChord*.22,1.8,3.6),legRise=.85;\n  const desiredEntry=add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise));",
-        "const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=doubleOrbit?clamp(gateChord*.30,3.2,4.8):clamp(gateChord*.42,4.8,7.6),legRise=doubleOrbit?.95:1.15,ringSideShift=doubleOrbit?0:skyForge?7.0:8.0;\n  const desiredEntry=add(add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise)),mul(startFrame.right,(exitSide>=0?1:-1)*ringSideShift));",
-        'separate entry leg and ring',
+        "const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=doubleOrbit?clamp(gateChord*.30,3.2,4.8):clamp(gateChord*.42,4.8,7.6),legRise=doubleOrbit?.95:1.15,ringSideShift=doubleOrbit?0:skyForge?3.2:3.6;\n  const desiredEntry=add(add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise)),mul(startFrame.right,(exitSide>=0?1:-1)*ringSideShift));",
+        'continuous entry leg and ring',
     )
 
+    # Create the actual open-loop clearance on the descending half. It stays
+    # displaced until the separate exit leg, so there is no low branch/canopy
+    # over the incoming road for the car to appear to drive underneath.
     s = one(
         s,
         "const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),tangent=norm(add(mul(ringForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(ringForward,-sn)));return{pos,tangent,up};};",
-        "const sepSign=exitSide>=0?1:-1,ringSep=doubleOrbit?2.2:skyForge?5.9:5.5;\n  const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.32)/.22),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release;return add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(startFrame.right,lat));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
-        'descending-side separation',
+        "const sepSign=exitSide>=0?1:-1,ringSep=doubleOrbit?2.2:skyForge?7.5:7.2;\n  const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.32)/.22),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release;return add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(startFrame.right,lat));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
+        'descending-side clearance',
     )
 
     # Preserve incoming heading through most of the lower leg, then let the
     # curve rotate toward the ring. DOUBLE ORBIT keeps its proven short-handle
-    # tuning; the two large single loops get a longer physical tangent handle.
+    # tuning; the two large single loops get a long physical tangent handle.
     s = one(
         s,
         "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=clamp(exitDist*.42,2.2,5.0);",
