@@ -1,10 +1,9 @@
-"""DOUBLE ORBIT pack-flow tuning applied after the shared loop stabilizer.
+"""DOUBLE ORBIT pack-flow and bridge recovery tuning.
 
-Keeps both open-helix road meshes unchanged.  CPU traffic gets an extended
-first-loop runoff/bridge traction zone so dense packs do not stall before the
-second loop.  The player keeps the original natural runoff physics.  All help
-is force-only: no position, orientation, velocity, trackS or raceDistance is
-written directly.
+Keeps both photo-shaped open-loop road meshes unchanged.  The first-loop
+runoff/bridge zone uses tyre-like force and torque only so both player and CPU
+cars keep flowing toward loop two without an automatic recovery.  No position,
+orientation, velocity, trackS or raceDistance is written directly.
 """
 from pathlib import Path
 
@@ -20,17 +19,18 @@ def apply_double_orbit_pack_v7(target: Path) -> None:
     physics = target / 'physics3d.js'
     s = physics.read_text()
 
-    # The original 95 m zone is retained for the player. CPU pack cars extend
-    # to just before loop two, covering the elevated bridge bottleneck.
+    # Extend the physical runoff through the elevated bridge for the player too.
+    # The previous 95 m player cutoff ended just before the seed-2468 roof-down
+    # bridge state at trackS~220 m.  This still stops before loop two itself.
     s = one(
         s,
         "if(after>95||road.kind==='loop'||road.kind==='jump-ramp'||road.kind==='jump-gap'||road.kind==='jump-landing')return;",
-        "if(after>(c.id===0?95:142)||road.kind==='loop'||road.kind==='jump-ramp'||road.kind==='jump-gap'||road.kind==='jump-landing')return;",
+        "if(after>142||road.kind==='loop'||road.kind==='jump-ramp'||road.kind==='jump-gap'||road.kind==='jump-landing')return;",
         'runoff extent',
     )
 
-    # Keep the player's original lateral tyre response. Only CPU pack cars get
-    # extra slip damping after side-by-side loop contact.
+    # Keep the player's measured tyre response; CPU pack cars get extra slip
+    # damping after side-by-side contact.
     s = one(
         s,
         "const laneGoal=c.id===0?0:ctx.clamp((c.loopLane??0)*.72,-4.2,4.2),laneError=lateral-laneGoal,sideAccel=ctx.clamp(-laneError*2.75-sideSpeed*3.15,-20,20);",
@@ -55,10 +55,19 @@ def apply_double_orbit_pack_v7(target: Path) -> None:
         "if(b.groundedWheels===0&&height>(c.id===0?1.5:1.2)&&height<(c.id===0?4.2:11)){const normalSpeed=dot(vel,road.up),downAccel=c.id===0?ctx.clamp((height-1.35)*2.8+Math.max(0,normalSpeed)*3.2,0,24):ctx.clamp((height-1.05)*4.6+Math.max(0,normalSpeed)*6.8,0,72);addForce(acc,mul(road.up,-downAccel*b.mass));}",
         'airborne runoff load',
     )
+
+    # A car can leave loop one with the roof facing the bridge while still
+    # carrying healthy forward speed.  The generic 5 s safety recovery then
+    # fires even though the car is still on the intended route.  Model the
+    # missing tyre/chassis roll response with a bounded torque around the road
+    # tangent.  It acts only in this runoff/bridge helper and never snaps pose.
+    anchor = """  if(b.groundedWheels===0&&height>(c.id===0?1.5:1.2)&&height<(c.id===0?4.2:11)){const normalSpeed=dot(vel,road.up),downAccel=c.id===0?ctx.clamp((height-1.35)*2.8+Math.max(0,normalSpeed)*3.2,0,24):ctx.clamp((height-1.05)*4.6+Math.max(0,normalSpeed)*6.8,0,72);addForce(acc,mul(road.up,-downAccel*b.mass));}\n}"""
+    replacement = """  if(b.groundedWheels===0&&height>(c.id===0?1.5:1.2)&&height<(c.id===0?4.2:11)){const normalSpeed=dot(vel,road.up),downAccel=c.id===0?ctx.clamp((height-1.35)*2.8+Math.max(0,normalSpeed)*3.2,0,24):ctx.clamp((height-1.05)*4.6+Math.max(0,normalSpeed)*6.8,0,72);addForce(acc,mul(road.up,-downAccel*b.mass));}\n\n  const bu=bodyUp(b),align=dot(bu,road.up);\n  if(align<.58){\n    const omega={x:b.wx,y:b.wy,z:b.wz},rollRate=dot(omega,road.forward),gradient=dot(road.forward,cross(bu,road.up));\n    let dir=Math.abs(gradient)>.035?Math.sign(gradient):(Math.abs(rollRate)>.16?Math.sign(rollRate):(c.id%2?-1:1));\n    const urgency=ctx.clamp((.58-align)/1.58,0,1),desiredRoll=dir*(1.45+urgency*1.45),rollTorque=ctx.clamp((desiredRoll-rollRate)*b.mass*1.95,-5.0*b.mass,5.0*b.mass),T=mul(road.forward,rollTorque);\n    acc.tx+=T.x;acc.ty+=T.y;acc.tz+=T.z;\n    // If the roof is resting on the bridge, a small equal-and-opposite force\n    // couple supplies the lever arm a real chassis/tyre contact patch would.\n    if(align<-.58&&b.groundedWheels>0&&Math.abs(rollRate)<1.55){\n      const arm=mul(road.right,1.0*dir),lift=mul(road.up,8.8*b.mass);addForce(acc,lift,arm);addForce(acc,mul(lift,-1),mul(arm,-1));\n    }\n  }\n}"""
+    s = one(s, anchor, replacement, 'bridge roll recovery')
     physics.write_text(s)
 
-    # Keep the extended purple guide-pad dressing to communicate the CPU pack
-    # flow zone. This does not change the actual open-helix road mesh.
+    # Extended purple guide pads communicate the physical runoff/bridge zone.
+    # They are dressing only and do not alter the loop road mesh.
     view = target / 'track-view.js'
     s = view.read_text()
     s = one(
