@@ -34,6 +34,7 @@ apply_auto_upright_racing_hint = load_function('fix-auto-upright-racing-hint.py'
 apply_nine_course_review_polish = load_function('polish-nine-course-review-v1.py', 'break_cars_nine_course_review_v1', 'apply_nine_course_review_polish')
 apply_nine_course_review_v2 = load_function('polish-nine-course-review-v2.py', 'break_cars_nine_course_review_v2', 'apply_nine_course_review_v2')
 apply_rampage_exit_stabilizer_v3 = load_function('stabilize-rampage-loop-exit-v3.py', 'break_cars_rampage_exit_v3', 'apply_rampage_exit_stabilizer_v3')
+apply_sky_loop_exit_v5 = load_function('stabilize-sky-loop-exit-v5.py', 'break_cars_sky_exit_v5', 'apply_sky_loop_exit_v5')
 apply_racing_sign_visibility_v4 = load_function('polish-racing-sign-visibility-v4.py', 'break_cars_racing_sign_visibility_v4', 'apply_racing_sign_visibility_v4')
 
 source = Path('dist')
@@ -81,8 +82,10 @@ apply_extreme_courses(target)
 # stabilize arena cameras, recovery, race stunt flow and multi-loop behavior.
 apply_nine_course_review_polish(target)
 apply_nine_course_review_v2(target)
-# RAMPAGE-only post-loop guide: physical forces only, no pose/track snapping.
+# Course-specific post-loop guides use physical force/torque only. Neither one
+# writes position, quaternion, trackS or raceDistance.
 apply_rampage_exit_stabilizer_v3(target)
+apply_sky_loop_exit_v5(target)
 # Keep loop branding visible as track dressing without blocking chase-camera
 # views during jump, crown and exit-stabilizer stunt moments.
 apply_racing_sign_visibility_v4(target)
