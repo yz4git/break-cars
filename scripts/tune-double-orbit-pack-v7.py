@@ -1,9 +1,10 @@
 """DOUBLE ORBIT pack-flow tuning applied after the shared loop stabilizer.
 
-Keeps both open-helix road meshes unchanged.  This only extends the visible
-first-loop runoff/bridge traction zone so dense traffic does not stall before
-the second loop, and catches post-contact hops early with force-only guidance.
-No position, orientation, velocity, trackS or raceDistance values are written.
+Keeps both open-helix road meshes unchanged.  CPU traffic gets an extended
+first-loop runoff/bridge traction zone so dense packs do not stall before the
+second loop.  The player keeps the original natural runoff physics.  All help
+is force-only: no position, orientation, velocity, trackS or raceDistance is
+written directly.
 """
 from pathlib import Path
 
@@ -19,47 +20,45 @@ def apply_double_orbit_pack_v7(target: Path) -> None:
     physics = target / 'physics3d.js'
     s = physics.read_text()
 
-    # The old 95 m zone ended around the bridge bottleneck (s ~= 223 m).
-    # Extend it to just before loop two so the whole inter-loop connector has
-    # the same visible tyre-grip/drive support, without touching loop two.
+    # The original 95 m zone is retained for the player. CPU pack cars extend
+    # to just before loop two, covering the elevated bridge bottleneck.
     s = one(
         s,
         "if(after>95||road.kind==='loop'||road.kind==='jump-ramp'||road.kind==='jump-gap'||road.kind==='jump-landing')return;",
-        "if(after>142||road.kind==='loop'||road.kind==='jump-ramp'||road.kind==='jump-gap'||road.kind==='jump-landing')return;",
+        "if(after>(c.id===0?95:142)||road.kind==='loop'||road.kind==='jump-ramp'||road.kind==='jump-gap'||road.kind==='jump-landing')return;",
         'runoff extent',
     )
 
-    # Keep broad lanes, but give side-by-side traffic enough slip damping to
-    # recover from contact before reaching the narrow elevated connector.
+    # Keep the player's original lateral tyre response. Only CPU pack cars get
+    # extra slip damping after side-by-side loop contact.
     s = one(
         s,
         "const laneGoal=c.id===0?0:ctx.clamp((c.loopLane??0)*.72,-4.2,4.2),laneError=lateral-laneGoal,sideAccel=ctx.clamp(-laneError*2.75-sideSpeed*3.15,-20,20);",
-        "const laneGoal=c.id===0?0:ctx.clamp((c.loopLane??0)*.72,-4.2,4.2),laneError=lateral-laneGoal,sideAccel=ctx.clamp(-laneError*3.35-sideSpeed*4.15,-27,27);",
+        "const laneGoal=c.id===0?0:ctx.clamp((c.loopLane??0)*.72,-4.2,4.2),laneError=lateral-laneGoal,sideAccel=c.id===0?ctx.clamp(-laneError*2.75-sideSpeed*3.15,-20,20):ctx.clamp(-laneError*3.35-sideSpeed*4.15,-27,27);",
         'lateral grip',
     )
 
-    # Bridge pile-ups were dropping to 1-6 m/s.  A stronger tyre-drive floor
-    # restores flow while still leaving impacts, steering and wheel contact free.
+    # Preserve the natural 13.5 m/s player runoff. CPU cars use a stronger
+    # traction floor to stop bridge contact from becoming a permanent wall-pile.
     s = one(
         s,
         "if(forwardSpeed<13.5){const driveAccel=ctx.clamp((13.5-forwardSpeed)*3.7,0,18);addForce(acc,mul(road.forward,driveAccel*b.mass));}",
-        "if(forwardSpeed<16){const driveAccel=ctx.clamp((16-forwardSpeed)*4.8,0,26);addForce(acc,mul(road.forward,driveAccel*b.mass));}",
+        "const runoffTarget=c.id===0?13.5:16,runoffGain=c.id===0?3.7:4.8,runoffMax=c.id===0?18:26;if(forwardSpeed<runoffTarget){const driveAccel=ctx.clamp((runoffTarget-forwardSpeed)*runoffGain,0,runoffMax);addForce(acc,mul(road.forward,driveAccel*b.mass));}",
         'traction floor',
     )
 
-    # Catch launch energy while it is still a recoverable suspension hop.  This
-    # remains acceleration along the current road normal; cars are never snapped
-    # back to the ribbon and genuinely distant wrecks remain free-flight.
+    # Player keeps the previous suspension-hop window exactly. CPU cars catch
+    # higher post-contact launches while they are still close enough to recover.
     s = one(
         s,
         "if(b.groundedWheels===0&&height>1.5&&height<4.2){const normalSpeed=dot(vel,road.up),downAccel=ctx.clamp((height-1.35)*2.8+Math.max(0,normalSpeed)*3.2,0,24);addForce(acc,mul(road.up,-downAccel*b.mass));}",
-        "if(b.groundedWheels===0&&height>1.2&&height<11){const normalSpeed=dot(vel,road.up),downAccel=ctx.clamp((height-1.05)*4.6+Math.max(0,normalSpeed)*6.8,0,72);addForce(acc,mul(road.up,-downAccel*b.mass));}",
+        "if(b.groundedWheels===0&&height>(c.id===0?1.5:1.2)&&height<(c.id===0?4.2:11)){const normalSpeed=dot(vel,road.up),downAccel=c.id===0?ctx.clamp((height-1.35)*2.8+Math.max(0,normalSpeed)*3.2,0,24):ctx.clamp((height-1.05)*4.6+Math.max(0,normalSpeed)*6.8,0,72);addForce(acc,mul(road.up,-downAccel*b.mass));}",
         'airborne runoff load',
     )
     physics.write_text(s)
 
-    # Match the physical zone with visible purple runoff pads all the way across
-    # the bridge connector.  The actual open-loop mesh is not modified here.
+    # Keep the extended purple guide-pad dressing to communicate the CPU pack
+    # flow zone. This does not change the actual open-helix road mesh.
     view = target / 'track-view.js'
     s = view.read_text()
     s = one(
