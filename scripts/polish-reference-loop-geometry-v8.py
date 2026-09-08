@@ -10,8 +10,7 @@ RAMPAGE and SKY therefore use a true spatially-open loop:
 - narrow the loop ribbon relative to the normal road;
 - keep the lower entry leg mostly in the incoming road direction;
 - push the upper arc forward so the loop does not close back over its entrance;
-- align the ring's endpoint advance to the outgoing road instead of overshooting
-  it and folding the exit leg back on itself;
+- place the ring exit behind the outgoing gate, then merge forward into the road;
 - keep the descending half displaced toward the outgoing side;
 - let a separate long-tangent exit leg converge onto the outgoing authored road.
 
@@ -56,24 +55,23 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
 
     # A planar vertical circle inevitably comes back directly above its own
     # entrance at the crown, which is exactly the black underside/canopy seen in
-    # the real WebGL captures. A single monotonic 18m advance removed that canopy
-    # but could overshoot the authored exit and make the final Hermite leg reverse
-    # direction. Split the job instead: (1) endpointAdvance projects the planar
-    # ring exit toward the actual outgoing gate, and (2) crownPush adds a smooth
-    # mid-loop bulge that is zero with zero derivative at both ring gates. The
-    # upper arc therefore stays well forward of the entrance while ringExit still
-    # approaches the outgoing road from the correct side.
+    # the real WebGL captures. Keep the crown pushed forward, but solve the exit
+    # independently: the ring's descending endpoint is corrected onto a target
+    # several metres BEHIND the authored outgoing gate. The correction engages
+    # only on the late descending arc and has zero derivative at q=1, so the ring
+    # itself stays smooth while the final Hermite leg can travel forward into the
+    # outgoing road instead of folding backward and meeting it nose-to-nose.
     s = one(
         s,
         "const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),tangent=norm(add(mul(ringForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(ringForward,-sn)));return{pos,tangent,up};};",
-        "const sepSign=exitSide>=0?1:-1,ringSep=doubleOrbit?2.2:skyForge?7.5:7.2,planarExit=add(add(add(ringBase,mul(ringForward,-gapAlong)),mul(ringUp,joinRise)),mul(startFrame.right,sepSign*ringSep)),endpointAdvance=doubleOrbit?0:clamp(dot(sub(endFrame.p,planarExit),ringForward),0,18),crownPush=doubleOrbit?0:skyForge?10.5:10.0;\n  const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.32)/.22),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release,crown=Math.sin(Math.PI*q),advance=endpointAdvance*smooth01(q)+crownPush*crown*crown;return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(startFrame.right,lat)),mul(ringForward,advance));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
+        "const sepSign=exitSide>=0?1:-1,ringSep=doubleOrbit?2.2:skyForge?7.5:7.2,planarExit=add(add(add(ringBase,mul(ringForward,-gapAlong)),mul(ringUp,joinRise)),mul(startFrame.right,sepSign*ringSep)),endpointAdvance=doubleOrbit?0:clamp(dot(sub(endFrame.p,planarExit),ringForward),0,18),crownPush=doubleOrbit?0:skyForge?10.5:10.0,exitLead=doubleOrbit?0:clamp(gateChord*.38,5.5,8.0),exitTarget=doubleOrbit?endFrame.p:add(sub(endFrame.p,mul(endFrame.forward,exitLead)),mul(endFrame.up,1.2));\n  const baseCirclePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.32)/.22),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release,crown=Math.sin(Math.PI*q),advance=endpointAdvance*smooth01(q)+crownPush*crown*crown;return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(startFrame.right,lat)),mul(ringForward,advance));};\n  const rawExit=baseCirclePos(TAU-open),exitCorrection=doubleOrbit?{x:0,y:0,z:0}:sub(exitTarget,rawExit);\n  const circlePos=th=>{const q=clamp((th-open)/(TAU-open*2),0,1),exitBlend=doubleOrbit?0:smooth01((q-.62)/.38);return add(baseCirclePos(th),mul(exitCorrection,exitBlend));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
         'gate-aligned open-loop clearance',
     )
 
     s = one(
         s,
         "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=clamp(exitDist*.42,2.2,5.0);",
-        "entryScale=doubleOrbit?clamp(entryDist*.46,2.1,4.2):clamp(entryDist*.92,7.0,14.0),exitScale=doubleOrbit?clamp(exitDist*.42,2.2,5.0):clamp(exitDist*1.20,6.0,30.0);",
+        "entryScale=doubleOrbit?clamp(entryDist*.46,2.1,4.2):clamp(entryDist*.92,7.0,14.0),exitScale=doubleOrbit?clamp(exitDist*.42,2.2,5.0):clamp(exitDist*.65,3.5,7.0);",
         'long entry and outgoing tangent handles',
     )
 
