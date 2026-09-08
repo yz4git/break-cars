@@ -20,7 +20,7 @@ const solo=makeWorld(0,2468,'racing');
 solo.endAt=999;solo.limit=999;solo.done=false;
 for(const c of solo.cars.slice(1)){c.finished=true;c.dead=false;c.vx=c.vz=0;}
 const p=solo.cars[0],start=p.raceDistance,target=start+spec.length*.985;
-let loopInverted=false,loopExited=false,jumpAir=0,jumpLanded=false,bridgeSeen=false,recover=0,auto=0,maxSJump=0,prevS=p.trackS,longestStuck=0,stuck=0,frames=0,boostSeen=false;
+let loopInverted=false,loopExited=false,jumpAir=0,jumpLanded=false,bridgeSeen=false,recover=0,auto=0,autoSample=null,maxSJump=0,prevS=p.trackS,longestStuck=0,stuck=0,frames=0,boostSeen=false;
 for(;frames<1900&&!solo.done&&p.raceDistance<target;frames++){
   step(solo,{},1/60,true);
   const kind=racePointAt(p.trackS).kind,b=p.p3,speed=Math.hypot(b.vx,b.vy,b.vz);
@@ -32,7 +32,7 @@ for(;frames<1900&&!solo.done&&p.raceDistance<target;frames++){
   if(kind==='bridge')bridgeSeen=true;
   if(p.rampageBoost)boostSeen=true;
   if(speed<1.4){stuck++;longestStuck=Math.max(longestStuck,stuck);}else stuck=0;
-  for(const e of solo.events){if(e.type==='recover')recover++;if(e.type==='auto-upright')auto++;}
+  for(const e of solo.events){if(e.type==='recover')recover++;if(e.type==='auto-upright'){auto++;if(!autoSample)autoSample={frame:frames,s:+p.trackS.toFixed(2),race:+p.raceDistance.toFixed(2),kind,x:+b.px.toFixed(2),y:+b.py.toFixed(2),z:+b.pz.toFixed(2),upY:+upY(b).toFixed(2),speed:+speed.toFixed(2)};}}
 }
 assert.ok(p.raceDistance>=target,`natural grid start should complete a lap: ${p.raceDistance-start}/${spec.length}`);
 assert.ok(loopInverted,'natural approach must reach the inverted crown of the loop');
@@ -42,7 +42,7 @@ assert.ok(jumpAir>.12,`natural lap must become airborne at jump: ${jumpAir}`);
 assert.ok(jumpLanded,'natural lap must reach the authored landing section');
 assert.ok(boostSeen,'natural lap must traverse the visible BOOST LOOP force zone');
 assert.equal(recover,0,'natural lap must not need manual race recovery');
-assert.equal(auto,0,'natural lap must not need auto-upright');
+assert.equal(auto,0,`natural lap must not need auto-upright; first=${JSON.stringify(autoSample)}`);
 assert.ok(maxSJump<5.5,`natural lap projection jump: ${maxSJump}`);
 assert.ok(longestStuck/60<2.5,`natural lap stalled too long: ${longestStuck/60}s`);
 
