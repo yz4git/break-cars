@@ -40,13 +40,14 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
   // structure remain in free flight rather than being position-snapped back.
   if(height<.35||height>(rampage?2.35:2.65))return;
 
-  // Real stunt tracks do not rely on a car coasting to the crown. Keep a modest
-  // minimum tangential drive force inside the structure so a chassis that loses
-  // speed during a contact gap can continue rolling out instead of hanging on
-  // the final inverted section. This changes velocity only through force.
-  const minLoopSpeed=activeCourse.id==='sky-forge'?10.8:rampage?11.0:10.2;
+  // Real stunt tracks do not rely on a car coasting to the crown. RAMPAGE needs
+  // a stronger tyre-drive response on the descending half so velocity rotates
+  // with the road tangent instead of carrying crown-side momentum upward. This
+  // remains a force-only assist; position, orientation and velocity are never
+  // assigned directly.
+  const minLoopSpeed=activeCourse.id==='sky-forge'?10.8:rampage?13.2:10.2;
   if(forwardSpeed<minLoopSpeed){
-    const driveAccel=ctx.clamp((minLoopSpeed-forwardSpeed)*1.9,0,12);
+    const driveGain=rampage?4.4:1.9,driveMax=rampage?24:12,driveAccel=ctx.clamp((minLoopSpeed-forwardSpeed)*driveGain,0,driveMax);
     addForce(acc,mul(road.forward,driveAccel*b.mass));
   }
 
