@@ -19,30 +19,30 @@ const gateA=racePointAt(spec.loop.startS+.02,0),gateB=racePointAt(spec.loop.endS
 const gateSeparation=Math.hypot(gateA.x-gateB.x,gateA.y-gateB.y,gateA.z-gateB.z);
 assert.ok(gateSeparation>6,`open loop entry/exit too close: ${gateSeparation.toFixed(2)}m`);
 
-// Natural grid-start verification.  The BOOST LOOP still gives a generous
-// entry speed, but the inverted section is judged against the physical
-// centripetal-speed requirement instead of the old closed-loop arcade target.
-// sqrt(g*r) is the gravity-only crown contact threshold for a vertical loop;
-// retain a healthy margin over it while also preventing runaway boost speed.
 const criticalCrownSpeed=Math.sqrt(9.81*spec.loop.radius);
 const w=makeWorld(0,2468,'racing');
 w.endAt=999;w.limit=999;w.done=false;
 for(const c of w.cars.slice(1)){c.finished=true;c.dead=false;c.vx=c.vz=0;}
 const c=w.cars[0];
 let entered=false,exited=false,boostSeen=false,entryForward=0,crownForward=0;
-let minLoopForward=Infinity,maxLoopForward=0,recover=0,auto=0;
+let minLoopForward=Infinity,maxLoopForward=0,recover=0,auto=0,minSample=null;
 for(let frame=0;frame<1200&&!w.done&&!exited;frame++){
   step(w,{},1/60,true);
-  const b=c.p3,road=racePointAt(c.trackS),forward=dot({x:b.vx,y:b.vy,z:b.vz},road.forward);
+  const b=c.p3,road=racePointAt(c.trackS),vel={x:b.vx,y:b.vy,z:b.vz},forward=dot(vel,road.forward);
   if(c.rampageBoost)boostSeen=true;
   if(road.kind==='loop'){
     if(!entered){entered=true;entryForward=forward;}
-    minLoopForward=Math.min(minLoopForward,forward);
+    if(forward<minLoopForward){
+      minLoopForward=forward;
+      const rel={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z};
+      minSample={frame,s:+c.trackS.toFixed(3),race:+c.raceDistance.toFixed(3),forward:+forward.toFixed(3),speed:+Math.hypot(b.vx,b.vy,b.vz).toFixed(3),height:+dot(rel,road.up).toFixed(3),lane:+dot(rel,road.right).toFixed(3),upY:+upY(b).toFixed(3),wheels:b.groundedWheels,roadForward:{x:+road.forward.x.toFixed(3),y:+road.forward.y.toFixed(3),z:+road.forward.z.toFixed(3)},velocity:{x:+b.vx.toFixed(3),y:+b.vy.toFixed(3),z:+b.vz.toFixed(3)}};
+    }
     maxLoopForward=Math.max(maxLoopForward,forward);
     if(upY(b)<-.70)crownForward=Math.max(crownForward,forward);
   }else if(entered){exited=true;}
   for(const e of w.events){if(e.type==='recover')recover++;if(e.type==='auto-upright')auto++;}
 }
+console.log('RAMPAGE minimum loop sample',JSON.stringify(minSample));
 assert.ok(boostSeen,'BOOST LOOP force must engage on a natural start');
 assert.ok(entered&&exited,'car must enter and exit the physical loop');
 assert.ok(entryForward>26,`loop entry should have generous speed margin: ${entryForward.toFixed(2)}m/s`);
