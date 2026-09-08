@@ -25,7 +25,13 @@ def apply_racing3d_projection_fix(target: Path) -> None:
     s = one(
         s,
         "const hint=hintS==null?0:Math.pow(Math.abs(sDelta(s,hintS))/14,2)*.06,cost=dist2+hint;",
-        "const hintGap=hintS==null?0:Math.abs(sDelta(s,hintS)),hint=hintS==null?0:(hintGap>3.2?1e4:Math.pow(hintGap/1.6,2)*3.2),cost=dist2+hint;",
+        # The previous 3.2 m hard window could permanently pin trackS when the
+        # chassis briefly went airborne at the loop exit: once the body got a
+        # little more than one car-length ahead, every genuinely-forward sample
+        # was assigned the 1e4 branch-jump penalty.  Keep the final 5.5 m commit
+        # guard in racing.js as the real branch-safety limit, but let the nearest
+        # same-branch sample catch up anywhere inside that window.
+        "const hintGap=hintS==null?0:Math.abs(sDelta(s,hintS)),hint=hintS==null?0:(hintGap>5.25?1e4:Math.pow(hintGap/2.4,2)*1.55),cost=dist2+hint;",
         "continuity weight",
     )
     course.write_text(s)
