@@ -8,9 +8,9 @@ the ring was pulled back across another course branch just to hit a nearby exit
 gate.
 
 Large RAMPAGE lateral offsets are always horizontal (flatRight), never along the
-banked road-right vector. SKY FORGE and DOUBLE ORBIT keep their already-proven
-compact loop geometry/width so the RAMPAGE clearance fix cannot regress their
-raceability.
+banked road-right vector. SKY FORGE keeps its already-proven compact full-width
+loop. DOUBLE ORBIT keeps its already-proven compact narrowed loop, including the
+lane scale used by its two-loop player/pack tuning.
 """
 from pathlib import Path
 
@@ -28,8 +28,8 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
 
     s = one(s, "loopRadius:doubleOrbit?8.6:skyForge?7.5:7.2", "loopRadius:doubleOrbit?8.6:skyForge?7.5:11.5", 'loop radii')
     # Only RAMPAGE needs the broad cut. SKY and DOUBLE retain their proven gate
-    # spacing and full-width ribbon.
-    s = one(s, "const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;", "const LOOP_HALF_T=(doubleOrbit||skyForge)?.10:.36,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=(doubleOrbit||skyForge)?1:.58;", 'RAMPAGE-only open gate spacing and loop lane scale')
+    # spacing. SKY keeps full width; DOUBLE keeps its proven narrow ribbon.
+    s = one(s, "const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;", "const LOOP_HALF_T=(doubleOrbit||skyForge)?.10:.36,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=skyForge?1:.58;", 'RAMPAGE-only open gate spacing and per-course loop lane scale')
 
     s = one(
         s,
