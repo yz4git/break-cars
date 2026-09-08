@@ -63,5 +63,4 @@ for(const t of ts){
  block=s[a:b].replace('spec.loop','loop')
  s=s[:a]+" for(const loop of spec.loops||[spec.loop]){\n"+block+" }\n"+s[b:]
  s=s.replace("activeCourse.id==='sky-forge'?0x72d8d3:0xff7042", "activeCourse.id==='double-orbit'?0xdb83ff:activeCourse.id==='sky-forge'?0x72d8d3:0xff7042")
- s=s.replace("VERTICAL WRECK LOOP","OPEN TWIST LOOP")
  p.write_text(s)
