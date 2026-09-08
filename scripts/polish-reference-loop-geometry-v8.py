@@ -1,7 +1,7 @@
 """Make stunt loops read like a real open/twisted loop in actual WebGL.
 
 The original topology was continuous, but a broad descending branch sat only a
-couple of metres above the approach ribbon.  From the chase camera that still
+couple of metres above the approach ribbon. From the chase camera that still
 looked like the car drove underneath/backside of a road before entering.
 
 RAMPAGE and SKY therefore use a true two-leg open loop:
@@ -11,7 +11,7 @@ RAMPAGE and SKY therefore use a true two-leg open loop:
 - curve the entry leg laterally into an oblique ring;
 - keep the descending half displaced to the outgoing side all the way to the
   ring exit instead of folding it back over the approach;
-- let a separate exit leg converge onto the outgoing authored road.
+- let a separate, long-tangent exit leg converge onto the outgoing authored road.
 
 DOUBLE ORBIT keeps its proven 8.6 m radius and short gate interval because its
 two-loop physics pack is tightly tuned around that geometry. It still gets the
@@ -44,7 +44,7 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
     )
 
     # Real-WebGL review showed the old +/- .10 rad gates were too close for a
-    # 17 m normal road.  Widen the removed authored-road interval on the two
+    # 17 m normal road. Widen the removed authored-road interval on the two
     # single-loop courses so their entry and exit legs can be genuinely separate.
     s = one(
         s,
@@ -83,6 +83,17 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
         "const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),tangent=norm(add(mul(ringForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(ringForward,-sn)));return{pos,tangent,up};};",
         "const sepSign=exitSide>=0?1:-1,ringSep=doubleOrbit?2.2:skyForge?5.9:5.5;\n  const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.32)/.22),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release;return add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(startFrame.right,lat));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
         'descending-side separation',
+    )
+
+    # Relocating the ring makes ringExit->road much longer. The old 5 m Hermite
+    # tangent handle only aligned during the final few centimetres, so the exit
+    # still looked like a crossing. Stretch the single-loop outgoing handle so
+    # the final metres already face the authored road; leave DOUBLE ORBIT alone.
+    s = one(
+        s,
+        "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=clamp(exitDist*.42,2.2,5.0);",
+        "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=doubleOrbit?clamp(exitDist*.42,2.2,5.0):clamp(exitDist*1.20,6.0,30.0);",
+        'outgoing tangent handle',
     )
 
     # Taper lateral coordinates in the same centerline API consumed by both the
