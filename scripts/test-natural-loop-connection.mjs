@@ -8,7 +8,7 @@ if(!selected){
     process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');
     assert.equal(r.status,0,`${course} natural-loop regression failed`);
   }
-  console.log('Natural road-connected vertical loops OK');
+  console.log('Natural front-entry open loops OK');
   process.exit(0);
 }
 
@@ -17,22 +17,44 @@ const {racePointAt,race3DFeatureSpec}=await import(`../_site/racing3d.js?natural
 const spec=race3DFeatureSpec(),loops=spec.loops||[spec.loop];
 assert.equal(loops.length,selected==='double-orbit'?2:1,`${selected}: unexpected loop count`);
 
-const norm=v=>{const l=Math.hypot(v.x,v.y,v.z)||1;return{x:v.x/l,y:v.y/l,z:v.z/l};};
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 
 for(const [index,loop] of loops.entries()){
-  const before=racePointAt(loop.startS-.16),after=racePointAt(loop.endS+.16);
-  const chord=norm({x:after.x-before.x,y:0,z:after.z-before.z});
-  const side=norm({x:-chord.z,y:0,z:chord.x});
-  let maxSide=0,maxY=-Infinity,minY=Infinity;
-  for(let i=0;i<=64;i++){
-    const s=loop.startS+(loop.endS-loop.startS)*i/64,p=racePointAt(s);
+  const span=loop.endS-loop.startS,before=racePointAt(loop.startS-.18),after=racePointAt(loop.endS+.18);
+  let maxY=-Infinity,minY=Infinity,minUpDot=1,minEarlyAdvance=Infinity,minEarlyFacing=1;
+
+  for(let i=0;i<=80;i++){
+    const s=loop.startS+span*i/80,p=racePointAt(s);
     assert.equal(p.kind,'loop',`${selected} loop ${index+1}: ordinary road leaked into loop interval at ${s.toFixed(2)}m`);
-    const rel=sub(p,before),lateral=Math.abs(dot(rel,side));
-    maxSide=Math.max(maxSide,lateral);maxY=Math.max(maxY,p.y);minY=Math.min(minY,p.y);
+    maxY=Math.max(maxY,p.y);minY=Math.min(minY,p.y);minUpDot=Math.min(minUpDot,dot(p.up,before.up));
   }
-  assert.ok(maxSide<3.5,`${selected} loop ${index+1}: loop is still a lateral helix (${maxSide.toFixed(2)}m side excursion)`);
+
+  // The first part of the loop must remain on the FRONT side of the incoming
+  // road.  A negative signed advance here is the exact "drive into the back of
+  // the loop" failure the reference photo rules out.
+  for(let i=1;i<=7;i++){
+    const p=racePointAt(loop.startS+span*(i/80)),rel=sub(p,before),advance=dot(rel,before.forward),facing=dot(p.forward,before.forward);
+    minEarlyAdvance=Math.min(minEarlyAdvance,advance);minEarlyFacing=Math.min(minEarlyFacing,facing);
+  }
+  assert.ok(minEarlyAdvance>-.15,`${selected} loop ${index+1}: entry bends behind incoming road (${minEarlyAdvance.toFixed(2)}m)`);
+  assert.ok(minEarlyFacing>.58,`${selected} loop ${index+1}: entry turns toward loop back face (dot=${minEarlyFacing.toFixed(2)})`);
+
+  // Surface front face must be continuous at the gate. The loop can twist only
+  // after the incoming road has already become the ascending leg.
+  const gate=racePointAt(loop.startS+.04),gateNormal=dot(gate.up,before.up),early=racePointAt(loop.startS+span*.10);
+  assert.ok(gateNormal>.72,`${selected} loop ${index+1}: road face flips at entry (up dot=${gateNormal.toFixed(2)})`);
+  assert.ok(early.y>before.y+.18,`${selected} loop ${index+1}: front entry does not rise into loop`);
+
+  // A real loop still turns the car fully upside-down at the crown.
   assert.ok(maxY-minY>10,`${selected} loop ${index+1}: vertical revolution too shallow`);
-  console.log(`${selected} loop ${index+1}: vertical-plane side=${maxSide.toFixed(2)}m rise=${(maxY-minY).toFixed(2)}m`);
+  assert.ok(minUpDot<-.72,`${selected} loop ${index+1}: loop never reaches a true inverted surface`);
+
+  // The separate descending leg must merge into the outgoing road in the same
+  // driving direction instead of meeting it nose-to-nose.
+  const late=racePointAt(loop.endS-span*.035),exitFacing=dot(late.forward,after.forward),exitNormal=dot(racePointAt(loop.endS-.04).up,after.up);
+  assert.ok(exitFacing>.58,`${selected} loop ${index+1}: exit leg faces against outgoing road (dot=${exitFacing.toFixed(2)})`);
+  assert.ok(exitNormal>.68,`${selected} loop ${index+1}: road face flips at exit (up dot=${exitNormal.toFixed(2)})`);
+
+  console.log(`${selected} loop ${index+1}: front-entry advance=${minEarlyAdvance.toFixed(2)} facing=${minEarlyFacing.toFixed(2)} rise=${(maxY-minY).toFixed(2)}m inverted=${minUpDot.toFixed(2)}`);
 }
