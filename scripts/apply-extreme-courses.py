@@ -39,7 +39,7 @@ for(const t of ts){
   insertedLoops.add(startCenter);
   const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T;
   const sample=u=>{
-   const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),turn=u-Math.sin(TAU*u)/TAU,th=turn*TAU,c=Math.cos(th),sn=Math.sin(th),sideR=LOOP_R*(doubleOrbit?1.35:skyForge?1.55:1.85),vertR=LOOP_R*(doubleOrbit?1.0:skyForge?1.0:1.04),sideAxis=norm({x:frame.right.x,y:0,z:frame.right.z});
+   const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),phaseU=u+(!doubleOrbit&&!skyForge?.14:0)*Math.sin(Math.PI*u),phase=(!doubleOrbit&&!skyForge)?phaseU*phaseU*(3-2*phaseU):u-Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),sideR=LOOP_R*(doubleOrbit?1.35:skyForge?1.55:1.85),vertR=LOOP_R*(doubleOrbit?1.0:skyForge?1.0:1.04),sideAxis=norm({x:frame.right.x,y:0,z:frame.right.z});
    const center=add(frame.p,mul(frame.up,vertR)),pos=add(add(frame.p,mul(sideAxis,sideR*sn)),mul(frame.up,vertR*(1-c)));
    const loopUp=norm(add(mul(frame.up,c),mul(sideAxis,-sn)));
    return{pos,center,frame,loopUp};
