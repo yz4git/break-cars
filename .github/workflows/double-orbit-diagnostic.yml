@@ -1,0 +1,32 @@
+name: DOUBLE ORBIT pack diagnostic
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare game
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: python3 scripts/prepare-pages.py
+      - name: Trace 12-car pack through both open loops
+        run: |
+          cat > /tmp/double-orbit.mjs <<'EOF'
+          globalThis.location={search:'?course=double-orbit'};
+          const physics=await import(`${process.cwd()}/_site/physics.js?d=${Date.now()}`),racing=await import(`${process.cwd()}/_site/racing.js?d=${Date.now()}`),r3=await import(`${process.cwd()}/_site/racing3d.js?d=${Date.now()}`);
+          const {makeWorld,step}=physics,{trackPoint}=racing,{race3DFeatureSpec}=r3,spec=race3DFeatureSpec(),w=makeWorld(0,144,'racing');
+          const stats=w.cars.map(c=>({id:c.id,maxD:c.raceDistance,maxS:c.trackS,minLane:99,maxLane:-99,maxHeight:-99,maxAir:0,loops:new Set(),recover:0,auto:0,stallAt:null,lastD:c.raceDistance,still:0}));
+          const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+          for(let frame=0;frame<3600&&!w.done;frame++){
+            step(w,{},1/60,true);
+            for(const c of w.cars){const st=stats[c.id],b=c.p3,p=trackPoint(c.trackS||0),rel={x:b.px-p.x,y:b.py-p.y,z:b.pz-p.z},lat=dot(rel,p.right),h=dot(rel,p.up);st.maxD=Math.max(st.maxD,c.raceDistance);st.maxS=c.trackS;st.minLane=Math.min(st.minLane,lat);st.maxLane=Math.max(st.maxLane,lat);st.maxHeight=Math.max(st.maxHeight,h);st.maxAir=Math.max(st.maxAir,b.airTime||0);for(let n=0;n<spec.loops.length;n++)if(c.trackS>=spec.loops[n].startS&&c.trackS<=spec.loops[n].endS)st.loops.add(n);if(c.raceDistance-st.lastD<.015)st.still++;else st.still=0;if(st.still===180)st.stallAt={frame,s:+c.trackS.toFixed(2),d:+c.raceDistance.toFixed(2),kind:p.kind,lat:+lat.toFixed(2),height:+h.toFixed(2),speed:+Math.hypot(b.vx,b.vy,b.vz).toFixed(2),wheels:b.groundedWheels};st.lastD=c.raceDistance;}
+            for(const e of w.events){if(e.type==='recover'&&stats[e.car])stats[e.car].recover++;if(e.type==='auto-upright'&&stats[e.car])stats[e.car].auto++;}
+          }
+          const out=stats.map((st,i)=>{const c=w.cars[i],b=c.p3,p=trackPoint(c.trackS||0),rel={x:b.px-p.x,y:b.py-p.y,z:b.pz-p.z};return{id:st.id,d:+c.raceDistance.toFixed(2),s:+c.trackS.toFixed(2),kind:p.kind,loops:[...st.loops],minLane:+st.minLane.toFixed(2),maxLane:+st.maxLane.toFixed(2),maxHeight:+st.maxHeight.toFixed(2),maxAir:+st.maxAir.toFixed(2),recover:st.recover,auto:st.auto,stallAt:st.stallAt,finalLane:+dot(rel,p.right).toFixed(2),finalHeight:+dot(rel,p.up).toFixed(2),speed:+Math.hypot(b.vx,b.vy,b.vz).toFixed(2),dead:c.dead,finished:c.finished};});
+          console.log(JSON.stringify({length:spec.length,loops:spec.loops,done:w.done,time:w.time,cars:out},null,2));
+          EOF
+          node /tmp/double-orbit.mjs
