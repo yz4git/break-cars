@@ -58,11 +58,17 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
         'descending-side separation',
     )
 
+    # The larger side-shifted single loops need a genuinely long entry tangent.
+    # A 4.2 m handle on a ~10 m diagonal entry leg made the road yaw almost 55°
+    # within the first two metres, which was continuous but still drove the car
+    # into a sudden sideways tangent.  Preserve the authored road heading much
+    # longer, then bend smoothly toward the oblique ring. DOUBLE ORBIT keeps its
+    # proven short-handle tuning.
     s = one(
         s,
         "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=clamp(exitDist*.42,2.2,5.0);",
-        "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=doubleOrbit?clamp(exitDist*.42,2.2,5.0):clamp(exitDist*1.20,6.0,30.0);",
-        'outgoing tangent handle',
+        "entryScale=doubleOrbit?clamp(entryDist*.46,2.1,4.2):clamp(entryDist*.78,6.0,12.0),exitScale=doubleOrbit?clamp(exitDist*.42,2.2,5.0):clamp(exitDist*1.20,6.0,30.0);",
+        'long entry and outgoing tangent handles',
     )
 
     s = one(
