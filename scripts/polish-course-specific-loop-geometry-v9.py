@@ -1,10 +1,11 @@
 """Keep the RAMPAGE clearance fix isolated from the other stunt courses.
 
 RAMPAGE keeps the new broad outboard open loop requested by the visual review.
-SKY FORGE and DOUBLE ORBIT are restored to the proven forward-progress helix
-used by the last fully green build (0ead342f): their ascending and descending
-halves remain separated by the moving authored spine and they do not inherit
-RAMPAGE's 17 m detour, long merge handles or widened projection needs.
+SKY FORGE and DOUBLE ORBIT use the proven forward-progress helix from the last
+fully green build, with a small symmetric lower-leg rise so the ordinary road
+visibly flows up into (and back down out of) the loop instead of reading flat at
+the gates. The lift is smooth, force-free geometry: position/tangent/normal are
+still continuous at both road joins.
 
 This transform runs after v8 and replaces only the generated loop-centerline
 construction. Rendering/collision continue to consume the same centerline.
@@ -42,11 +43,15 @@ for(const t of ts){
   const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T;
 
   if(doubleOrbit||skyForge){
-   // Proven 0ead-style open helix. The authored spine advances throughout the
-   // loop, so the rising and falling halves do not occupy the same corridor.
+   // Proven forward-progress open helix. The authored spine advances throughout
+   // the revolution, so rising/falling halves stay out of the same corridor.
+   // Add only a low, smooth gate lift. Its derivative is zero at u=0/1, so the
+   // loop remains exactly tangent to the ordinary road while visibly climbing
+   // within the first couple of metres (and descending naturally at the exit).
+   const lowerLegLift=x=>.48*smooth01(x/.055)*(1-smooth01((x-.11)/.09));
    const sample=u=>{
-    const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),phase=u-Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),sideR=LOOP_R*(doubleOrbit?1.35:1.55),vertR=LOOP_R,sideAxis=norm({x:frame.right.x,y:0,z:frame.right.z});
-    const center=add(frame.p,mul(frame.up,vertR)),pos=add(add(frame.p,mul(sideAxis,sideR*sn)),mul(frame.up,vertR*(1-c)));
+    const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),phase=u-Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),sideR=LOOP_R*(doubleOrbit?1.35:1.55),vertR=LOOP_R,sideAxis=norm({x:frame.right.x,y:0,z:frame.right.z}),gateLift=lowerLegLift(u)+lowerLegLift(1-u);
+    const center=add(frame.p,mul(frame.up,vertR)),pos=add(add(add(frame.p,mul(sideAxis,sideR*sn)),mul(frame.up,vertR*(1-c))),mul(frame.up,gateLift));
     const loopUp=norm(add(mul(frame.up,c),mul(sideAxis,-sn)));
     return{pos,center,frame,loopUp};
    };
