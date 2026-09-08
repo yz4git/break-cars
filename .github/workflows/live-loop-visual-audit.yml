@@ -10,6 +10,8 @@ on:
       - "scripts/prepare-pages.py"
       - "scripts/apply-extreme-courses.py"
       - "scripts/polish-reference-loop-geometry-v8.py"
+      - "scripts/polish-course-specific-loop-geometry-v9.py"
+      - "scripts/tune-double-orbit-pack-v7.py"
       - "scripts/boost-rampage-loop-v6.py"
       - "dist/racing3d.js"
       - "dist/track-view.js"
