@@ -1,4 +1,4 @@
-name: SKY FORGE solo diagnostic
+name: SKY FORGE multi-seed diagnostic
 on:
   push:
     branches: [main]
@@ -13,26 +13,33 @@ jobs:
         env:
           DEPLOY_SHA: ${{ github.sha }}
         run: python3 scripts/prepare-pages.py
-      - name: Run SKY FORGE fixed-step diagnostic
+      - name: Run SKY FORGE multi-seed fixed-step diagnostic
         run: |
-          cat > /tmp/sky-diag.mjs <<'EOF'
+          cat > /tmp/sky-multiseed.mjs <<'EOF'
           globalThis.location={search:'?course=sky-forge'};
           const physics=await import(`${process.cwd()}/_site/physics.js?d=${Date.now()}`);
           const p3=await import(`${process.cwd()}/_site/physics3d.js?d=${Date.now()}`);
           const racing=await import(`${process.cwd()}/_site/racing.js?d=${Date.now()}`);
           const {makeWorld,step}=physics;const {samplePhysicsSurface}=p3;const {trackPoint,LENGTH}=racing;
-          const w=makeWorld(0,2468,'racing');w.done=false;w.endAt=999;w.limit=999;
-          for(let i=1;i<w.cars.length;i++){const c=w.cars[i];c.finished=true;c.dead=false;c.vx=c.vz=0;}
-          const c=w.cars[0];let maxTimer=0,firstTimer=null,auto=null,minUp=1,minAlign=1,maxAir=0,maxRace=0;const samples=[];
+          const seeds=[1,17,31,77,144,733,912,2468,4096,12345,54321,99991,2132980000,2132990000,2133000000,2133010000];
           const bodyUp=b=>({x:2*(b.qx*b.qy-b.qz*b.qw),y:1-2*(b.qx*b.qx+b.qz*b.qz),z:2*(b.qy*b.qz+b.qx*b.qw)});
-          for(let frame=0;frame<1900 && !w.done && c.raceDistance<LENGTH*.985;frame++){
-            step(w,{},1/60,true);const b=c.p3;if(!b)continue;const up=bodyUp(b),s=samplePhysicsSurface('racing',b.px,b.py,b.pz,up,true,c.trackS),align=s?up.x*s.normal.x+up.y*s.normal.y+up.z*s.normal.z:999,speed=Math.hypot(b.vx,b.vy,b.vz),pose=trackPoint(c.trackS||0);maxRace=Math.max(maxRace,c.raceDistance);
-            minUp=Math.min(minUp,up.y);minAlign=Math.min(minAlign,align);maxAir=Math.max(maxAir,b.airTime||0);maxTimer=Math.max(maxTimer,c.autoUprightTime||0);
-            const snap={frame,time:+w.time.toFixed(3),trackS:+c.trackS.toFixed(3),raceDistance:+c.raceDistance.toFixed(3),kind:pose.kind,speed:+speed.toFixed(3),upY:+up.y.toFixed(3),align:+align.toFixed(3),wheels:b.groundedWheels,air:+(b.airTime||0).toFixed(3),timer:+(c.autoUprightTime||0).toFixed(3),y:+b.py.toFixed(3),d:+(s?.d??999).toFixed(3)};
-            if(!firstTimer&&(c.autoUprightTime||0)>.15)firstTimer=snap;
-            for(const e of w.events)if(e.type==='auto-upright'&&!auto)auto={...snap,event:e};
-            if((c.raceDistance>315&&frame%30===0)||(speed<2&&frame%15===0)||(c.autoUprightTime||0)>.1)samples.push(snap);
+          const results=[];
+          for(const seed of seeds){
+            const w=makeWorld(0,seed,'racing');w.done=false;w.endAt=999;w.limit=999;
+            for(const c of w.cars.slice(1)){c.finished=true;c.dead=false;c.vx=c.vz=0;}
+            const c=w.cars[0];let auto=0,maxTimer=0,lastTimer=null,autoSnap=null,longestStuck=0,stuck=0,frames=0;
+            for(;frames<2200&&!w.done&&c.raceDistance<LENGTH*.985;frames++){
+              step(w,{},1/60,true);const b=c.p3;if(!b)continue;const up=bodyUp(b),surface=samplePhysicsSurface('racing',b.px,b.py,b.pz,up,true,c.trackS),road=trackPoint(c.trackS||0),align=surface?up.x*surface.normal.x+up.y*surface.normal.y+up.z*surface.normal.z:999,speed=Math.hypot(b.vx,b.vy,b.vz);
+              if(speed<1.4){stuck++;longestStuck=Math.max(longestStuck,stuck);}else stuck=0;
+              maxTimer=Math.max(maxTimer,c.autoUprightTime||0);
+              const snap={seed,frame,time:+w.time.toFixed(3),trackS:+c.trackS.toFixed(3),raceDistance:+c.raceDistance.toFixed(3),kind:road.kind,speed:+speed.toFixed(3),upY:+up.y.toFixed(3),align:+align.toFixed(3),wheels:b.groundedWheels,air:+(b.airTime||0).toFixed(3),timer:+(c.autoUprightTime||0).toFixed(3),y:+b.py.toFixed(3),surface:surface?.kind,d:+(surface?.d??999).toFixed(3)};
+              if((c.autoUprightTime||0)>.05)lastTimer=snap;
+              for(const e of w.events)if(e.type==='auto-upright'){auto++;autoSnap={...snap,event:e,pre:lastTimer};}
+            }
+            results.push({seed,auto,maxTimer:+maxTimer.toFixed(3),longestStuck:+(longestStuck/60).toFixed(2),distance:+c.raceDistance.toFixed(2),frames,autoSnap});
           }
-          console.log(JSON.stringify({length:LENGTH,final:{time:w.time,trackS:c.trackS,raceDistance:c.raceDistance,maxRace,speed:Math.hypot(c.p3.vx,c.p3.vy,c.p3.vz),dead:c.dead},firstTimer,auto,maxTimer,minUp,minAlign,maxAir,samples:samples.slice(-100)},null,2));
+          const failed=results.filter(r=>r.auto||r.maxTimer>1||r.distance<LENGTH*.985||r.longestStuck>2.5);
+          console.log(JSON.stringify({length:LENGTH,seeds:results.length,failed,results},null,2));
+          if(failed.some(r=>r.auto||r.distance<LENGTH*.985))process.exitCode=1;
           EOF
-          node /tmp/sky-diag.mjs
+          node /tmp/sky-multiseed.mjs
