@@ -35,6 +35,7 @@ apply_nine_course_review_polish = load_function('polish-nine-course-review-v1.py
 apply_nine_course_review_v2 = load_function('polish-nine-course-review-v2.py', 'break_cars_nine_course_review_v2', 'apply_nine_course_review_v2')
 apply_rampage_exit_stabilizer_v3 = load_function('stabilize-rampage-loop-exit-v3.py', 'break_cars_rampage_exit_v3', 'apply_rampage_exit_stabilizer_v3')
 apply_sky_loop_exit_v5 = load_function('stabilize-sky-loop-exit-v5.py', 'break_cars_sky_exit_v5', 'apply_sky_loop_exit_v5')
+apply_sky_loop_attitude_v6 = load_function('stabilize-sky-loop-attitude-v6.py', 'break_cars_sky_attitude_v6', 'apply_sky_loop_attitude_v6')
 apply_double_orbit_pack_v7 = load_function('tune-double-orbit-pack-v7.py', 'break_cars_double_orbit_pack_v7', 'apply_double_orbit_pack_v7')
 apply_racing_sign_visibility_v4 = load_function('polish-racing-sign-visibility-v4.py', 'break_cars_racing_sign_visibility_v4', 'apply_racing_sign_visibility_v4')
 
@@ -87,6 +88,10 @@ apply_nine_course_review_v2(target)
 # writes position, quaternion, trackS or raceDistance.
 apply_rampage_exit_stabilizer_v3(target)
 apply_sky_loop_exit_v5(target)
+# SKY's photo-shaped loop stays fully physical; this only breaks the singular
+# 180-degree body-up/road-up attitude where a cross-product controller has no
+# preferred recovery axis.
+apply_sky_loop_attitude_v6(target)
 # DOUBLE ORBIT keeps both open helices unchanged; this extends the visible
 # force-only inter-loop runoff through the elevated bridge bottleneck.
 apply_double_orbit_pack_v7(target)
