@@ -18,11 +18,12 @@ export function updatePlayerAutoUpright(w,dt=1/60){
   if(!b?.active||c.dead||c.finished){if(c)c.autoUprightTime=0;return false;}
   const up=bodyUp(b),surface=samplePhysicsSurface(w.mode,b.px,b.py,b.pz,{x:0,y:1,z:0},true);
   const nearSurface=!!surface&&surface.kind!=='race-void'&&Number.isFinite(surface.d)&&Math.abs(surface.d)<1.65;
+  const raceSurfaceKind=w.mode==='racing'&&surface?.s!=null?racePointAt(surface.s).kind:null;
   // "Fully upside down" means the roof is substantially below the chassis,
   // no wheel is carrying the car, and the chassis is actually near a drivable surface.
-  // This deliberately excludes airborne tumbles and the inverted crown of a loop,
-  // where all four wheels can still be legitimately loaded.
-  const fullyFlipped=up.y<-.62&&b.groundedWheels===0&&nearSurface;
+  // Real loop ribbon is explicitly excluded even if a brief contact gap reports
+  // zero grounded wheels; inverted driving there is intentional, not a crash.
+  const fullyFlipped=up.y<-.62&&b.groundedWheels===0&&nearSurface&&raceSurfaceKind!=='loop';
   c.autoUprightTime=fullyFlipped?(c.autoUprightTime||0)+dt:0;
   if(c.autoUprightTime<5)return false;
 
