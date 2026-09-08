@@ -40,7 +40,11 @@ for(const [index,loop] of loops.entries()){
     minEarlyAdvance=Math.min(minEarlyAdvance,advance);minEarlyFacing=Math.min(minEarlyFacing,facing);
   }
   assert.ok(minEarlyAdvance>-.15,`${selected} loop ${index+1}: entry bends behind incoming road (${minEarlyAdvance.toFixed(2)}m)`);
-  assert.ok(minEarlyFacing>.58,`${selected} loop ${index+1}: entry turns toward loop back face (dot=${minEarlyFacing.toFixed(2)})`);
+  // Keep the first two metres unmistakably front-facing. A dot of .75 limits
+  // heading deviation to ~41 degrees, preventing the old visually-sideways /
+  // underside-first approach from creeping back in while still leaving room
+  // for the authored road to twist naturally into the ring.
+  assert.ok(minEarlyFacing>.75,`${selected} loop ${index+1}: entry turns too far toward loop back face (dot=${minEarlyFacing.toFixed(2)})`);
 
   // Surface front face must be continuous at the gate. The road must also have
   // visibly started rising while it is still on the separate lower entry leg.
