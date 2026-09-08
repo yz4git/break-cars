@@ -1,11 +1,12 @@
-"""SKY FORGE post-loop physical stabilizer and open-loop contact support.
+"""Post-loop physical stabilizers and open-loop contact support.
 
-The open twisted loop remains fully free 6DoF. Inside SKY FORGE and DOUBLE
+The open twisted loops remain fully free 6DoF. Inside SKY FORGE and DOUBLE
 ORBIT loops, tyre/suspension load is represented with forces and torques only so
 the chassis follows the rapidly rotating road normal through tiny contact gaps.
-After SKY FORGE's loop, visible guide pads absorb roof bounces and restore the
-car naturally. No helper writes position, quaternion, velocity, trackS, or
-raceDistance directly.
+After SKY FORGE's loop, visible guide pads absorb roof bounces. DOUBLE ORBIT's
+first-loop runoff uses tyre-like lateral grip and forward drive so a dense pack
+does not remain pinned against the road edge after contact. No helper writes
+position, quaternion, velocity, trackS, or raceDistance directly.
 """
 from pathlib import Path
 
@@ -21,7 +22,7 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
     physics = target / 'physics3d.js'
     s = physics.read_text()
     anchor = "wheelForces(w,c,u,ctx,dt,acc);rampageExitStabilizer(w,c,acc,ctx);"
-    helper = """wheelForces(w,c,u,ctx,dt,acc);rampageExitStabilizer(w,c,acc,ctx);openLoopContactAssist(w,c,acc,ctx);skyForgeExitGuide(w,c,acc,ctx);"""
+    helper = """wheelForces(w,c,u,ctx,dt,acc);rampageExitStabilizer(w,c,acc,ctx);openLoopContactAssist(w,c,acc,ctx);doubleOrbitExitRunoff(w,c,acc,ctx);skyForgeExitGuide(w,c,acc,ctx);"""
     s = one(s, anchor, helper, 'physics hook')
 
     insert_at = "function rampageExitStabilizer(w,c,acc,ctx){"
@@ -75,6 +76,32 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
   }
 }
 
+function doubleOrbitExitRunoff(w,c,acc,ctx){
+  if(w.mode!=='racing'||activeCourse.id!=='double-orbit'||!c?.p3)return;
+  const loops=RAMPAGE_RACE_SPEC.loops||[RAMPAGE_RACE_SPEC.loop];
+  if(loops.length<2)return;
+  const b=c.p3,L=RAMPAGE_RACE_SPEC.length,q=((c.trackS??0)%L+L)%L,after=(q-loops[0].endS+L)%L,road=racePointAt(q);
+  // Only the straight/runoff after loop one is assisted. Loop two and the jump
+  // remain untouched so the course keeps its intended full-physics character.
+  if(after>95||road.kind==='loop'||road.kind==='jump-ramp'||road.kind==='jump-gap'||road.kind==='jump-landing')return;
+  const vel={x:b.vx,y:b.vy,z:b.vz},rel={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},lateral=dot(rel,road.right),sideSpeed=dot(vel,road.right),forwardSpeed=dot(vel,road.forward),height=dot(rel,road.up);
+
+  // Cars exiting side-by-side are gently drawn away from the hard edge toward
+  // their own broad lane. This models tyre grip on the runoff rather than an
+  // invisible rail: the force is proportional to offset and slip velocity.
+  const laneGoal=c.id===0?0:ctx.clamp((c.loopLane??0)*.72,-4.2,4.2),laneError=lateral-laneGoal,sideAccel=ctx.clamp(-laneError*2.75-sideSpeed*3.15,-20,20);
+  addForce(acc,mul(road.right,sideAccel*b.mass));
+
+  // Dense contact can scrub almost all speed while a car is still pointed down
+  // track. A modest traction force prevents a stationary wall-pile without
+  // overwriting velocity or suppressing collisions.
+  if(forwardSpeed<13.5){const driveAccel=ctx.clamp((13.5-forwardSpeed)*3.7,0,18);addForce(acc,mul(road.forward,driveAccel*b.mass));}
+
+  // Absorb only genuine post-loop hops. Grounded cars receive no artificial
+  // downforce, and a car that is far away remains free rather than being pulled.
+  if(b.groundedWheels===0&&height>1.5&&height<4.2){const normalSpeed=dot(vel,road.up),downAccel=ctx.clamp((height-1.35)*2.8+Math.max(0,normalSpeed)*3.2,0,24);addForce(acc,mul(road.up,-downAccel*b.mass));}
+}
+
 function skyForgeExitGuide(w,c,acc,ctx){
   c.skyForgeExitGuide=false;
   if(w.mode!=='racing'||activeCourse.id!=='sky-forge'||!c?.p3)return;
@@ -119,6 +146,10 @@ function skyForgeExitGuide(w,c,acc,ctx){
         raise RuntimeError('SKY exit v5 visual anchor missing')
     visual = """ if(activeCourse.id==='sky-forge'){
   for(let ss=spec.loop.endS+2;ss<=spec.loop.endS+128;ss+=4.0)for(const lane of [-5.6,-2.8,0,2.8,5.6]){const p=trackPoint(ss,lane),pad=box(group,p.x,p.y,p.z,.72,.025,.82,(Math.floor((ss-spec.loop.endS)/4)%2)?0xbffbff:0x64e8f2,true);align(pad,p);pad.position.add(new THREE.Vector3(p.up.x*.075,p.up.y*.075,p.up.z*.075));}
+ }
+ if(activeCourse.id==='double-orbit'){
+  const first=(spec.loops||[spec.loop])[0];
+  for(let ss=first.endS+4;ss<=first.endS+90;ss+=5.0)for(const lane of [-4.2,0,4.2]){const p=trackPoint(ss,lane),pad=box(group,p.x,p.y,p.z,.68,.022,.70,(Math.floor((ss-first.endS)/5)%2)?0xeac9ff:0xc68cff,true);align(pad,p);pad.position.add(new THREE.Vector3(p.up.x*.065,p.up.y*.065,p.up.z*.065));}
  }
 """ + marker
     s = one(s, marker, visual, 'guide pads')
