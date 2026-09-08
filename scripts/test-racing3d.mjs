@@ -17,6 +17,21 @@ assert.ok(spec.jump.endS>spec.jump.startS);
 assert.ok(spec.bridge.y>6,`crossover bridge too low: ${spec.bridge.y}`);
 
 const sJump=(a,b)=>{let d=a-b;if(d>LENGTH/2)d-=LENGTH;if(d<-LENGTH/2)d+=LENGTH;return Math.abs(d);};
+const dot3=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+const dist3=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
+
+// Open-loop gates must be literal continuations of the normal road.  A tiny step
+// across either gate may change curvature, but must not jump position, reverse the
+// tangent or flip the road normal (the old failure looked like entering underside-first).
+for(const l of spec.loops||[spec.loop]){
+  const pre=racePointAt(l.startS-.08),inside=racePointAt(l.startS+.08),beforeExit=racePointAt(l.endS-.08),post=racePointAt(l.endS+.08);
+  assert.ok(dist3(pre,inside)<.30,`loop entry position must be continuous: ${dist3(pre,inside)}`);
+  assert.ok(dist3(beforeExit,post)<.30,`loop exit position must be continuous: ${dist3(beforeExit,post)}`);
+  assert.ok(dot3(pre.forward,inside.forward)>.94,`loop entry tangent must continue road: ${dot3(pre.forward,inside.forward)}`);
+  assert.ok(dot3(beforeExit.forward,post.forward)>.94,`loop exit tangent must continue road: ${dot3(beforeExit.forward,post.forward)}`);
+  assert.ok(dot3(pre.up,inside.up)>.90,`loop entry normal must not flip: ${dot3(pre.up,inside.up)}`);
+  assert.ok(dot3(beforeExit.up,post.up)>.90,`loop exit normal must not flip: ${dot3(beforeExit.up,post.up)}`);
+}
 
 // The two figure-eight passes occupy nearly the same XZ location but are separated vertically.
 const low=racePointAt(0,0),high=racePointAt(spec.bridge.s,0);
