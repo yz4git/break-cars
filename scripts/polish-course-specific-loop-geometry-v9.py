@@ -48,7 +48,7 @@ for(const t of ts){
    // Add only a low, smooth gate lift. Its derivative is zero at u=0/1, so the
    // loop remains exactly tangent to the ordinary road while visibly climbing
    // within the first couple of metres (and descending naturally at the exit).
-   const lowerLegLift=x=>.48*smooth01(x/.055)*(1-smooth01((x-.11)/.09));
+   const lowerLegLift=x=>(doubleOrbit?.82:.48)*smooth01(x/.055)*(1-smooth01((x-.11)/.09));
    const sample=u=>{
     const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),phase=u-Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),sideR=LOOP_R*(doubleOrbit?1.35:1.55),vertR=LOOP_R,sideAxis=norm({x:frame.right.x,y:0,z:frame.right.z}),gateLift=lowerLegLift(u)+lowerLegLift(1-u);
     const center=add(frame.p,mul(frame.up,vertR)),pos=add(add(add(frame.p,mul(sideAxis,sideR*sn)),mul(frame.up,vertR*(1-c))),mul(frame.up,gateLift));
