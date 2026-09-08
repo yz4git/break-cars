@@ -15,12 +15,13 @@ const w=makeWorld(0,2468,'racing');
 w.endAt=999;
 for(const c of w.cars.slice(1))c.finished=true;
 const p=w.cars[0],start=p.raceDistance,inverted=new Set();
-let recovery=0,firstRecovery=null,air=0,frames=0;
+let recovery=0,firstRecovery=null,air=0,frames=0,maxRace=p.raceDistance,maxS=p.trackS,lastAdvanceFrame=0;
 for(;frames<3600&&p.raceDistance<start+spec.length;frames++){
   step(w,{},1/60,true);
   const b=p.p3;
   assert(Number.isFinite(b.px+b.py+b.pz));
   air=Math.max(air,b.airTime);
+  if(p.raceDistance>maxRace+.1){maxRace=p.raceDistance;maxS=p.trackS;lastAdvanceFrame=frames;}
   for(let n=0;n<2;n++)if(p.trackS>=spec.loops[n].startS&&p.trackS<=spec.loops[n].endS&&bodyUpY(b)<-.7)inverted.add(n);
   for(const e of w.events)if(e.type==='recover'||e.type==='auto-upright'){
     recovery++;
@@ -29,6 +30,10 @@ for(;frames<3600&&p.raceDistance<start+spec.length;frames++){
       firstRecovery={type:e.type,frame:frames,s:+p.trackS.toFixed(2),race:+p.raceDistance.toFixed(2),kind:road.kind,x:+b.px.toFixed(2),y:+b.py.toFixed(2),z:+b.pz.toFixed(2),upY:+bodyUpY(b).toFixed(3),speed:+speed.toFixed(2),wheels:b.groundedWheels,air:+(b.airTime||0).toFixed(2),timer:+(p.autoUprightTime||0).toFixed(2)};
     }
   }
+}
+if(p.raceDistance<start+spec.length){
+  const b=p.p3,road=racePointAt(p.trackS),speed=Math.hypot(b.vx,b.vy,b.vz);
+  console.log('DOUBLE ORBIT natural-lap stall',JSON.stringify({frames,race:+p.raceDistance.toFixed(2),target:+(start+spec.length).toFixed(2),maxRace:+maxRace.toFixed(2),s:+p.trackS.toFixed(2),maxS:+maxS.toFixed(2),kind:road.kind,speed:+speed.toFixed(2),upY:+bodyUpY(b).toFixed(3),wheels:b.groundedWheels,air:+(b.airTime||0).toFixed(2),lastAdvanceAgo:+((frames-lastAdvanceFrame)/60).toFixed(2),inverted:[...inverted],recovery,firstRecovery}));
 }
 assert(p.raceDistance>=start+spec.length,'complete a natural lap');
 assert.equal(inverted.size,2,'natural lap must invert through both open loops');
