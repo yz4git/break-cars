@@ -7,7 +7,11 @@ def apply_course_pack(target):
  s=s.replace('const ramp=rampSurface(x,z);','const ramp=courseSurface(x,z)?null:rampSurface(x,z);').replace('const loop=loopSurface(x,y,z);','const loop=courseSurface(x,z)?null:loopSurface(x,y,z);');p.write_text(s)
  p=target/'game.js';s=p.read_text();s="import {COURSES,activeCourse,courseHeight} from './courses.js';\nimport {buildCourseTerrain} from './course-view.js';\n"+s
  s=s.replace('const fullPhysicsSpec=fullPhysicsFeatureSpec();','const customTerrain=buildCourseTerrain();arena.add(customTerrain);\nconst fullPhysicsSpec=fullPhysicsFeatureSpec();')
- s=s.replace("let world=makeWorld()", "fullPhysicsCourse.visible=courseHeight(0,0)===null;\nlet world=makeWorld()")
+ # The legacy arena stunt group contains its own closed torus loop.  Never let
+ # that decorative/physics course coexist with a racing course: the race ribbon
+ # itself is the only loop geometry in racing mode.
+ s=s.replace("let world=makeWorld()", "fullPhysicsCourse.visible=activeCourse.mode!=='racing'&&courseHeight(0,0)===null;\nlet world=makeWorld()")
+ s=s.replace("arena.visible=gameMode==='colosseum';raceTrack.visible=gameMode==='racing';", "arena.visible=gameMode==='colosseum';fullPhysicsCourse.visible=gameMode!=='racing'&&activeCourse.mode!=='racing'&&courseHeight(0,0)===null;raceTrack.visible=gameMode==='racing';")
  # Mode buttons choose the default of that mode when leaving a selected custom course.
  s=s.replace("function selectMode(next){if(mode!=='menu')return;", "function selectMode(next){if(mode!=='menu')return;if(next!==activeCourse.mode){location.search='?course='+COURSES.find(c=>c.mode===next).id;return;}")
  marker="for(const b of document.querySelectorAll('[data-mode]'))b.onclick=()=>selectMode(b.dataset.mode);"
@@ -16,7 +20,7 @@ def apply_course_pack(target):
  s=s.replace("inArenaLoop=gameMode!=='racing'&&","inArenaLoop=courseHeight(0,0)===null&&gameMode!=='racing'&&")
  s += "\nselectMode(activeCourse.mode);$('mode-tag').textContent=activeCourse.name+' / '+activeCourse.mode.toUpperCase();$('arena-caption').textContent=activeCourse.name;const courseHint=document.createElement('p');courseHint.className='course-hint';courseHint.textContent=activeCourse.hint;coursePicker.after(courseHint);\n"
  p.write_text(s)
- p=target/'index.html';s=p.read_text().replace('</head>','<link rel="stylesheet" href="courses.css"></head>');p.write_text(s)
+ p=target/'index.html';s=p.read_text().replace('</head>','<link rel=\"stylesheet\" href=\"courses.css\"></head>');p.write_text(s)
 
  # An asymmetric elevated ribbon retains the existing branch-aware projection and lap gates.
  p=target/'racing3d.js';s=p.read_text();s="import {activeCourse} from './courses.js';\nconst skyForge=activeCourse.id==='sky-forge';\n"+s
