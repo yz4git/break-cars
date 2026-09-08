@@ -9,7 +9,8 @@ The helper remains force-only: it never writes position, orientation or track
 progress.  The outboard geometry asks the car to leave the old figure-eight by
 many metres, so loop samples also apply a damped lateral/normal guide toward the
 actual road ribbon.  This is a spring force in the road frame, not a teleport or
-an orientation override.
+an orientation override.  The helper is explicitly scoped to RAMPAGE so its
+stronger outboard guide cannot alter SKY FORGE or DOUBLE ORBIT loop physics.
 """
 from pathlib import Path
 
@@ -18,11 +19,16 @@ def apply_rampage_loop_boost_v6(target: Path) -> None:
     path = target / 'physics3d.js'
     s = path.read_text()
     old = "if(w.mode==='racing'&&b.grounded&&rampageBoostZone(c)){const road=racePointAt(c.trackS??0),v=dot({x:b.vx,y:b.vy,z:b.vz},road.forward),target=road.kind==='loop'?24.5:22.5;if(v>0&&v<target){const force=(target-v)*b.mass*8.5;addForce(acc,mul(road.forward,force));c.rampageBoost=true;}else c.rampageBoost=false;}else c.rampageBoost=false;"
-    new = "if(w.mode==='racing'){const road=racePointAt(c.trackS??0),zone=rampageBoostZone(c)||road.kind==='loop';if(zone){const vel={x:b.vx,y:b.vy,z:b.vz},v=dot(vel,road.forward),L=RAMPAGE_RACE_SPEC.length,q=((c.trackS??0)%L+L)%L,inLoop=road.kind==='loop',span=Math.max(1,RAMPAGE_RACE_SPEC.loop.endS-RAMPAGE_RACE_SPEC.loop.startS),loopT=inLoop?Math.max(0,Math.min(1,(q-RAMPAGE_RACE_SPEC.loop.startS)/span)):0,target=inLoop?(loopT<.12?31.0:loopT<.72?29.5:29.5-(loopT-.72)/.28*3.5):30.0,gain=inLoop?(loopT<.12?15.0:11.5):14.0,assistContact=b.grounded||inLoop;if(inLoop){const tangent=mul(road.forward,v),off=sub(vel,tangent),guide=4.8;addForce(acc,mul(off,-b.mass*guide));const centerErr={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},sideErr=dot(centerErr,road.right),sideVel=dot(vel,road.right),normalErr=dot(centerErr,road.up)-COM_VISUAL_Y,normalVel=dot(vel,road.up),sideAccel=Math.max(-42,Math.min(42,-sideErr*6.2-sideVel*5.2)),normalAccel=Math.max(-24,Math.min(30,-normalErr*5.0-normalVel*2.0));addForce(acc,mul(road.right,sideAccel*b.mass));addForce(acc,mul(road.up,normalAccel*b.mass));}if(assistContact&&v<target){const effective=Math.max(v,-4),force=(target-effective)*b.mass*gain;addForce(acc,mul(road.forward,force));c.rampageBoost=true;}else if(assistContact&&inLoop&&loopT>.72&&v>target+.8){const trim=(v-target)*b.mass*3.8;addForce(acc,mul(road.forward,-trim));c.rampageBoost=true;}else c.rampageBoost=false;c.rampageBoostTarget=target;}else{c.rampageBoost=false;c.rampageBoostTarget=0;}}else{c.rampageBoost=false;c.rampageBoostTarget=0;}"
+    new = "if(w.mode==='racing'&&boostCourse.id==='rampage-3d'){const road=racePointAt(c.trackS??0),zone=rampageBoostZone(c)||road.kind==='loop';if(zone){const vel={x:b.vx,y:b.vy,z:b.vz},v=dot(vel,road.forward),L=RAMPAGE_RACE_SPEC.length,q=((c.trackS??0)%L+L)%L,inLoop=road.kind==='loop',span=Math.max(1,RAMPAGE_RACE_SPEC.loop.endS-RAMPAGE_RACE_SPEC.loop.startS),loopT=inLoop?Math.max(0,Math.min(1,(q-RAMPAGE_RACE_SPEC.loop.startS)/span)):0,target=inLoop?(loopT<.12?31.0:loopT<.72?29.5:29.5-(loopT-.72)/.28*3.5):30.0,gain=inLoop?(loopT<.12?15.0:11.5):14.0,assistContact=b.grounded||inLoop;if(inLoop){const tangent=mul(road.forward,v),off=sub(vel,tangent),guide=4.8;addForce(acc,mul(off,-b.mass*guide));const centerErr={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},sideErr=dot(centerErr,road.right),sideVel=dot(vel,road.right),normalErr=dot(centerErr,road.up)-COM_VISUAL_Y,normalVel=dot(vel,road.up),sideAccel=Math.max(-42,Math.min(42,-sideErr*6.2-sideVel*5.2)),normalAccel=Math.max(-24,Math.min(30,-normalErr*5.0-normalVel*2.0));addForce(acc,mul(road.right,sideAccel*b.mass));addForce(acc,mul(road.up,normalAccel*b.mass));}if(assistContact&&v<target){const effective=Math.max(v,-4),force=(target-effective)*b.mass*gain;addForce(acc,mul(road.forward,force));c.rampageBoost=true;}else if(assistContact&&inLoop&&loopT>.72&&v>target+.8){const trim=(v-target)*b.mass*3.8;addForce(acc,mul(road.forward,-trim));c.rampageBoost=true;}else c.rampageBoost=false;c.rampageBoostTarget=target;}else{c.rampageBoost=false;c.rampageBoostTarget=0;}}else{c.rampageBoost=false;c.rampageBoostTarget=0;}"
     count = s.count(old)
     if count != 1:
         raise RuntimeError(f'RAMPAGE boost v6: expected 1 boost block, found {count}')
-    path.write_text(s.replace(old, new, 1))
+    s = s.replace(old, new, 1)
+    # Course-pack later prepends its own courseSurface import; duplicate imports
+    # from the same module are valid and keeping a dedicated alias makes the
+    # RAMPAGE-only ownership of this assist explicit.
+    s = "import {activeCourse as boostCourse} from './courses.js';\n" + s
+    path.write_text(s)
 
 
 if __name__ == '__main__':
