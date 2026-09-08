@@ -7,6 +7,7 @@ const html=fs.readFileSync(new URL('../_site/index.html',import.meta.url),'utf8'
 const load=p=>import(new URL('../_site/'+p+'?v='+version,import.meta.url));
 const {activeCourse,courseHeight}=await load('courses.js'),{makeWorld,step}=await load('physics.js');
 if(activeCourse.id==='double-orbit'){await import('./test-double-orbit.mjs');}
+else if(activeCourse.id==='sky-forge'){await import('./test-sky-raceability.mjs');}
 else if(activeCourse.mode==='racing'){await import('./test-rampage-raceability.mjs');}
 else{
  const {buildCourseTerrain}=await load('course-view.js'),g=buildCourseTerrain(),pos=g.children[0].geometry.attributes.position;
