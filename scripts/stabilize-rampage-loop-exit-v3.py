@@ -1,8 +1,11 @@
 """RAMPAGE 3D loop-exit stabilizer.
 
 The loop itself remains unconstrained 6DoF. A visible post-loop stabilizer strip
-provides forward force throughout the strip and roll torque only while the car
-is roof-down. It never overwrites position, quaternion or trackS.
+provides forward force and a physical roll-righting moment after the stunt. It
+never overwrites position, quaternion, velocity, trackS or raceDistance.  A
+roof-down car that has almost stopped rolling receives an equal/opposite force
+couple across the chassis so it rocks onto its wheels before the generic
+five-second auto-upright safety net is needed.
 """
 from pathlib import Path
 
@@ -23,14 +26,27 @@ def apply_rampage_exit_stabilizer_v3(target: Path) -> None:
   if(w.mode!=='racing'||activeCourse.id!=='rampage-3d'||!c?.p3)return;
   const b=c.p3,L=RAMPAGE_RACE_SPEC.length,q=((c.trackS??0)%L+L)%L,loop=raceLoopAt(q),after=(q-loop.endS+L)%L,road=racePointAt(q);
   if(after>40||road.kind==='loop')return;
-  const bu=bodyUp(b),align=dot(bu,road.up),v=dot({x:b.vx,y:b.vy,z:b.vz},road.forward),target=align<-.55?14:12;
-  if(v<target)addForce(acc,mul(road.forward,(target-v)*b.mass*5.4));
+  const bu=bodyUp(b),align=dot(bu,road.up),v=dot({x:b.vx,y:b.vy,z:b.vz},road.forward),target=align<-.55?14.5:12;
+  if(v<target)addForce(acc,mul(road.forward,(target-v)*b.mass*5.8));
   c.rampageExitStabilizer=true;
   if(align>.55)return;
+
+  // A direct physical roll moment is well-defined even at exactly 180 degrees,
+  // where cross(chassisUp, roadUp) becomes zero.  Preserve any existing roll
+  // direction; otherwise choose the shortest visible escape side deterministically.
   const omega={x:b.wx,y:b.wy,z:b.wz},rollRate=dot(omega,road.forward),gradient=dot(road.forward,cross(bu,road.up));
-  let dir=Math.abs(gradient)>.035?Math.sign(gradient):(Math.abs(rollRate)>.16?Math.sign(rollRate):1);
-  const urgency=ctx.clamp((.55-align)/1.55,0,1),desiredRoll=dir*(1.75+urgency*1.25),rollTorque=ctx.clamp((desiredRoll-rollRate)*b.mass*2.1,-5.2*b.mass,5.2*b.mass),T=mul(road.forward,rollTorque);
+  let dir=Math.abs(gradient)>.025?Math.sign(gradient):(Math.abs(rollRate)>.12?Math.sign(rollRate):(c.id%2?-1:1));
+  const urgency=ctx.clamp((.62-align)/1.62,0,1),desiredRoll=dir*(2.15+urgency*1.65),rollTorque=ctx.clamp((desiredRoll-rollRate)*b.mass*2.9,-8.2*b.mass,8.2*b.mass),T=mul(road.forward,rollTorque);
   acc.tx+=T.x;acc.ty+=T.y;acc.tz+=T.z;
+
+  // When the roof is resting on the road, wheel count is naturally zero and a
+  // pure torque can be resisted by the broad roof contact.  An equal/opposite
+  // vertical force pair across the chassis creates a real rocking couple with
+  // zero net lift, breaking that static contact without teleporting the body.
+  if(align<-.62&&Math.abs(rollRate)<1.85){
+    const arm=mul(road.right,1.02*dir),lift=mul(road.up,10.5*b.mass);
+    addForce(acc,lift,arm);addForce(acc,mul(lift,-1),mul(arm,-1));
+  }
 }
 
 function integrateBody(w,c,u,ctx,dt) {
