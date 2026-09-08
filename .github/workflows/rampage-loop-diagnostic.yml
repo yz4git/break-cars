@@ -1,0 +1,26 @@
+name: RAMPAGE loop diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/diagnose-rampage-loop.mjs"
+      - "scripts/polish-reference-loop-geometry-v8.py"
+      - "scripts/boost-rampage-loop-v6.py"
+      - "scripts/prepare-pages.py"
+      - ".github/workflows/rampage-loop-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build deploy copy
+        run: python3 scripts/prepare-pages.py || true
+      - name: Dump loop geometry and solo trajectory
+        run: node scripts/diagnose-rampage-loop.mjs
