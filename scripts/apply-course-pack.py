@@ -7,10 +7,11 @@ def apply_course_pack(target):
  s=s.replace('const ramp=rampSurface(x,z);','const ramp=courseSurface(x,z)?null:rampSurface(x,z);').replace('const loop=loopSurface(x,y,z);','const loop=courseSurface(x,z)?null:loopSurface(x,y,z);');p.write_text(s)
  p=target/'game.js';s=p.read_text();s="import {COURSES,activeCourse,courseHeight} from './courses.js';\nimport {buildCourseTerrain} from './course-view.js';\n"+s
  s=s.replace('const fullPhysicsSpec=fullPhysicsFeatureSpec();','const customTerrain=buildCourseTerrain();arena.add(customTerrain);\nconst fullPhysicsSpec=fullPhysicsFeatureSpec();')
- # The legacy arena stunt group contains its own closed torus loop.  Never let
- # that decorative/physics course coexist with a racing course: the race ribbon
- # itself is the only loop geometry in racing mode.
- s=s.replace("let world=makeWorld()", "fullPhysicsCourse.visible=activeCourse.mode!=='racing'&&courseHeight(0,0)===null;\nlet world=makeWorld()")
+ # The legacy arena stunt group contains its own closed torus loop.  Racing uses
+ # only the authored ribbon loop, so remove the old geometry entirely instead of
+ # relying only on parent visibility. This prevents a later visibility change from
+ # ever layering the closed loop/ramp/bumps on top of the race road.
+ s=s.replace("let world=makeWorld()", "if(activeCourse.mode==='racing')fullPhysicsCourse.clear();\nfullPhysicsCourse.visible=activeCourse.mode!=='racing'&&courseHeight(0,0)===null;\nlet world=makeWorld()")
  s=s.replace("arena.visible=gameMode==='colosseum';raceTrack.visible=gameMode==='racing';", "arena.visible=gameMode==='colosseum';fullPhysicsCourse.visible=gameMode!=='racing'&&activeCourse.mode!=='racing'&&courseHeight(0,0)===null;raceTrack.visible=gameMode==='racing';")
  # Mode buttons choose the default of that mode when leaving a selected custom course.
  s=s.replace("function selectMode(next){if(mode!=='menu')return;", "function selectMode(next){if(mode!=='menu')return;if(next!==activeCourse.mode){location.search='?course='+COURSES.find(c=>c.mode===next).id;return;}")
