@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 
+// This test is specifically for the RAMPAGE 3D BOOST LOOP. Select the real
+// course before importing runtime modules so course-specific physical tyre /
+// suspension support is exercised exactly as it is in the playable game.
+if(!globalThis.location)globalThis.location={search:'?course=rampage-3d'};
+
 const course=await import(`../_site/racing3d.js?boost=${Date.now()}`);
 const physics=await import(`../_site/physics.js?boost=${Date.now()}`);
 const {racePointAt,race3DFeatureSpec}=course;
