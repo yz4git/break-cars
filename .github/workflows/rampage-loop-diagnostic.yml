@@ -8,6 +8,7 @@ on:
       - "scripts/diagnose-rampage-loop.mjs"
       - "scripts/polish-reference-loop-geometry-v8.py"
       - "scripts/boost-rampage-loop-v6.py"
+      - "scripts/fix-racing3d-projection.py"
       - "scripts/prepare-pages.py"
       - ".github/workflows/rampage-loop-diagnostic.yml"
 
