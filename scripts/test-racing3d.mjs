@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 
 const course=await import(`../_site/racing3d.js?test=${Date.now()}`);
 const racing=await import(`../_site/racing.js?test=${Date.now()}`);
@@ -15,6 +16,13 @@ assert.ok(spec.bankMax>.28,`banking too weak: ${spec.bankMax}`);
 assert.ok(spec.loop.maxY>13,`loop too low: ${spec.loop.maxY}`);
 assert.ok(spec.jump.endS>spec.jump.startS);
 assert.ok(spec.bridge.y>6,`crossover bridge too low: ${spec.bridge.y}`);
+
+// The rendered road triangles must wind forward x right so their front-face
+// normal points along the same +up used by wheel/suspension physics. A reversed
+// right x forward winding visually exposes the road underside at loop entry even
+// when the centerline and collision surface themselves are continuous.
+const trackViewSource=await readFile(new URL('../_site/track-view.js',import.meta.url),'utf8');
+assert.match(trackViewSource,/const q=\[offset\(p0a,height\),offset\(p1a,height\),offset\(p0b,height\),offset\(p1a,height\),offset\(p1b,height\),offset\(p0b,height\)\]/,'race road front face must match +up');
 
 const sJump=(a,b)=>{let d=a-b;if(d>LENGTH/2)d-=LENGTH;if(d<-LENGTH/2)d+=LENGTH;return Math.abs(d);};
 const dot3=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
