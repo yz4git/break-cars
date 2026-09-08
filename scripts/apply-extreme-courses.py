@@ -46,20 +46,22 @@ for(const t of ts){
   insertedLoops.add(startCenter);
   const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T,startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),gateVec=sub(endFrame.p,startFrame.p),gateChord=len(gateVec),worldUp={x:0,y:1,z:0};
 
-  // Face the ring in the actual driving direction.  The exit direction only
-  // softens the choice; it is never allowed to flip the ring behind the entry.
-  const startH=horizontal(startFrame.forward)||norm(startFrame.forward),rawEndH=horizontal(endFrame.forward)||norm(endFrame.forward),endH=dot(startH,rawEndH)<0?mul(rawEndH,-1):rawEndH;
-  let ringForward=norm(add(startH,endH));if(len(ringForward)<.2)ringForward=startH;if(dot(ringForward,startH)<0)ringForward=mul(ringForward,-1);
+  // The ring faces exactly where the car is already travelling.  The outgoing
+  // road is handled by its own lower leg and is never allowed to rotate the
+  // ring behind the incoming road.
+  const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),ringForward=startH;
   let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));
 
-  // Remove the bottom part of the circle.  The ring starts/ends a little above
-  // ground, leaving room for two distinct road legs just like the photo.
-  const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=clamp(gateChord*.22,1.8,3.6);
-  const desiredEntry=add(startFrame.p,mul(startFrame.forward,legLead)),desiredExit=sub(endFrame.p,mul(endFrame.forward,legLead));
-  const baseFromEntry=sub(sub(desiredEntry,mul(ringForward,gapAlong)),mul(ringUp,joinRise)),baseFromExit=sub(add(desiredExit,mul(ringForward,gapAlong)),mul(ringUp,joinRise)),ringBase=mul(add(baseFromEntry,baseFromExit),.5);
+  // Cut the bottom arc out of the circle.  Anchor the ring solely from the
+  // incoming leg, with a deliberate rise before the circular part begins.  The
+  // outgoing leg absorbs the positional mismatch on the far lower side.  This
+  // is the two-leg construction visible in the reference photo.
+  const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=clamp(gateChord*.22,1.8,3.6),legRise=.85;
+  const desiredEntry=add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise));
+  const ringBase=sub(sub(desiredEntry,mul(ringForward,gapAlong)),mul(ringUp,joinRise));
   const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),tangent=norm(add(mul(ringForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(ringForward,-sn)));return{pos,tangent,up};};
-  const ringEntry=circleAt(open),ringExit=circleAt(TAU-open),entryScale=Math.max(2.4,len(sub(ringEntry.pos,startFrame.p))*.58),exitScale=Math.max(2.4,len(sub(endFrame.p,ringExit.pos))*.58);
-  const LEG_STEPS=Math.max(10,Math.round(LOOP_STEPS*.16)),RING_STEPS=Math.max(48,LOOP_STEPS-LEG_STEPS*2);
+  const ringEntry=circleAt(open),ringExit=circleAt(TAU-open),entryDist=len(sub(ringEntry.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=clamp(exitDist*.42,2.2,5.0);
+  const LEG_STEPS=Math.max(12,Math.round(LOOP_STEPS*.18)),RING_STEPS=Math.max(48,LOOP_STEPS-LEG_STEPS*2);
   const pushLeg=(p0,t0,u0,p1,t1,u1,scale,steps,skipFirst=false)=>{
    for(let j=skipFirst?1:0;j<=steps;j++){
     const q=j/steps,dq=.18/steps,pos=hermite(p0,t0,p1,t1,scale,q),prev=hermite(p0,t0,p1,t1,scale,Math.max(0,q-dq)),next=hermite(p0,t0,p1,t1,scale,Math.min(1,q+dq)),tangent=norm(sub(next,prev)),w=smooth01(q),seed=mixV(u0,u1,w),up=orthoUp(seed,tangent,ringUp);
@@ -67,18 +69,18 @@ for(const t of ts){
    }
   };
 
-  // Entry leg: road surface stays front-facing and rises in the same direction
-  // the car was already travelling before it reaches the circular ring.
+  // Entry leg: the existing road first advances and rises; only then does it
+  // join the ascending side of the ring.  No segment can turn behind the gate.
   pushLeg(startFrame.p,startFrame.forward,startFrame.up,ringEntry.pos,ringEntry.tangent,ringEntry.up,entryScale,LEG_STEPS,false);
 
-  // Main ring: nearly planar and vertical; no closed bottom arc exists.
+  // Main ring: nearly planar and vertical; there is intentionally no bottom arc.
   for(let j=1;j<=RING_STEPS;j++){
    const q=j/RING_STEPS,th=open+(TAU-open*2)*q,p=circleAt(th);
    raw.push({x:p.pos.x,y:p.pos.y,z:p.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:p.up,explicitForward:p.tangent});
   }
 
-  // Exit leg: descend from the opposite lower side and merge into the outgoing
-  // road without ever requiring the car to pass through the ring's back face.
+  // Exit leg: descend from the opposite lower side, then curve forward into the
+  // authored outgoing road.  It is a separate physical leg, as in the photo.
   pushLeg(ringExit.pos,ringExit.tangent,ringExit.up,endFrame.p,endFrame.forward,endFrame.up,exitScale,LEG_STEPS,true);
   continue;
  }
