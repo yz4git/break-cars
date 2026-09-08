@@ -19,7 +19,8 @@ jobs:
           globalThis.location={search:'?course=sky-forge'};
           const physics=await import(`${process.cwd()}/_site/physics.js?d=${Date.now()}`);
           const racing=await import(`${process.cwd()}/_site/racing.js?d=${Date.now()}`);
-          const {makeWorld,step}=physics;const {trackPoint,LENGTH,raceLoopAt}=racing;
+          const racing3d=await import(`${process.cwd()}/_site/racing3d.js?d=${Date.now()}`);
+          const {makeWorld,step}=physics;const {trackPoint,LENGTH}=racing;const {raceLoopAt}=racing3d;
           const w=makeWorld(0,1,'racing');w.done=false;w.endAt=999;w.limit=999;for(const x of w.cars.slice(1)){x.finished=true;x.dead=false;x.vx=x.vz=0;}
           const c=w.cars[0];
           const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
