@@ -48,7 +48,7 @@ def apply_nine_course_review_v2(target: Path) -> None:
     # every selected race course uses its actual loop list and jump location.
     helpers = """const rampageStuntSafety=c=>{if(!c)return false;const L=RAMPAGE_RACE_SPEC.length,q=((c.trackS??0)%L+L)%L,kind=racePointAt(q).kind,loops=RAMPAGE_RACE_SPEC.loops||[RAMPAGE_RACE_SPEC.loop],nearLoop=loops.some(l=>{const before=(l.startS-q+L)%L,after=(q-l.endS+L)%L;return(q>=l.startS&&q<=l.endS)||before<38||after<28;}),j=RAMPAGE_RACE_SPEC.jump,beforeJump=(j.startS-q+L)%L,afterJump=(q-j.endS+L)%L;return nearLoop||kind==='jump-ramp'||kind==='jump-gap'||kind==='jump-landing'||beforeJump<10||afterJump<34;};
 const rampageBoostZone=c=>{if(!c)return false;const L=RAMPAGE_RACE_SPEC.length,q=((c.trackS??0)%L+L)%L,kind=racePointAt(q).kind,loops=RAMPAGE_RACE_SPEC.loops||[RAMPAGE_RACE_SPEC.loop];return loops.some(l=>{const before=(l.startS-q+L)%L,after=(q-l.endS+L)%L;return(q>=l.startS&&q<=l.endS)||before<36||after<16;})||kind==='loop';};
-const rampageStabilityZone=c=>{if(!c)return false;const L=RAMPAGE_RACE_SPEC.length,q=((c.trackS??0)%L+L)%L,loops=RAMPAGE_RACE_SPEC.loops||[RAMPAGE_RACE_SPEC.loop];return loops.some(l=>{const before=(l.startS-q+L)%L,after=(q-l.endS+L)%L;return(q>=l.startS&&q<=l.endS)||before<8||after<18;});};
+const rampageStabilityZone=c=>{if(!c)return false;const L=RAMPAGE_RACE_SPEC.length,q=((c.trackS??0)%L+L)%L,loops=RAMPAGE_RACE_SPEC.loops||[RAMPAGE_RACE_SPEC.loop];return loops.some(l=>{const inLoop=q>=l.startS&&q<=l.endS,remaining=inLoop?l.endS-q:999,after=(q-l.endS+L)%L;return(inLoop&&remaining<10)||after<18;});};
 """
     s = regex_one(
         s,
@@ -57,10 +57,10 @@ const rampageStabilityZone=c=>{if(!c)return false;const L=RAMPAGE_RACE_SPEC.leng
         'multi-stunt safety helpers',
     )
 
-    # Weak spring-like orientation torque toward the local road normal. At a
-    # loop crown road.up is inverted, so this preserves real upside-down motion
-    # rather than trying to make the car world-upright. It only acts around the
-    # loop and short exit zone, and does not teleport or overwrite quaternion.
+    # Only the final ten metres of a loop and the short exit use a weak
+    # spring-like orientation torque toward the local road normal. The crown
+    # and middle of the loop remain untouched, preserving BOOST speed and real
+    # inverted motion. The assist never teleports or overwrites quaternion.
     anchor = "if(w.mode==='racing'&&b.grounded&&rampageBoostZone(c)){"
     idx = s.find(anchor)
     if idx < 0:
@@ -70,7 +70,7 @@ const rampageStabilityZone=c=>{if(!c)return false;const L=RAMPAGE_RACE_SPEC.leng
     if end < 0:
         raise RuntimeError('nine-course v2 loop stability: boost block end not found')
     end += len(end_marker)
-    stability = "if(w.mode==='racing'&&rampageStabilityZone(c)){const road=racePointAt(c.trackS??0),bu=bodyUp(b),err=cross(bu,road.up),gain=18*b.mass,damp=2.4*b.mass;acc.tx+=err.x*gain-b.wx*damp;acc.ty+=err.y*gain-b.wy*damp*.45;acc.tz+=err.z*gain-b.wz*damp;}"
+    stability = "if(w.mode==='racing'&&rampageStabilityZone(c)){const road=racePointAt(c.trackS??0),bu=bodyUp(b),err=cross(bu,road.up),gain=7.5*b.mass,damp=1.6*b.mass;acc.tx+=err.x*gain-b.wx*damp;acc.ty+=err.y*gain-b.wy*damp*.35;acc.tz+=err.z*gain-b.wz*damp;}"
     s = s[:end] + stability + s[end:]
     physics.write_text(s)
 
