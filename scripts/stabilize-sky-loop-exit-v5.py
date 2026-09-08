@@ -33,16 +33,18 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
   if(w.mode!=='racing'||!c?.p3||(activeCourse.id!=='rampage-3d'&&activeCourse.id!=='sky-forge'&&activeCourse.id!=='double-orbit'))return;
   const b=c.p3,q=c.trackS??0,road=racePointAt(q);
   if(road.kind!=='loop')return;
-  const loop=raceLoopAt(q),vel={x:b.vx,y:b.vy,z:b.vz},omega={x:b.wx,y:b.wy,z:b.wz},bu=bodyUp(b),rel={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},height=dot(rel,road.up),forwardSpeed=dot(vel,road.forward),lateral=dot(rel,road.right),sideSpeed=dot(vel,road.right);
-  // Bridge only a small suspension gap. A car that truly leaves the structure
-  // stays in free flight instead of being magnetically pulled to the road.
-  if(height<.35||height>2.65)return;
+  const loop=raceLoopAt(q),vel={x:b.vx,y:b.vy,z:b.vz},omega={x:b.wx,y:b.wy,z:b.wz},bu=bodyUp(b),rel={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},height=dot(rel,road.up),forwardSpeed=dot(vel,road.forward),normalSpeed=dot(vel,road.up),lateral=dot(rel,road.right),sideSpeed=dot(vel,road.right),rampage=activeCourse.id==='rampage-3d';
+  // Bridge suspension-scale separation only. RAMPAGE allows a slightly larger
+  // transient because the road itself now bends into the loop and the chassis
+  // can unload two wheels at the vertical entry. Cars that genuinely leave the
+  // structure remain in free flight rather than being position-snapped back.
+  if(height<.35||height>(rampage?2.35:2.65))return;
 
   // Real stunt tracks do not rely on a car coasting to the crown. Keep a modest
   // minimum tangential drive force inside the structure so a chassis that loses
   // speed during a contact gap can continue rolling out instead of hanging on
   // the final inverted section. This changes velocity only through force.
-  const minLoopSpeed=activeCourse.id==='sky-forge'?10.8:activeCourse.id==='rampage-3d'?11.0:10.2;
+  const minLoopSpeed=activeCourse.id==='sky-forge'?10.8:rampage?11.0:10.2;
   if(forwardSpeed<minLoopSpeed){
     const driveAccel=ctx.clamp((minLoopSpeed-forwardSpeed)*1.9,0,12);
     addForce(acc,mul(road.forward,driveAccel*b.mass));
@@ -56,10 +58,18 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
   addForce(acc,mul(road.right,sideAccel*b.mass));
 
   // High-speed tyre/suspension load supplies the centripetal acceleration that
-  // keeps the chassis following a vertical ribbon. Scale with v^2/r, capped so
-  // bumps, impacts and one-wheel unloads remain visible and physical.
-  const loadSpeed=Math.max(6.5,forwardSpeed),centripetal=loadSpeed*loadSpeed/Math.max(4,loop.radius),load=ctx.clamp((centripetal-4.5)*.30,0,18.5),gapBlend=ctx.clamp((2.75-height)/1.25,.28,1);
-  addForce(acc,mul(road.up,load*gapBlend*b.mass));
+  // keeps the chassis following a vertical ribbon. RAMPAGE additionally damps
+  // suspension overshoot around the normal COM ride height. The old helper kept
+  // pushing inward even after the car had floated ~2m from the ribbon, which
+  // could make it arc across the loop interior and fall back down the entry.
+  const loadSpeed=Math.max(6.5,Math.max(0,forwardSpeed)),centripetal=loadSpeed*loadSpeed/Math.max(4,loop.radius),baseLoad=ctx.clamp((centripetal-4.5)*.30,0,18.5);
+  if(rampage){
+    const rideHeight=.92,gapError=height-rideHeight,normalAccel=ctx.clamp(baseLoad-gapError*18-normalSpeed*5.5,-24,20);
+    addForce(acc,mul(road.up,normalAccel*b.mass));
+  }else{
+    const gapBlend=ctx.clamp((2.75-height)/1.25,.28,1);
+    addForce(acc,mul(road.up,baseLoad*gapBlend*b.mass));
+  }
 
   // Contact-patch attitude moment: suspension and tyre forces rotate chassis-up
   // toward the local road normal. This prevents a fast car from remaining
