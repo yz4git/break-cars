@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 
+// Standalone invocation verifies RAMPAGE 3D.  When this file is imported from
+// test-courses.mjs, preserve that caller's explicit ?course=... selection so
+// the exact same connectivity test also covers SKY FORGE.
+if(!globalThis.location)globalThis.location={search:'?course=rampage-3d'};
+
 const course=await import(`../_site/racing3d.js?raceability=${Date.now()}`);
 const physics=await import(`../_site/physics.js?raceability=${Date.now()}`);
 const {race3DFeatureSpec,racePointAt,RACE3D_LENGTH}=course;
