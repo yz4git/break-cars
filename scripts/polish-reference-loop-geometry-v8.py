@@ -4,13 +4,20 @@ The incoming road must become the loop itself. In particular, no elevated part
 of the same stunt may lie back across the approach and read as a black road
 underside that the car drives underneath before entering.
 
-RAMPAGE and SKY use a spatially-open loop bay. The key rule is that lateral
-separation is solved in the horizontal plane, not with the banked road-right
-vector: a banked offset secretly moves the ring vertically and can fold it back
-through the figure-eight road even when its XZ centerline looks separated.
+RAMPAGE and SKY use a true spatially-open OUTBOARD loop bay:
+- cut a longer section out of the authored road;
+- narrow the loop ribbon;
+- move the stunt away from the figure-eight body in the horizontal plane;
+- keep the lower entry leg continuous with the road;
+- push the crown forward and the descending side farther outboard;
+- merge the exit back into the outgoing road with a long tangent leg.
+
+The lateral frame is deliberately horizontal. Using the banked road-right vector
+for metre-scale separation also adds a hidden vertical displacement, which was
+the source of the previous apparent half-overlap with the course.
 
 DOUBLE ORBIT keeps its proven short-gate tuning. Rendering and collision consume
-the same centerline and width, with no hidden base road under a loop interval.
+the same centerline and width. No hidden base road remains under a loop interval.
 """
 from pathlib import Path
 
@@ -27,40 +34,40 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
     s = racing3d.read_text()
 
     s = one(s, "loopRadius:doubleOrbit?8.6:skyForge?7.5:7.2", "loopRadius:doubleOrbit?8.6:skyForge?12.5:11.5", 'loop radii')
-    s = one(s, "const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;", "const LOOP_HALF_T=doubleOrbit?.10:.22,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=.60;", 'open gate spacing and loop lane scale')
+    s = one(s, "const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;", "const LOOP_HALF_T=doubleOrbit?.10:.24,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=.60;", 'open gate spacing and loop lane scale')
 
     s = one(
         s,
         "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),ringForward=startH;\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));",
-        "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),flatRight=norm(cross(worldUp,startH)),outwardSign=(startFrame.p.x*flatRight.x+startFrame.p.z*flatRight.z)>=0?1:-1,yawSign=outwardSign,ringYaw=doubleOrbit?.52:skyForge?.30:.32,ringForward=norm(rotateAround(startH,worldUp,yawSign*ringYaw));\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=flatRight;const ringUp=norm(cross(ringForward,ringRight));",
-        'horizontal outboard ring orientation',
+        "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),flatRight=norm(cross(worldUp,startH)),outwardSign=(startFrame.p.x*flatRight.x+startFrame.p.z*flatRight.z)>=0?1:-1,yawSign=outwardSign,ringYaw=doubleOrbit?.52:skyForge?.36:.38,ringForward=norm(rotateAround(startH,worldUp,yawSign*ringYaw));\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=flatRight;const ringUp=norm(cross(ringForward,ringRight));",
+        'outboard ring orientation',
     )
 
     s = one(
         s,
         "const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=clamp(gateChord*.22,1.8,3.6),legRise=.85;\n  const desiredEntry=add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise));",
-        "const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=doubleOrbit?clamp(gateChord*.30,3.2,4.8):clamp(gateChord*.42,5.0,8.0),legRise=doubleOrbit?.95:1.25,ringSideShift=doubleOrbit?0:skyForge?8.0:8.5;\n  const desiredEntry=add(add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise)),mul(flatRight,outwardSign*ringSideShift));",
+        "const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=doubleOrbit?clamp(gateChord*.30,3.2,4.8):clamp(gateChord*.48,6.0,9.5),legRise=doubleOrbit?.95:1.45,ringSideShift=doubleOrbit?0:skyForge?12.5:13.5;\n  const desiredEntry=add(add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise)),mul(flatRight,outwardSign*ringSideShift));",
         'continuous outboard entry leg and ring',
     )
 
     s = one(
         s,
         "const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),tangent=norm(add(mul(ringForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(ringForward,-sn)));return{pos,tangent,up};};",
-        "const sepSign=outwardSign,ringSep=doubleOrbit?2.2:skyForge?9.0:9.5,planarExit=add(add(add(ringBase,mul(ringForward,-gapAlong)),mul(ringUp,joinRise)),mul(flatRight,sepSign*ringSep)),endpointAdvance=doubleOrbit?0:clamp(dot(sub(endFrame.p,planarExit),ringForward),0,18),crownPush=doubleOrbit?0:skyForge?12.0:11.5,exitLead=doubleOrbit?0:clamp(gateChord*.38,5.5,8.0),exitTarget=doubleOrbit?endFrame.p:add(sub(endFrame.p,mul(endFrame.forward,exitLead)),mul(endFrame.up,1.2));\n  const baseCirclePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.28)/.24),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release,crown=Math.sin(Math.PI*q),advance=endpointAdvance*smooth01(q)+crownPush*crown*crown;return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lat)),mul(ringForward,advance));};\n  const rawExit=baseCirclePos(TAU-open),exitCorrection=doubleOrbit?{x:0,y:0,z:0}:sub(exitTarget,rawExit);\n  const circlePos=th=>{const q=clamp((th-open)/(TAU-open*2),0,1),exitBlend=doubleOrbit?0:smooth01((q-.62)/.38);return add(baseCirclePos(th),mul(exitCorrection,exitBlend));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
-        'horizontal outboard loop clearance',
+        "const sepSign=outwardSign,ringSep=doubleOrbit?2.2:skyForge?14.0:14.5,planarExit=add(add(add(ringBase,mul(ringForward,-gapAlong)),mul(ringUp,joinRise)),mul(flatRight,sepSign*ringSep)),endpointAdvance=doubleOrbit?0:clamp(dot(sub(endFrame.p,planarExit),ringForward),0,22),crownPush=doubleOrbit?0:skyForge?15.0:14.5,exitLead=doubleOrbit?0:clamp(gateChord*.42,7.0,10.5),exitTarget=doubleOrbit?endFrame.p:add(sub(endFrame.p,mul(endFrame.forward,exitLead)),mul(endFrame.up,1.2));\n  const baseCirclePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.24)/.24),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release,crown=Math.sin(Math.PI*q),advance=endpointAdvance*smooth01(q)+crownPush*crown*crown;return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lat)),mul(ringForward,advance));};\n  const rawExit=baseCirclePos(TAU-open),exitCorrection=doubleOrbit?{x:0,y:0,z:0}:sub(exitTarget,rawExit);\n  const circlePos=th=>{const q=clamp((th-open)/(TAU-open*2),0,1),exitBlend=doubleOrbit?0:smooth01((q-.62)/.38);return add(baseCirclePos(th),mul(exitCorrection,exitBlend));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
+        'outboard open-loop clearance',
     )
 
     s = one(
         s,
         "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=clamp(exitDist*.42,2.2,5.0);",
-        "entryScale=doubleOrbit?clamp(entryDist*.46,2.1,4.2):clamp(entryDist*.92,7.0,14.0),exitScale=doubleOrbit?clamp(exitDist*.42,2.2,5.0):clamp(exitDist*.65,3.5,7.0);",
+        "entryScale=doubleOrbit?clamp(entryDist*.46,2.1,4.2):clamp(entryDist*1.02,10.0,18.0),exitScale=doubleOrbit?clamp(exitDist*.42,2.2,5.0):clamp(exitDist*.78,5.0,10.0);",
         'long outboard entry and outgoing tangent handles',
     )
 
     s = one(
         s,
         "pushLeg(startFrame.p,startFrame.forward,startFrame.up,ringEntry.pos,ringEntry.tangent,ringEntry.up,entryScale,LEG_STEPS,false);",
-        "const entryForward=doubleOrbit?startFrame.forward:norm(add(startFrame.forward,mul(startFrame.up,.18)));\n  pushLeg(startFrame.p,entryForward,startFrame.up,ringEntry.pos,ringEntry.tangent,ringEntry.up,entryScale,LEG_STEPS,false);",
+        "const entryForward=doubleOrbit?startFrame.forward:norm(add(startFrame.forward,mul(startFrame.up,.22)));\n  pushLeg(startFrame.p,entryForward,startFrame.up,ringEntry.pos,ringEntry.tangent,ringEntry.up,entryScale,LEG_STEPS,false);",
         'rising outboard entry tangent',
     )
 
