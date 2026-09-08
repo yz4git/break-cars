@@ -38,7 +38,7 @@ for(const t of ts){
   insertedLoops.add(startCenter);
   const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T;
   const sample=u=>{
-   const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),th=-Math.PI/2+u*TAU,c=Math.cos(th),sn=Math.sin(th),crown=Math.sin(Math.PI*u),radialScale=1-.16*crown,verticalScale=1-.015*crown;
+   const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),th=-Math.PI/2+u*TAU,c=Math.cos(th),sn=Math.sin(th),crown=Math.sin(Math.PI*u),radialScale=1-.16*crown,verticalScale=1+.045*crown;
    const lateral=LOOP_TWIST*crown*crown*Math.sin(TAU*u),center=add(frame.p,mul(frame.up,LOOP_R*verticalScale));
    const pos=add(add(add(frame.p,mul(frame.forward,LOOP_R*radialScale*c)),mul(frame.up,LOOP_R*verticalScale*(1+sn))),mul(frame.right,lateral));
    return{pos,center,frame};
