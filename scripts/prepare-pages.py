@@ -32,6 +32,7 @@ apply_racing3d_ui = load_function('polish-racing3d-ui.py', 'break_cars_racing3d_
 apply_player_auto_upright = load_function('add-player-auto-upright.py', 'break_cars_player_auto_upright', 'apply_player_auto_upright')
 apply_auto_upright_racing_hint = load_function('fix-auto-upright-racing-hint.py', 'break_cars_auto_upright_racing_hint', 'apply_auto_upright_racing_hint')
 apply_nine_course_review_polish = load_function('polish-nine-course-review-v1.py', 'break_cars_nine_course_review_v1', 'apply_nine_course_review_polish')
+apply_nine_course_review_v2 = load_function('polish-nine-course-review-v2.py', 'break_cars_nine_course_review_v2', 'apply_nine_course_review_v2')
 
 source = Path('dist')
 target = Path('_site')
@@ -74,9 +75,10 @@ apply_course_pack = load_function('apply-course-pack.py', 'break_cars_courses', 
 apply_course_pack(target)
 apply_extreme_courses = load_function('apply-extreme-courses.py', 'break_cars_extreme_courses', 'apply_extreme_courses')
 apply_extreme_courses(target)
-# The final review layer consumes the fully course-aware runtime so it can
-# stabilize arena cameras, surface-aware recovery and racing stunt flow.
+# The final review layers consume the fully course-aware runtime so they can
+# stabilize arena cameras, recovery, race stunt flow and multi-loop behavior.
 apply_nine_course_review_polish(target)
+apply_nine_course_review_v2(target)
 
 build = (os.environ.get('DEPLOY_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())[:12]
 for path in target.glob('*.js'):
