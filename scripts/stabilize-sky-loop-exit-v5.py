@@ -31,7 +31,7 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
   if(w.mode!=='racing'||!c?.p3||(activeCourse.id!=='sky-forge'&&activeCourse.id!=='double-orbit'))return;
   const b=c.p3,q=c.trackS??0,road=racePointAt(q);
   if(road.kind!=='loop')return;
-  const loop=raceLoopAt(q),vel={x:b.vx,y:b.vy,z:b.vz},omega={x:b.wx,y:b.wy,z:b.wz},bu=bodyUp(b),rel={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},height=dot(rel,road.up),forwardSpeed=dot(vel,road.forward);
+  const loop=raceLoopAt(q),vel={x:b.vx,y:b.vy,z:b.vz},omega={x:b.wx,y:b.wy,z:b.wz},bu=bodyUp(b),rel={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},height=dot(rel,road.up),forwardSpeed=dot(vel,road.forward),lateral=dot(rel,road.right),sideSpeed=dot(vel,road.right);
   // Bridge only a small suspension gap. A car that truly leaves the structure
   // stays in free flight instead of being magnetically pulled to the road.
   if(height<.35||height>2.65)return;
@@ -45,6 +45,13 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
     const driveAccel=ctx.clamp((minLoopSpeed-forwardSpeed)*1.9,0,12);
     addForce(acc,mul(road.forward,driveAccel*b.mass));
   }
+
+  // Tyre lateral grip follows the rotating road frame. This is especially
+  // important on the descending twist where a fast chassis can otherwise carry
+  // crown-side momentum off the open ribbon. It is velocity/offset based force,
+  // not lane locking, so impacts and visible slides remain possible.
+  const sideAccel=ctx.clamp(-lateral*3.15-sideSpeed*3.65,-28,28);
+  addForce(acc,mul(road.right,sideAccel*b.mass));
 
   // High-speed tyre/suspension load supplies the centripetal acceleration that
   // keeps the chassis following a vertical ribbon. Scale with v^2/r, capped so
