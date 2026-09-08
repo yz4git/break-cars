@@ -1,24 +1,23 @@
 """Make stunt loops read like a real open/twisted loop in actual WebGL.
 
-The original topology was continuous, but a broad descending branch sat only a
-couple of metres above the approach ribbon. From the chase camera that still
-looked like the car drove underneath/backside of a road before entering.
+The incoming road must become the loop itself. In particular, no elevated part
+of the same stunt may lie back across the approach and read as a black road
+underside that the car drives underneath before entering.
 
-RAMPAGE and SKY therefore use a true two-leg open loop:
+RAMPAGE and SKY therefore use a true spatially-open loop:
 - cut a longer section out of the authored road so entry and exit gates are
   physically separated;
 - narrow the loop ribbon relative to the normal road;
 - keep the lower entry leg mostly in the incoming road direction;
-- push the descending half strongly to the outgoing side instead of folding it
-  back over the approach;
-- let a separate, long-tangent exit leg converge onto the outgoing authored road.
+- advance the ring longitudinally as it rotates, producing a corkscrew/open
+  revolution instead of a circle that closes back above the entry gate;
+- keep the descending half displaced toward the outgoing side;
+- let a separate long-tangent exit leg converge onto the outgoing authored road.
 
-DOUBLE ORBIT keeps its proven 8.6 m radius and short gate interval because its
-two-loop physics pack is tightly tuned around that geometry. It still gets the
-narrow ribbon, milder yaw and mild temporary lateral separation.
-
-Rendering and collision consume the same geometry/width. No hidden base road is
-left under the loop and no position/orientation teleport is introduced.
+DOUBLE ORBIT keeps its proven short-gate closed-planar tuning because its two
+successive loops are tightly tuned around that geometry. Rendering and collision
+always consume the same centerline and width. No hidden base road is left under
+the loop and no position/orientation teleport is introduced.
 """
 from pathlib import Path
 
@@ -37,9 +36,9 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
     s = one(s, "loopRadius:doubleOrbit?8.6:skyForge?7.5:7.2", "loopRadius:doubleOrbit?8.6:skyForge?12.5:11.5", 'loop radii')
     s = one(s, "const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;", "const LOOP_HALF_T=doubleOrbit?.10:.20,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=.60;", 'open gate spacing and loop lane scale')
 
-    # Keep the ring itself close to the incoming heading. The visual clearance
-    # now comes from the descending-half separation, not from forcing the entry
-    # road to make a near-sideways turn before it can climb.
+    # Keep the initial ring heading close to the road. Spatial openness is
+    # created by the longitudinal corkscrew advance below rather than by forcing
+    # the entrance to yaw sideways before it can climb.
     s = one(
         s,
         "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),ringForward=startH;\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));",
@@ -47,9 +46,6 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
         'open ring orientation',
     )
 
-    # Only a modest ring-centre offset is needed at entry. This keeps the lower
-    # leg visibly and physically continuous with the incoming road while leaving
-    # enough room for the separated descending branch farther around the loop.
     s = one(
         s,
         "const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=clamp(gateChord*.22,1.8,3.6),legRise=.85;\n  const desiredEntry=add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise));",
@@ -57,19 +53,21 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
         'continuous entry leg and ring',
     )
 
-    # Create the actual open-loop clearance on the descending half. It stays
-    # displaced until the separate exit leg, so there is no low branch/canopy
-    # over the incoming road for the car to appear to drive underneath.
+    # A planar vertical circle inevitably comes back directly above its own
+    # entrance at the crown, which is exactly the black underside/canopy seen in
+    # the real WebGL captures. For the two single-loop courses, advance the ring
+    # monotonically along its travel axis while it rotates. At q=0 the advance
+    # and its derivative are zero, so the incoming leg remains tangent-continuous;
+    # at q=1 the advance is roughly the authored gate chord, putting ringExit
+    # near the outgoing gate instead of behind the entrance. This is a genuine
+    # open corkscrew loop rather than a closed ring superimposed over a road.
     s = one(
         s,
         "const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),tangent=norm(add(mul(ringForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(ringForward,-sn)));return{pos,tangent,up};};",
-        "const sepSign=exitSide>=0?1:-1,ringSep=doubleOrbit?2.2:skyForge?7.5:7.2;\n  const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.32)/.22),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release;return add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(startFrame.right,lat));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
-        'descending-side clearance',
+        "const sepSign=exitSide>=0?1:-1,ringSep=doubleOrbit?2.2:skyForge?7.5:7.2,ringAdvance=doubleOrbit?0:clamp(gateChord*1.18,14.0,22.0);\n  const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.32)/.22),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release,advance=ringAdvance*smooth01(q);return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(startFrame.right,lat)),mul(ringForward,advance));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
+        'longitudinal open-loop clearance',
     )
 
-    # Preserve incoming heading through most of the lower leg, then let the
-    # curve rotate toward the ring. DOUBLE ORBIT keeps its proven short-handle
-    # tuning; the two large single loops get a long physical tangent handle.
     s = one(
         s,
         "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=clamp(exitDist*.42,2.2,5.0);",
