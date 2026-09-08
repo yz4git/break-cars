@@ -2,7 +2,7 @@
 def apply_extreme_courses(target):
  p=target/'racing3d.js';s=p.read_text()
  s=s.replace("const skyForge=activeCourse.id==='sky-forge';", "const skyForge=activeCourse.id==='sky-forge',doubleOrbit=activeCourse.id==='double-orbit';")
- s=s.replace('loopRadius:skyForge?7.5:6.8','loopRadius:doubleOrbit?8.6:skyForge?7.5:8.4')
+ s=s.replace('loopRadius:skyForge?7.5:6.8','loopRadius:doubleOrbit?8.6:skyForge?7.5:6.8')
  s=s.replace('const LOOP_T=.88,', 'const LOOP_T=.88,')
  s=s.replace('ts.push(LOOP_T);','ts.push(LOOP_T);if(doubleOrbit)ts.push(3.85);')
  s=s.replace('let loopInserted=false;', 'const insertedLoops=new Set();')
@@ -15,12 +15,11 @@ def apply_extreme_courses(target):
  # Replace the old closed-circle insertion with a road-continuous open twist loop.
  # The authored base road itself is the loop spine: entry and exit remain exact
  # base-course points, while every loop sample advances along that original road.
- # RAMPAGE uses a larger radius and a longer gate span than the legacy stunt so
- # a full-size car follows a realistic, gentler arc without crossing a separate
- # road underside. Position, heading and surface normal remain continuous.
+ # The normal road samples inside this span are removed, so there is no separate
+ # road surface underneath the loop to drive through.
  start=s.index('const raw=[];')
  end=s.index('// Remove accidental duplicate',start)
- open_loop="""const LOOP_HALF_T=doubleOrbit||skyForge?.18:.23,LOOP_TWIST=LOOP_R*.32;
+ open_loop="""const LOOP_HALF_T=.18,LOOP_TWIST=LOOP_R*.32;
 const loopCenters=doubleOrbit?[LOOP_T,3.85]:[LOOP_T];
 const raw=[];
 const ts=[];for(let i=0;i<=BASE_STEPS;i++)ts.push(i/BASE_STEPS*TAU);for(const c of loopCenters)ts.push(c-LOOP_HALF_T,c+LOOP_HALF_T);ts.sort((a,b)=>a-b);
