@@ -1,0 +1,101 @@
+name: Nine-course visual review
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare instrumented game
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          python3 scripts/prepare-pages.py
+          cat >> _site/game.js <<'EOF'
+          window.__nineCourseReview={
+            start:()=>{
+              gameMode=activeCourse.mode;selection=0;resetWorld();mode='race';count=0;world.done=false;world.endAt=999;world.limit=999;
+              $('menu').classList.add('hidden');$('modal').classList.add('hidden');$('hud').classList.remove('hidden');$('driving').classList.remove('hidden');$('countdown').textContent='';document.body.classList.add('playing');
+              if(gameMode==='racing')$('race-info').classList.remove('hidden');else $('race-info').classList.add('hidden');
+              camHeading=world.cars[0].heading;const c=world.cars[0];camera.position.set(c.x-Math.sin(camHeading)*9.8,5,c.z-Math.cos(camHeading)*9.8);smoothLook.set(c.x,1.1,c.z);
+              return window.__nineCourseReview.state();
+            },
+            state:()=>{
+              const c=world.cars[0],b=c.p3,upY=b?1-2*(b.qx*b.qx+b.qz*b.qz):1;
+              const rp=gameMode==='racing'?trackPoint(c.trackS??0):null;
+              const loops=gameMode==='racing'?(fullPhysicsSpec.race?.loops||[fullPhysicsSpec.race?.loop]).filter(Boolean):[];
+              let loopIndex=-1;if(rp?.kind==='loop')loopIndex=loops.findIndex(l=>(c.trackS??0)>=l.startS&&(c.trackS??0)<=l.endS);
+              return{course:activeCourse.id,name:activeCourse.name,mode:gameMode,time:world.time,alive:world.cars.filter(x=>!x.dead).length,playerDead:c.dead,hp:c.hp,x:b?.px??c.x,y:b?.py??0,z:b?.pz??c.z,speed:b?Math.hypot(b.vx,b.vy,b.vz):Math.hypot(c.vx,c.vz),upY,wheels:b?.groundedWheels??0,air:b?.airTime??0,trackS:c.trackS??0,raceDistance:c.raceDistance??0,lap:c.lap??0,kind:rp?.kind||'arena',loopIndex,loopCount:loops.length};
+            },
+            cars:()=>world.cars.map(c=>{const b=c.p3;return{id:c.id,dead:c.dead,hp:c.hp,x:b?.px??c.x,y:b?.py??0,z:b?.pz??c.z,speed:b?Math.hypot(b.vx,b.vy,b.vz):Math.hypot(c.vx,c.vz),trackS:c.trackS??0,raceDistance:c.raceDistance??0};}),
+            spec:()=>gameMode==='racing'?fullPhysicsSpec.race:null,
+            tick:(frames=1)=>{
+              let impacts=0,recover=0,auto=0,walls=0,maxY=-999,minY=999,maxSpeed=0,minUp=1,maxAir=0;
+              for(let i=0;i<frames&&!world.done;i++){
+                step(world,{},1/60,true);
+                for(const c of world.cars){const b=c.p3;if(!b)continue;maxY=Math.max(maxY,b.py);minY=Math.min(minY,b.py);maxSpeed=Math.max(maxSpeed,Math.hypot(b.vx,b.vy,b.vz));minUp=Math.min(minUp,1-2*(b.qx*b.qx+b.qz*b.qz));maxAir=Math.max(maxAir,b.airTime||0);}
+                for(const e of world.events){if(e.type==='impact')impacts++;else if(e.type==='recover')recover++;else if(e.type==='auto-upright')auto++;else if(e.type==='wall')walls++;}
+              }
+              return{...window.__nineCourseReview.state(),impacts,recover,auto,walls,maxY,minY,maxSpeed,minUp,maxAir};
+            }
+          };
+          EOF
+      - name: Install Chromium
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 --no-save
+          npx playwright install chromium --with-deps
+      - name: Play and capture all nine courses
+        run: |
+          python3 -m http.server 4173 -d _site >/tmp/nine-course.log 2>&1 &
+          cat > review9.mjs <<'EOF'
+          import {chromium} from 'playwright';
+          import fs from 'node:fs';
+          const courses=['maelstrom-pit','classic','crater-crown','cross-fire','tidal-foundry','hunt-classic','double-orbit','sky-forge','rampage-3d'];
+          const browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader','--disable-gpu-vsync','--disable-frame-rate-limit']});
+          const report={courses:{}};
+          for(const id of courses){
+            const page=await browser.newPage({viewport:{width:852,height:393},deviceScaleFactor:1,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1'});
+            const logs=[];page.on('console',m=>logs.push(`${m.type()}: ${m.text()}`));page.on('pageerror',e=>logs.push(`pageerror: ${e.message}`));
+            await page.goto(`http://127.0.0.1:4173/?course=${id}`,{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__nineCourseReview);
+            let state=await page.evaluate(()=>window.__nineCourseReview.start());
+            await page.waitForTimeout(500);await page.screenshot({path:`${id}-00-start.png`});
+            const agg={impacts:0,recover:0,auto:0,walls:0,maxY:-999,minY:999,maxSpeed:0,minUp:1,maxAir:0};
+            if(state.mode!=='racing'){
+              for(let chunk=0;chunk<40;chunk++){
+                const r=await page.evaluate(()=>window.__nineCourseReview.tick(30));state=r;
+                for(const k of ['impacts','recover','auto','walls'])agg[k]+=r[k];for(const k of ['maxY','maxSpeed','maxAir'])agg[k]=Math.max(agg[k],r[k]);agg.minY=Math.min(agg.minY,r.minY);agg.minUp=Math.min(agg.minUp,r.minUp);
+                if(chunk===11||chunk===27||chunk===39){await page.waitForTimeout(260);await page.screenshot({path:`${id}-${chunk===11?'06':chunk===27?'14':'20'}s.png`});}
+              }
+              report.courses[id]={final:state,agg,cars:await page.evaluate(()=>window.__nineCourseReview.cars()),logs,viewport:await page.evaluate(()=>({scale:visualViewport?.scale,scrollX,scrollY,innerWidth,innerHeight}))};
+            }else{
+              const spec=await page.evaluate(()=>window.__nineCourseReview.spec()),startDist=state.raceDistance,target=startDist+spec.length*.97;let frames=0,shots=new Set(),prevLoop=-1;
+              const snap=async name=>{if(shots.has(name))return;shots.add(name);await page.waitForTimeout(320);await page.screenshot({path:`${id}-${name}.png`});};
+              while(frames<3000&&!state.playerDead&&state.raceDistance<target){
+                const r=await page.evaluate(()=>window.__nineCourseReview.tick(6));state=r;frames+=6;
+                for(const k of ['impacts','recover','auto','walls'])agg[k]+=r[k];for(const k of ['maxY','maxSpeed','maxAir'])agg[k]=Math.max(agg[k],r[k]);agg.minY=Math.min(agg.minY,r.minY);agg.minUp=Math.min(agg.minUp,r.minUp);
+                if(state.kind==='loop'&&state.loopIndex!==prevLoop){prevLoop=state.loopIndex;await snap(`loop${Math.max(1,state.loopIndex+1)}-entry`);}
+                if(state.kind==='loop'&&state.upY<-.70)await snap(`loop${Math.max(1,state.loopIndex+1)}-crown`);
+                if(state.kind==='bridge')await snap('bridge');
+                if(state.kind==='jump-gap'||state.air>.12)await snap('jump-air');
+                if(state.kind==='jump-landing')await snap('jump-land');
+              }
+              await snap('lap-end');
+              const solo={final:state,agg,frames,simSeconds:frames/60,shots:[...shots]};
+              state=await page.evaluate(()=>window.__nineCourseReview.start());for(let i=0;i<40;i++)await page.evaluate(()=>window.__nineCourseReview.tick(30));await page.waitForTimeout(550);await page.screenshot({path:`${id}-99-pack20s.png`});
+              report.courses[id]={solo,packFinal:await page.evaluate(()=>window.__nineCourseReview.state()),cars:await page.evaluate(()=>window.__nineCourseReview.cars()),logs,viewport:await page.evaluate(()=>({scale:visualViewport?.scale,scrollX,scrollY,innerWidth,innerHeight}))};
+            }
+            await page.close();
+          }
+          fs.writeFileSync('nine-course-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));await browser.close();
+          EOF
+          node review9.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nine-course-visual-review
+          path: |
+            *.png
+            nine-course-report.json
