@@ -38,6 +38,7 @@ apply_sky_loop_exit_v5 = load_function('stabilize-sky-loop-exit-v5.py', 'break_c
 apply_sky_loop_attitude_v6 = load_function('stabilize-sky-loop-attitude-v6.py', 'break_cars_sky_attitude_v6', 'apply_sky_loop_attitude_v6')
 apply_double_orbit_pack_v7 = load_function('tune-double-orbit-pack-v7.py', 'break_cars_double_orbit_pack_v7', 'apply_double_orbit_pack_v7')
 apply_racing_sign_visibility_v4 = load_function('polish-racing-sign-visibility-v4.py', 'break_cars_racing_sign_visibility_v4', 'apply_racing_sign_visibility_v4')
+apply_reference_loop_geometry_v8 = load_function('polish-reference-loop-geometry-v8.py', 'break_cars_reference_loop_geometry_v8', 'apply_reference_loop_geometry_v8')
 
 source = Path('dist')
 target = Path('_site')
@@ -80,6 +81,10 @@ apply_course_pack = load_function('apply-course-pack.py', 'break_cars_courses', 
 apply_course_pack(target)
 apply_extreme_courses = load_function('apply-extreme-courses.py', 'break_cars_extreme_courses', 'apply_extreme_courses')
 apply_extreme_courses(target)
+# Real-WebGL review showed the planar, full-width loop reading as a black barrel
+# over the entry road.  Keep the same open topology but use the reference-photo
+# proportions, oblique ring and separated descending side before physics polish.
+apply_reference_loop_geometry_v8(target)
 # The final review layers consume the fully course-aware runtime so they can
 # stabilize arena cameras, recovery, race stunt flow and multi-loop behavior.
 apply_nine_course_review_polish(target)
