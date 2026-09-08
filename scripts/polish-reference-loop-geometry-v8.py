@@ -34,27 +34,9 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
     racing3d = target / 'racing3d.js'
     s = racing3d.read_text()
 
-    # RAMPAGE/SKY need a visibly larger ring. DOUBLE ORBIT retains the radius
-    # its two-loop force/recovery tuning was authored against.
-    s = one(
-        s,
-        "loopRadius:doubleOrbit?8.6:skyForge?7.5:7.2",
-        "loopRadius:doubleOrbit?8.6:skyForge?12.5:11.5",
-        'loop radii',
-    )
+    s = one(s, "loopRadius:doubleOrbit?8.6:skyForge?7.5:7.2", "loopRadius:doubleOrbit?8.6:skyForge?12.5:11.5", 'loop radii')
+    s = one(s, "const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;", "const LOOP_HALF_T=doubleOrbit?.10:.20,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=.60;", 'open gate spacing and loop lane scale')
 
-    # Real-WebGL review showed the old +/- .10 rad gates were too close for a
-    # 17 m normal road. Widen the removed authored-road interval on the two
-    # single-loop courses so their entry and exit legs can be genuinely separate.
-    s = one(
-        s,
-        "const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;",
-        "const LOOP_HALF_T=doubleOrbit?.10:.20,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=.60;",
-        'open gate spacing and loop lane scale',
-    )
-
-    # Aim the ring obliquely so its far/descending side is not directly above
-    # the approach. DOUBLE ORBIT uses a milder yaw to preserve its tuned flow.
     s = one(
         s,
         "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),ringForward=startH;\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));",
@@ -62,10 +44,6 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
         'oblique ring orientation',
     )
 
-    # Give the road enough visible transition length to turn/rise before the
-    # circular section. The two single-loop courses also move the ring itself
-    # sideways by one road-width-ish amount: the approach road now visibly bends
-    # into the ring instead of running underneath its lower descending branch.
     s = one(
         s,
         "const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=clamp(gateChord*.22,1.8,3.6),legRise=.85;\n  const desiredEntry=add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise));",
@@ -73,11 +51,6 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
         'separate entry leg and ring',
     )
 
-    # Keep the ascending side close to a clean vertical ring. Starting before
-    # the crown, smoothly displace the descending half toward the outgoing side.
-    # Crucially, RAMPAGE/SKY DO NOT release that displacement before ringExit;
-    # their separate exit leg is responsible for converging back to the road.
-    # This removes the low black canopy seen over the approach in real WebGL.
     s = one(
         s,
         "const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),tangent=norm(add(mul(ringForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(ringForward,-sn)));return{pos,tangent,up};};",
@@ -85,10 +58,6 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
         'descending-side separation',
     )
 
-    # Relocating the ring makes ringExit->road much longer. The old 5 m Hermite
-    # tangent handle only aligned during the final few centimetres, so the exit
-    # still looked like a crossing. Stretch the single-loop outgoing handle so
-    # the final metres already face the authored road; leave DOUBLE ORBIT alone.
     s = one(
         s,
         "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=clamp(exitDist*.42,2.2,5.0);",
@@ -96,50 +65,25 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
         'outgoing tangent handle',
     )
 
-    # Taper lateral coordinates in the same centerline API consumed by both the
-    # renderer and racing logic. Straight road stays full width.
-    old = "const pos=add(center,mul(f.right,lane)),kind=kindBetween(a,b,u),bank=(a.bank||0)+((b.bank||0)-(a.bank||0))*u;"
-    new = "const kind=kindBetween(a,b,u),laneScale=kind==='loop'?LOOP_LANE_SCALE:1,pos=add(center,mul(f.right,lane*laneScale)),bank=(a.bank||0)+((b.bank||0)-(a.bank||0))*u;"
-    s = one(s, old, new, 'render lane taper')
-
-    # Collision width matches the visibly tapered ribbon.
-    old = "const allowance=RACE3D_TRACK.halfWidth+(forChassis?2.1:1.35);if(Math.abs(p.lane)>allowance||p.kind==='jump-gap')return null;\n const lane=clamp(p.lane,-RACE3D_TRACK.halfWidth,RACE3D_TRACK.halfWidth),point={x:p.x+p.right.x*lane,y:p.y+p.right.y*lane,z:p.z+p.right.z*lane};"
-    new = "const surfaceHalf=p.kind==='loop'?RACE3D_TRACK.halfWidth*LOOP_LANE_SCALE:RACE3D_TRACK.halfWidth,allowance=surfaceHalf+(forChassis?2.1:1.35);if(Math.abs(p.lane)>allowance||p.kind==='jump-gap')return null;\n const lane=clamp(p.lane,-surfaceHalf,surfaceHalf),point={x:p.x+p.right.x*lane,y:p.y+p.right.y*lane,z:p.z+p.right.z*lane};"
-    s = one(s, old, new, 'collision lane taper')
-
     s = one(
         s,
-        "halfWidth:RACE3D_TRACK.halfWidth,loop:loopGroups[0],loops:loopGroups",
-        "halfWidth:RACE3D_TRACK.halfWidth,loopHalfWidth:RACE3D_TRACK.halfWidth*LOOP_LANE_SCALE,loop:loopGroups[0],loops:loopGroups",
-        'feature loop width',
+        "const pos=add(center,mul(f.right,lane)),kind=kindBetween(a,b,u),bank=(a.bank||0)+((b.bank||0)-(a.bank||0))*u;",
+        "const kind=kindBetween(a,b,u),laneScale=kind==='loop'?LOOP_LANE_SCALE:1,pos=add(center,mul(f.right,lane*laneScale)),bank=(a.bank||0)+((b.bank||0)-(a.bank||0))*u;",
+        'render lane taper',
     )
+    s = one(
+        s,
+        "const allowance=RACE3D_TRACK.halfWidth+(forChassis?2.1:1.35);if(Math.abs(p.lane)>allowance||p.kind==='jump-gap')return null;\n const lane=clamp(p.lane,-RACE3D_TRACK.halfWidth,RACE3D_TRACK.halfWidth),point={x:p.x+p.right.x*lane,y:p.y+p.right.y*lane,z:p.z+p.right.z*lane};",
+        "const surfaceHalf=p.kind==='loop'?RACE3D_TRACK.halfWidth*LOOP_LANE_SCALE:RACE3D_TRACK.halfWidth,allowance=surfaceHalf+(forChassis?2.1:1.35);if(Math.abs(p.lane)>allowance||p.kind==='jump-gap')return null;\n const lane=clamp(p.lane,-surfaceHalf,surfaceHalf),point={x:p.x+p.right.x*lane,y:p.y+p.right.y*lane,z:p.z+p.right.z*lane};",
+        'collision lane taper',
+    )
+    s = one(s, "halfWidth:RACE3D_TRACK.halfWidth,loop:loopGroups[0],loops:loopGroups", "halfWidth:RACE3D_TRACK.halfWidth,loopHalfWidth:RACE3D_TRACK.halfWidth*LOOP_LANE_SCALE,loop:loopGroups[0],loops:loopGroups", 'feature loop width')
     racing3d.write_text(s)
 
-    # Loop ribs must use the same tapered width or they recreate the barrel
-    # silhouette even when the asphalt ribbon is narrow.
     view = target / 'track-view.js'
     s = view.read_text()
-    s = one(
-        s,
-        "TRACK.halfWidth*2+.35",
-        "(spec.loopHalfWidth||TRACK.halfWidth)*2+.35",
-        'loop rib width',
-    )
+    s = one(s, "TRACK.halfWidth*2+.35", "(spec.loopHalfWidth||TRACK.halfWidth)*2+.35", 'loop rib width')
     view.write_text(s)
-
-    # The extreme-course layer (which runs immediately before this pass) owns
-    # the loop contact-patch attitude controller. RAMPAGE's larger, oblique ring
-    # needs more physical torque so chassis-up follows the fully inverted road
-    # normal at the crown. This is force/torque only: no pose snap or teleport.
-    physics3d = target / 'physics3d.js'
-    s = physics3d.read_text()
-    s = one(
-        s,
-        "const tiltK=sky?(align<.20?19.0:align<.68?16.5:13.8):(align<.25?13.5:align<.72?10.5:7.2),tiltD=sky?4.7:3.25,maxTilt=(sky?19.0:12.5)*b.mass;",
-        "const tiltK=sky?(align<.20?19.0:align<.68?16.5:13.8):rampage?(align<.20?22.0:align<.68?18.5:15.0):(align<.25?13.5:align<.72?10.5:7.2),tiltD=sky?4.7:rampage?4.8:3.25,maxTilt=(sky?19.0:rampage?22.0:12.5)*b.mass;",
-        'RAMPAGE loop attitude torque',
-    )
-    physics3d.write_text(s)
 
 
 if __name__ == '__main__':
