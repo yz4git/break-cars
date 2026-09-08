@@ -1,12 +1,13 @@
 """Post-loop physical stabilizers and open-loop contact support.
 
-The open twisted loops remain fully free 6DoF. Inside SKY FORGE and DOUBLE
-ORBIT loops, tyre/suspension load is represented with forces and torques only so
-the chassis follows the rapidly rotating road normal through tiny contact gaps.
-After SKY FORGE's loop, visible guide pads absorb roof bounces. DOUBLE ORBIT's
-first-loop runoff uses tyre-like lateral grip and forward drive so a dense pack
-does not remain pinned against the road edge after contact. No helper writes
-position, quaternion, velocity, trackS, or raceDistance directly.
+The open twisted loops remain fully free 6DoF. Inside RAMPAGE 3D, SKY FORGE
+and DOUBLE ORBIT loops, tyre/suspension load is represented with forces and
+torques only so the chassis follows the rapidly rotating road normal through
+tiny contact gaps. After SKY FORGE's loop, visible guide pads absorb roof
+bounces. DOUBLE ORBIT's first-loop runoff uses tyre-like lateral grip and
+forward drive so a dense pack does not remain pinned against the road edge
+after contact. No helper writes position, quaternion, velocity, trackS, or
+raceDistance directly.
 """
 from pathlib import Path
 
@@ -29,7 +30,7 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
     if insert_at not in s:
         raise RuntimeError('SKY exit v5 rampage helper anchor missing')
     sky = """function openLoopContactAssist(w,c,acc,ctx){
-  if(w.mode!=='racing'||!c?.p3||(activeCourse.id!=='sky-forge'&&activeCourse.id!=='double-orbit'))return;
+  if(w.mode!=='racing'||!c?.p3||(activeCourse.id!=='rampage-3d'&&activeCourse.id!=='sky-forge'&&activeCourse.id!=='double-orbit'))return;
   const b=c.p3,q=c.trackS??0,road=racePointAt(q);
   if(road.kind!=='loop')return;
   const loop=raceLoopAt(q),vel={x:b.vx,y:b.vy,z:b.vz},omega={x:b.wx,y:b.wy,z:b.wz},bu=bodyUp(b),rel={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},height=dot(rel,road.up),forwardSpeed=dot(vel,road.forward),lateral=dot(rel,road.right),sideSpeed=dot(vel,road.right);
@@ -41,7 +42,7 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
   // minimum tangential drive force inside the structure so a chassis that loses
   // speed during a contact gap can continue rolling out instead of hanging on
   // the final inverted section. This changes velocity only through force.
-  const minLoopSpeed=activeCourse.id==='sky-forge'?10.8:10.2;
+  const minLoopSpeed=activeCourse.id==='sky-forge'?10.8:activeCourse.id==='rampage-3d'?11.0:10.2;
   if(forwardSpeed<minLoopSpeed){
     const driveAccel=ctx.clamp((minLoopSpeed-forwardSpeed)*1.9,0,12);
     addForce(acc,mul(road.forward,driveAccel*b.mass));
