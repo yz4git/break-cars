@@ -18,7 +18,7 @@ def apply_rampage_exit_stabilizer_v3(target: Path) -> None:
     physics = target / 'physics3d.js'
     s = physics.read_text()
     anchor = "function integrateBody(w,c,u,ctx,dt) {\n  const b=c.p3,acc={fx:0,fy:-9.81*b.mass,fz:0,tx:0,ty:0,tz:0}; wheelForces(w,c,u,ctx,dt,acc);"
-    helper = """function rampageExitStabilizer(w,c,acc){
+    helper = """function rampageExitStabilizer(w,c,acc,ctx){
   c.rampageExitStabilizer=false;
   if(w.mode!=='racing'||activeCourse.id!=='rampage-3d'||!c?.p3)return;
   const b=c.p3,L=RAMPAGE_RACE_SPEC.length,q=((c.trackS??0)%L+L)%L,loop=raceLoopAt(q),after=(q-loop.endS+L)%L,road=racePointAt(q);
@@ -33,7 +33,7 @@ def apply_rampage_exit_stabilizer_v3(target: Path) -> None:
 }
 
 function integrateBody(w,c,u,ctx,dt) {
-  const b=c.p3,acc={fx:0,fy:-9.81*b.mass,fz:0,tx:0,ty:0,tz:0}; wheelForces(w,c,u,ctx,dt,acc);rampageExitStabilizer(w,c,acc);"""
+  const b=c.p3,acc={fx:0,fy:-9.81*b.mass,fz:0,tx:0,ty:0,tz:0}; wheelForces(w,c,u,ctx,dt,acc);rampageExitStabilizer(w,c,acc,ctx);"""
     s = one(s, anchor, helper, 'physics hook')
     physics.write_text(s)
 
