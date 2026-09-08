@@ -30,31 +30,34 @@ for(const [index,loop] of loops.entries()){
     maxY=Math.max(maxY,p.y);minY=Math.min(minY,p.y);minUpDot=Math.min(minUpDot,dot(p.up,before.up));
   }
 
-  // The first part of the loop must remain on the FRONT side of the incoming
-  // road.  A negative signed advance here is the exact "drive into the back of
-  // the loop" failure the reference photo rules out.
-  for(let i=1;i<=7;i++){
-    const p=racePointAt(loop.startS+span*(i/80)),rel=sub(p,before),advance=dot(rel,before.forward),facing=dot(p.forward,before.forward);
+  // Inspect only the lower entry LEG (first 2m), not a fraction of the whole
+  // loop. Larger-radius loops legitimately start turning around the ring within
+  // the first 8-10% of their total arc length, which is no longer an entry test.
+  // A negative signed advance in these first two metres is the exact
+  // "drive into the back of the loop" failure the reference photo rules out.
+  for(let i=1;i<=8;i++){
+    const d=.25*i,p=racePointAt(loop.startS+d),rel=sub(p,before),advance=dot(rel,before.forward),facing=dot(p.forward,before.forward);
     minEarlyAdvance=Math.min(minEarlyAdvance,advance);minEarlyFacing=Math.min(minEarlyFacing,facing);
   }
   assert.ok(minEarlyAdvance>-.15,`${selected} loop ${index+1}: entry bends behind incoming road (${minEarlyAdvance.toFixed(2)}m)`);
   assert.ok(minEarlyFacing>.58,`${selected} loop ${index+1}: entry turns toward loop back face (dot=${minEarlyFacing.toFixed(2)})`);
 
-  // Surface front face must be continuous at the gate. The loop can twist only
-  // after the incoming road has already become the ascending leg.
-  const gate=racePointAt(loop.startS+.04),gateNormal=dot(gate.up,before.up),early=racePointAt(loop.startS+span*.10);
+  // Surface front face must be continuous at the gate. The road must also have
+  // visibly started rising while it is still on the separate lower entry leg.
+  const gate=racePointAt(loop.startS+.04),gateNormal=dot(gate.up,before.up),early=racePointAt(loop.startS+2.0);
   assert.ok(gateNormal>.72,`${selected} loop ${index+1}: road face flips at entry (up dot=${gateNormal.toFixed(2)})`);
-  assert.ok(early.y>before.y+.18,`${selected} loop ${index+1}: front entry does not rise into loop`);
+  assert.ok(early.y>before.y+.18,`${selected} loop ${index+1}: front entry leg does not rise into loop`);
 
   // A real loop still turns the car fully upside-down at the crown.
   assert.ok(maxY-minY>10,`${selected} loop ${index+1}: vertical revolution too shallow`);
   assert.ok(minUpDot<-.72,`${selected} loop ${index+1}: loop never reaches a true inverted surface`);
 
   // The separate descending leg must merge into the outgoing road in the same
-  // driving direction instead of meeting it nose-to-nose.
-  const late=racePointAt(loop.endS-span*.035),exitFacing=dot(late.forward,after.forward),exitNormal=dot(racePointAt(loop.endS-.04).up,after.up);
+  // driving direction instead of meeting it nose-to-nose. Check the final 2m
+  // of that leg, not the already-curving ring above it.
+  const late=racePointAt(loop.endS-2.0),exitFacing=dot(late.forward,after.forward),exitNormal=dot(racePointAt(loop.endS-.04).up,after.up);
   assert.ok(exitFacing>.58,`${selected} loop ${index+1}: exit leg faces against outgoing road (dot=${exitFacing.toFixed(2)})`);
   assert.ok(exitNormal>.68,`${selected} loop ${index+1}: road face flips at exit (up dot=${exitNormal.toFixed(2)})`);
 
-  console.log(`${selected} loop ${index+1}: front-entry advance=${minEarlyAdvance.toFixed(2)} facing=${minEarlyFacing.toFixed(2)} rise=${(maxY-minY).toFixed(2)}m inverted=${minUpDot.toFixed(2)}`);
+  console.log(`${selected} loop ${index+1}: front-leg advance=${minEarlyAdvance.toFixed(2)} facing=${minEarlyFacing.toFixed(2)} rise=${(maxY-minY).toFixed(2)}m inverted=${minUpDot.toFixed(2)}`);
 }
