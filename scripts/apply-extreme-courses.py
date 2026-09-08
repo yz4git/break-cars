@@ -12,13 +12,14 @@ def apply_extreme_courses(target):
  s=s.replace('(skyForge?10.5:7.4)', '(doubleOrbit?14.5:skyForge?10.5:7.4)').replace('skyForge?.36:.28','doubleOrbit?.43:skyForge?.36:.28')
  s=s.replace('clamp((skyForge?.43:.34)*Math.sin(2*t),-.44,.44)', 'clamp((doubleOrbit?.72:skyForge?.43:.34)*Math.sin(2*t),doubleOrbit?-.74:-.44,doubleOrbit?.74:.44)*(doubleOrbit?(1-gauss(t,.88,.35))*(1-gauss(t,3.85,.35)):1)')
 
- # Build the loop exactly like a real toy/race-track vertical loop: the road
- # itself leaves the ordinary spine, turns through one vertical revolution in
- # the forward/up plane, and returns to the outgoing road.  There is no lateral
- # helix and no second flat ribbon underneath.  A cubic Hermite gate spine gives
- # exact position/tangent continuity at both ends while the circular offset is
- # zero at the gates.  The mild phase easing keeps the bottom transitions smooth
- # without flattening the crown or turning the loop into a side-to-side spiral.
+ # Build the loop like a physical toy/race-track loop: the road itself leaves
+ # the ordinary spine, turns through one vertical revolution, and returns to
+ # the outgoing road.  Ordinary road samples are removed across the gate span,
+ # so there is never a flat ribbon underneath the loop.
+ #
+ # The loop body is deliberately kept in one vertical plane.  Only short edge
+ # blends align that plane to the exact incoming/outgoing road tangents.  This
+ # avoids the old side-to-side helix while retaining smooth gate continuity.
  start=s.index('const raw=[];')
  end=s.index('// Remove accidental duplicate',start)
  open_loop="""const LOOP_HALF_T=.10;
@@ -33,23 +34,28 @@ const roadFrameAt=t=>{
  return{p,forward,up,right};
 };
 const mixV=(a,b,u)=>norm({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u});
+const smooth01=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
 for(const t of ts){
  if(t>TAU+EPS)continue;
  const startCenter=loopCenters.find(c=>Math.abs(t-(c-LOOP_HALF_T))<1e-6),insideLoop=loopCenters.some(c=>t>=c-LOOP_HALF_T-EPS&&t<=c+LOOP_HALF_T+EPS);
  if(startCenter!==undefined&&!insertedLoops.has(startCenter)){
   insertedLoops.add(startCenter);
-  const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T,startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),gateChord=len(sub(endFrame.p,startFrame.p)),gateScale=Math.max(gateChord,LOOP_R*1.15);
+  const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T,startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),gateVec=sub(endFrame.p,startFrame.p),gateChord=len(gateVec),gateScale=Math.max(1.25,gateChord*.38);
+  const worldUp={x:0,y:1,z:0},gateHorizontal=norm({x:gateVec.x,y:0,z:gateVec.z});
+  let fixedForward=len(gateHorizontal)>.2?gateHorizontal:mixV(startFrame.forward,endFrame.forward,.5),fixedRight=norm(cross(worldUp,fixedForward));if(len(fixedRight)<.2)fixedRight=startFrame.right;
+  const fixedUp=norm(cross(fixedForward,fixedRight));
   const sample=u=>{
    const u2=u*u,u3=u2*u,h00=2*u3-3*u2+1,h10=u3-2*u2+u,h01=-2*u3+3*u2,h11=u3-u2;
    const base={x:h00*startFrame.p.x+h10*gateScale*startFrame.forward.x+h01*endFrame.p.x+h11*gateScale*endFrame.forward.x,y:h00*startFrame.p.y+h10*gateScale*startFrame.forward.y+h01*endFrame.p.y+h11*gateScale*endFrame.forward.y,z:h00*startFrame.p.z+h10*gateScale*startFrame.forward.z+h01*endFrame.p.z+h11*gateScale*endFrame.forward.z};
-   const forwardAxis=mixV(startFrame.forward,endFrame.forward,u),upSeed=mixV(startFrame.up,endFrame.up,u);let sideAxis=norm(cross(upSeed,forwardAxis));if(len(sideAxis)<.2)sideAxis=startFrame.right;const planeUp=norm(cross(forwardAxis,sideAxis));
+   const edgeForward=mixV(startFrame.forward,endFrame.forward,u),edgeUp=mixV(startFrame.up,endFrame.up,u),planeWeight=smooth01(Math.min(u/.13,(1-u)/.13));
+   const forwardAxis=mixV(edgeForward,fixedForward,planeWeight),planeUp=mixV(norm(cross(forwardAxis,norm(cross(edgeUp,forwardAxis)))),fixedUp,planeWeight);
    const phase=u-.18*Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),pos=add(add(base,mul(forwardAxis,LOOP_R*sn)),mul(planeUp,LOOP_R*(1-c)));
    const loopUp=norm(add(mul(planeUp,c),mul(forwardAxis,-sn))),center=add(base,mul(planeUp,LOOP_R));
    return{pos,center,forwardAxis,planeUp,loopUp};
   };
   for(let j=0;j<=LOOP_STEPS;j++){
    const u=j/LOOP_STEPS,du=.25/LOOP_STEPS,here=sample(u),prev=sample(Math.max(0,u-du)),next=sample(Math.min(1,u+du)),tangent=norm(sub(next.pos,prev.pos));
-   const roll=.035*Math.sin(Math.PI*u)*Math.sin(TAU*u),up=norm(rotateAround(here.loopUp,tangent,roll));
+   const roll=.02*Math.sin(Math.PI*u)*Math.sin(TAU*u),up=norm(rotateAround(here.loopUp,tangent,roll));
    raw.push({x:here.pos.x,y:here.pos.y,z:here.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});
   }
   continue;
