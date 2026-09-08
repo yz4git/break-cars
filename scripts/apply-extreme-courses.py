@@ -12,17 +12,16 @@ def apply_extreme_courses(target):
  s=s.replace('(skyForge?10.5:7.4)', '(doubleOrbit?14.5:skyForge?10.5:7.4)').replace('skyForge?.36:.28','doubleOrbit?.43:skyForge?.36:.28')
  s=s.replace('clamp((skyForge?.43:.34)*Math.sin(2*t),-.44,.44)', 'clamp((doubleOrbit?.72:skyForge?.43:.34)*Math.sin(2*t),doubleOrbit?-.74:-.44,doubleOrbit?.74:.44)*(doubleOrbit?(1-gauss(t,.88,.35))*(1-gauss(t,3.85,.35)):1)')
 
- # Replace the old closed-circle insertion with a road-continuous open twist loop.
- # The authored base road itself is the loop spine: entry and exit remain exact
- # base-course points, while every loop sample advances along that original road.
- # The normal road samples inside this span are removed, so there is no separate
- # road surface underneath the loop to drive through.  The revolution rate is
- # eased at both gates (65% of the circular rate) and recovered through the crown,
- # giving the entry/exit a gentler real-stunt transition without compressing the
- # whole turn into the crown like a full smoothstep would.
+ # Replace the old orbit-on-top-of-road construction with a genuine open helix.
+ # Entry and exit are still exact points on the authored road spine, but the
+ # loop progresses forward while its centreline moves left/right and up around
+ # that spine.  Ascending and descending halves therefore occupy different
+ # lateral space instead of lying on top of the same road ribbon.  The phase
+ # easing has zero angular velocity at both gates, so position/tangent/normal
+ # join the ordinary road continuously without an extra straight road beneath.
  start=s.index('const raw=[];')
  end=s.index('// Remove accidental duplicate',start)
- open_loop="""const LOOP_HALF_T=.18,LOOP_TWIST=LOOP_R*.32;
+ open_loop="""const LOOP_HALF_T=.18;
 const loopCenters=doubleOrbit?[LOOP_T,3.85]:[LOOP_T];
 const raw=[];
 const ts=[];for(let i=0;i<=BASE_STEPS;i++)ts.push(i/BASE_STEPS*TAU);for(const c of loopCenters)ts.push(c-LOOP_HALF_T,c+LOOP_HALF_T);ts.sort((a,b)=>a-b);
@@ -40,14 +39,14 @@ for(const t of ts){
   insertedLoops.add(startCenter);
   const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T;
   const sample=u=>{
-   const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),turn=u-.35*Math.sin(TAU*u)/TAU,th=-Math.PI/2+turn*TAU,c=Math.cos(th),sn=Math.sin(th),crown=Math.sin(Math.PI*u),radialScale=1-.16*crown,verticalScale=1+.045*crown;
-   const lateral=LOOP_TWIST*crown*crown*Math.sin(TAU*u),center=add(frame.p,mul(frame.up,LOOP_R*verticalScale));
-   const pos=add(add(add(frame.p,mul(frame.forward,LOOP_R*radialScale*c)),mul(frame.up,LOOP_R*verticalScale*(1+sn))),mul(frame.right,lateral));
-   return{pos,center,frame};
+   const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),turn=u-Math.sin(TAU*u)/TAU,th=turn*TAU,c=Math.cos(th),sn=Math.sin(th),sideR=LOOP_R*(doubleOrbit?1.35:skyForge?1.55:1.85),vertR=LOOP_R*(doubleOrbit?1.0:skyForge?1.0:1.04),sideAxis=norm({x:frame.right.x,y:0,z:frame.right.z});
+   const center=add(frame.p,mul(frame.up,vertR)),pos=add(add(frame.p,mul(sideAxis,sideR*sn)),mul(frame.up,vertR*(1-c)));
+   const loopUp=norm(add(mul(frame.up,c),mul(sideAxis,-sn)));
+   return{pos,center,frame,loopUp};
   };
   for(let j=0;j<=LOOP_STEPS;j++){
    const u=j/LOOP_STEPS,du=.25/LOOP_STEPS,here=sample(u),prev=sample(Math.max(0,u-du)),next=sample(Math.min(1,u+du)),tangent=norm(sub(next.pos,prev.pos));
-   const radialUp=norm(sub(here.center,here.pos)),roll=.20*Math.sin(Math.PI*u)*Math.sin(TAU*u),up=norm(rotateAround(radialUp,tangent,roll));
+   const radialUp=here.loopUp,roll=.10*Math.sin(Math.PI*u)*Math.sin(TAU*u),up=norm(rotateAround(radialUp,tangent,roll));
    raw.push({x:here.pos.x,y:here.pos.y,z:here.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});
   }
   continue;
