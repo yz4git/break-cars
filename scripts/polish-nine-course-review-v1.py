@@ -16,8 +16,8 @@ def apply_nine_course_review_polish(target: Path) -> None:
     s = physics.read_text()
     s = one(
         s,
-        "const fullyFlipped=up.y<-.62&&b.groundedWheels===0&&nearSurface&&raceSurfaceKind!=='loop';",
-        "const surfaceAlign=nearSurface?dot(up,surface.normal):1,fullyFlipped=nearSurface&&surfaceAlign<-.62&&raceSurfaceKind!=='loop';",
+        "const fullyFlipped=up.y<-.62&&b.groundedWheels===0&&nearSurface&&raceProgressKind!=='loop';",
+        "const surfaceAlign=nearSurface?dot(up,surface.normal):1,fullyFlipped=nearSurface&&surfaceAlign<-.62&&raceProgressKind!=='loop';",
         'surface-frame auto upright',
     )
     physics.write_text(s)
