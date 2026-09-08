@@ -2,7 +2,7 @@
 def apply_extreme_courses(target):
  p=target/'racing3d.js';s=p.read_text()
  s=s.replace("const skyForge=activeCourse.id==='sky-forge';", "const skyForge=activeCourse.id==='sky-forge',doubleOrbit=activeCourse.id==='double-orbit';")
- s=s.replace('loopRadius:skyForge?7.5:6.8','loopRadius:doubleOrbit?8.6:skyForge?7.5:6.8')
+ s=s.replace('loopRadius:skyForge?7.5:6.8','loopRadius:doubleOrbit?8.6:skyForge?7.5:7.2')
  s=s.replace('const LOOP_T=.88,', 'const LOOP_T=.88,')
  s=s.replace('ts.push(LOOP_T);','ts.push(LOOP_T);if(doubleOrbit)ts.push(3.85);')
  s=s.replace('let loopInserted=false;', 'const insertedLoops=new Set();')
