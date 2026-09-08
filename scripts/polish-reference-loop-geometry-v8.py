@@ -127,6 +127,20 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
     )
     view.write_text(s)
 
+    # The extreme-course layer (which runs immediately before this pass) owns
+    # the loop contact-patch attitude controller. RAMPAGE's larger, oblique ring
+    # needs more physical torque so chassis-up follows the fully inverted road
+    # normal at the crown. This is force/torque only: no pose snap or teleport.
+    physics3d = target / 'physics3d.js'
+    s = physics3d.read_text()
+    s = one(
+        s,
+        "const tiltK=sky?(align<.20?19.0:align<.68?16.5:13.8):(align<.25?13.5:align<.72?10.5:7.2),tiltD=sky?4.7:3.25,maxTilt=(sky?19.0:12.5)*b.mass;",
+        "const tiltK=sky?(align<.20?19.0:align<.68?16.5:13.8):rampage?(align<.20?22.0:align<.68?18.5:15.0):(align<.25?13.5:align<.72?10.5:7.2),tiltD=sky?4.7:rampage?4.8:3.25,maxTilt=(sky?19.0:rampage?22.0:12.5)*b.mass;",
+        'RAMPAGE loop attitude torque',
+    )
+    physics3d.write_text(s)
+
 
 if __name__ == '__main__':
     apply_reference_loop_geometry_v8(Path('_site'))
