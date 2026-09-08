@@ -13,39 +13,27 @@ jobs:
         env:
           DEPLOY_SHA: ${{ github.sha }}
         run: python3 scripts/prepare-pages.py
-      - name: Trace SKY FORGE seed 1 heading recovery
+      - name: Trace SKY FORGE seed 1 loop-exit trajectory
         run: |
           cat > /tmp/sky-flip.mjs <<'EOF'
           globalThis.location={search:'?course=sky-forge'};
-          const physics=await import(`${process.cwd()}/_site/physics.js?d=${Date.now()}`);
-          const racing=await import(`${process.cwd()}/_site/racing.js?d=${Date.now()}`);
-          const racing3d=await import(`${process.cwd()}/_site/racing3d.js?d=${Date.now()}`);
-          const {makeWorld,step}=physics;const {trackPoint,LENGTH}=racing;const {raceLoopAt}=racing3d;
-          const w=makeWorld(0,1,'racing');w.done=false;w.endAt=999;w.limit=999;for(const x of w.cars.slice(1)){x.finished=true;x.dead=false;x.vx=x.vz=0;}
-          const c=w.cars[0];
-          const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
-          const up=b=>({x:2*(b.qx*b.qy-b.qz*b.qw),y:1-2*(b.qx*b.qx+b.qz*b.qz),z:2*(b.qy*b.qz+b.qx*b.qw)});
-          const fwd=b=>({x:2*(b.qx*b.qz+b.qy*b.qw),y:2*(b.qy*b.qz-b.qx*b.qw),z:1-2*(b.qx*b.qx+b.qy*b.qy)});
-          const snap=(frame)=>{const b=c.p3,r=trackPoint(c.trackS||0),u=up(b),f=fwd(b),v={x:b.vx,y:b.vy,z:b.vz},o={x:b.wx,y:b.wy,z:b.wz};return{frame,time:+w.time.toFixed(2),s:+c.trackS.toFixed(2),d:+c.raceDistance.toFixed(2),kind:r.kind,speed:+Math.hypot(b.vx,b.vy,b.vz).toFixed(2),forwardSpeed:+dot(v,r.forward).toFixed(2),upAlign:+dot(u,r.up).toFixed(3),forwardAlign:+dot(f,r.forward).toFixed(3),yawRate:+dot(o,r.up).toFixed(3),rollRate:+dot(o,r.forward).toFixed(3),wheels:b.groundedWheels,timer:+(c.autoUprightTime||0).toFixed(2),guide:!!c.skyForgeExitGuide};};
-          const marks={};let lastD=c.raceDistance,still=0,loopExited=false;
+          const physics=await import(`${process.cwd()}/_site/physics.js?d=${Date.now()}`),racing=await import(`${process.cwd()}/_site/racing.js?d=${Date.now()}`),racing3d=await import(`${process.cwd()}/_site/racing3d.js?d=${Date.now()}`);
+          const {makeWorld,step}=physics,{trackPoint,LENGTH}=racing,{raceLoopAt}=racing3d,w=makeWorld(0,1,'racing');w.done=false;w.endAt=999;w.limit=999;for(const x of w.cars.slice(1)){x.finished=true;x.dead=false;x.vx=x.vz=0;}
+          const c=w.cars[0],dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z,up=b=>({x:2*(b.qx*b.qy-b.qz*b.qw),y:1-2*(b.qx*b.qx+b.qz*b.qz),z:2*(b.qy*b.qz+b.qx*b.qw)}),fwd=b=>({x:2*(b.qx*b.qz+b.qy*b.qw),y:2*(b.qy*b.qz-b.qx*b.qw),z:1-2*(b.qx*b.qx+b.qy*b.qy)});
+          const snap=frame=>{const b=c.p3,r=trackPoint(c.trackS||0),u=up(b),f=fwd(b),v={x:b.vx,y:b.vy,z:b.vz},rel={x:b.px-r.x,y:b.py-r.y,z:b.pz-r.z};return{frame,time:+w.time.toFixed(2),s:+c.trackS.toFixed(2),d:+c.raceDistance.toFixed(2),kind:r.kind,speed:+Math.hypot(b.vx,b.vy,b.vz).toFixed(2),forwardSpeed:+dot(v,r.forward).toFixed(2),verticalSpeed:+dot(v,r.up).toFixed(2),upAlign:+dot(u,r.up).toFixed(3),forwardAlign:+dot(f,r.forward).toFixed(3),lateral:+dot(rel,r.right).toFixed(2),height:+dot(rel,r.up).toFixed(2),worldY:+b.py.toFixed(2),roadY:+r.y.toFixed(2),wheels:b.groundedWheels,air:+(b.airTime||0).toFixed(2),timer:+(c.autoUprightTime||0).toFixed(2),guide:!!c.skyForgeExitGuide};};
+          const marks={};let loopExited=false,lastD=c.raceDistance,still=0;
           for(let frame=0;frame<2200&&!w.done;frame++){
-            step(w,{},1/60,true);const r=trackPoint(c.trackS||0),q=snap(frame),loop=raceLoopAt(c.trackS||0);
-            if(!marks.preLoop&&c.trackS>loop.startS-12)marks.preLoop=q;
+            step(w,{},1/60,true);const q=snap(frame),r=trackPoint(c.trackS||0),loop=raceLoopAt(c.trackS||0);
             if(!marks.crown&&r.kind==='loop'&&q.upAlign<-.65)marks.crown=q;
-            if(marks.crown&&!loopExited&&r.kind!=='loop'){loopExited=true;marks.loopExit=q;}
-            if(loopExited&&!marks.upPositive&&q.upAlign>0)marks.upPositive=q;
-            if(loopExited&&!marks.upHalf&&q.upAlign>.5)marks.upHalf=q;
-            if(loopExited&&!marks.upGood&&q.upAlign>.86)marks.upGood=q;
-            if(loopExited&&!marks.headingBad&&q.forwardAlign<.35)marks.headingBad=q;
-            if(loopExited&&!marks.headingReverse&&q.forwardAlign<0)marks.headingReverse=q;
-            if(loopExited&&!marks.s175&&c.trackS>174)marks.s175=q;
-            if(loopExited&&!marks.s200&&c.trackS>199)marks.s200=q;
+            if(marks.crown&&!loopExited&&r.kind!=='loop'){loopExited=true;marks.exit=q;}
+            for(const [name,s] of [['s130',130],['s150',150],['s170',170],['s190',190]])if(loopExited&&!marks[name]&&c.trackS>s)marks[name]=q;
+            if(loopExited&&!marks.air2s&&q.air>2)marks.air2s=q;
+            if(loopExited&&!marks.lateralWide&&Math.abs(q.lateral)>8)marks.lateralWide=q;
+            if(loopExited&&!marks.high&&q.height>8)marks.high=q;
             if(c.raceDistance-lastD<.015)still++;else still=0;lastD=c.raceDistance;
             if(still===180)marks.stall3s=q;
-            if(still>300){marks.final=q;break;}
-            if(c.raceDistance>LENGTH*.985){marks.final=q;break;}
+            if(still>300||c.raceDistance>LENGTH*.985){marks.final=q;break;}
           }
-          marks.final??=snap(2200);
-          console.log(JSON.stringify({length:+LENGTH.toFixed(2),marks},null,2));
+          marks.final??=snap(2200);console.log(JSON.stringify({length:+LENGTH.toFixed(2),marks},null,2));
           EOF
           node /tmp/sky-flip.mjs
