@@ -37,10 +37,13 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
     s = one(s, "loopRadius:doubleOrbit?8.6:skyForge?7.5:7.2", "loopRadius:doubleOrbit?8.6:skyForge?12.5:11.5", 'loop radii')
     s = one(s, "const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;", "const LOOP_HALF_T=doubleOrbit?.10:.20,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=.60;", 'open gate spacing and loop lane scale')
 
+    # The anti-overlap work is handled mainly by the lateral ring/descending
+    # separation below. Keep ring yaw modest so the approach road does not have
+    # to rotate nearly sideways before it starts climbing.
     s = one(
         s,
         "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),ringForward=startH;\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));",
-        "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),exitSide=dot(gateVec,startFrame.right),yawSign=exitSide>=0?-1:1,ringYaw=doubleOrbit?.52:skyForge?.80:.82,ringForward=norm(rotateAround(startH,worldUp,yawSign*ringYaw));\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));",
+        "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),exitSide=dot(gateVec,startFrame.right),yawSign=exitSide>=0?-1:1,ringYaw=doubleOrbit?.52:skyForge?.50:.52,ringForward=norm(rotateAround(startH,worldUp,yawSign*ringYaw));\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));",
         'oblique ring orientation',
     )
 
@@ -58,16 +61,13 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
         'descending-side separation',
     )
 
-    # The larger side-shifted single loops need a genuinely long entry tangent.
-    # A 4.2 m handle on a ~10 m diagonal entry leg made the road yaw almost 55°
-    # within the first two metres, which was continuous but still drove the car
-    # into a sudden sideways tangent.  Preserve the authored road heading much
-    # longer, then bend smoothly toward the oblique ring. DOUBLE ORBIT keeps its
-    # proven short-handle tuning.
+    # Preserve incoming heading through most of the lower leg, then let the
+    # curve rotate toward the ring. DOUBLE ORBIT keeps its proven short-handle
+    # tuning; the two large single loops get a longer physical tangent handle.
     s = one(
         s,
         "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=clamp(exitDist*.42,2.2,5.0);",
-        "entryScale=doubleOrbit?clamp(entryDist*.46,2.1,4.2):clamp(entryDist*.78,6.0,12.0),exitScale=doubleOrbit?clamp(exitDist*.42,2.2,5.0):clamp(exitDist*1.20,6.0,30.0);",
+        "entryScale=doubleOrbit?clamp(entryDist*.46,2.1,4.2):clamp(entryDist*.92,7.0,14.0),exitScale=doubleOrbit?clamp(exitDist*.42,2.2,5.0):clamp(exitDist*1.20,6.0,30.0);",
         'long entry and outgoing tangent handles',
     )
 
