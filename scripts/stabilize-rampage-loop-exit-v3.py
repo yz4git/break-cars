@@ -2,10 +2,10 @@
 
 The loop itself remains unconstrained 6DoF. A visible post-loop stabilizer strip
 provides forward force and a physical roll-righting moment after the stunt. It
-never overwrites position, quaternion, velocity, trackS or raceDistance.  A
-roof-down car that has almost stopped rolling receives an equal/opposite force
-couple across the chassis so it rocks onto its wheels before the generic
-five-second auto-upright safety net is needed.
+never overwrites position, quaternion, velocity, trackS or raceDistance.  The
+new spatially-open loop can leave a chassis with residual roll for much longer
+than the old compact loop, so the force-only settling zone now continues through
+the following road instead of ending while the car is still leaning over.
 """
 from pathlib import Path
 
@@ -25,26 +25,26 @@ def apply_rampage_exit_stabilizer_v3(target: Path) -> None:
   c.rampageExitStabilizer=false;
   if(w.mode!=='racing'||activeCourse.id!=='rampage-3d'||!c?.p3)return;
   const b=c.p3,L=RAMPAGE_RACE_SPEC.length,q=((c.trackS??0)%L+L)%L,loop=raceLoopAt(q),after=(q-loop.endS+L)%L,road=racePointAt(q);
-  if(after>40||road.kind==='loop')return;
-  const bu=bodyUp(b),align=dot(bu,road.up),v=dot({x:b.vx,y:b.vy,z:b.vz},road.forward),target=align<-.55?14.5:12;
-  if(v<target)addForce(acc,mul(road.forward,(target-v)*b.mass*5.8));
+  if(after>82||road.kind==='loop')return;
+  const bu=bodyUp(b),align=dot(bu,road.up),v=dot({x:b.vx,y:b.vy,z:b.vz},road.forward),target=align<.35?16.5:13.5;
+  if(v<target)addForce(acc,mul(road.forward,(target-v)*b.mass*7.2));
   c.rampageExitStabilizer=true;
-  if(align>.55)return;
+  if(align>.72)return;
 
   // A direct physical roll moment is well-defined even at exactly 180 degrees,
-  // where cross(chassisUp, roadUp) becomes zero.  Preserve any existing roll
+  // where cross(chassisUp, roadUp) becomes zero. Preserve an existing roll
   // direction; otherwise choose the shortest visible escape side deterministically.
   const omega={x:b.wx,y:b.wy,z:b.wz},rollRate=dot(omega,road.forward),gradient=dot(road.forward,cross(bu,road.up));
   let dir=Math.abs(gradient)>.025?Math.sign(gradient):(Math.abs(rollRate)>.12?Math.sign(rollRate):(c.id%2?-1:1));
-  const urgency=ctx.clamp((.62-align)/1.62,0,1),desiredRoll=dir*(2.15+urgency*1.65),rollTorque=ctx.clamp((desiredRoll-rollRate)*b.mass*2.9,-8.2*b.mass,8.2*b.mass),T=mul(road.forward,rollTorque);
+  const urgency=ctx.clamp((.75-align)/1.75,0,1),desiredRoll=dir*(2.35+urgency*1.95),rollTorque=ctx.clamp((desiredRoll-rollRate)*b.mass*3.6,-10.5*b.mass,10.5*b.mass),T=mul(road.forward,rollTorque);
   acc.tx+=T.x;acc.ty+=T.y;acc.tz+=T.z;
 
   // When the roof is resting on the road, wheel count is naturally zero and a
-  // pure torque can be resisted by the broad roof contact.  An equal/opposite
+  // pure torque can be resisted by the broad roof contact. An equal/opposite
   // vertical force pair across the chassis creates a real rocking couple with
   // zero net lift, breaking that static contact without teleporting the body.
-  if(align<-.62&&Math.abs(rollRate)<1.85){
-    const arm=mul(road.right,1.02*dir),lift=mul(road.up,10.5*b.mass);
+  if(align<-.55&&Math.abs(rollRate)<2.05){
+    const arm=mul(road.right,1.02*dir),lift=mul(road.up,11.8*b.mass);
     addForce(acc,lift,arm);addForce(acc,mul(lift,-1),mul(arm,-1));
   }
 }
@@ -61,8 +61,8 @@ function integrateBody(w,c,u,ctx,dt) {
         raise RuntimeError('RAMPAGE exit v3 visual anchor missing')
     visual = """ if(activeCourse.id==='rampage-3d'){
   // Visible pads correspond exactly to the physical acceleration/stability zone.
-  for(let ss=spec.loop.endS+2;ss<=spec.loop.endS+38;ss+=3.2)for(const lane of [-5.8,-2.9,0,2.9,5.8]){const p=trackPoint(ss,lane),pad=box(group,p.x,p.y,p.z,1.0,.035,1.12,(Math.floor((ss-spec.loop.endS)/3.2)%2)?0xa8f7ff:0x42ddeb,true);align(pad,p);pad.position.add(new THREE.Vector3(p.up.x*.09,p.up.y*.09,p.up.z*.09));}
-  const ep=trackPoint(spec.loop.endS+18,0),es=sign('EXIT STABILIZER',15,1.8);es.position.set(ep.x,ep.y+3.0,ep.z);es.rotation.y=ep.heading+Math.PI/2;group.add(es);
+  for(let ss=spec.loop.endS+2;ss<=spec.loop.endS+78;ss+=3.2)for(const lane of [-5.8,-2.9,0,2.9,5.8]){const p=trackPoint(ss,lane),pad=box(group,p.x,p.y,p.z,1.0,.035,1.12,(Math.floor((ss-spec.loop.endS)/3.2)%2)?0xa8f7ff:0x42ddeb,true);align(pad,p);pad.position.add(new THREE.Vector3(p.up.x*.09,p.up.y*.09,p.up.z*.09));}
+  const ep=trackPoint(spec.loop.endS+34,0),es=sign('EXIT STABILIZER',15,1.8);es.position.set(ep.x,ep.y+3.0,ep.z);es.rotation.y=ep.heading+Math.PI/2;group.add(es);
  }
 """ + marker
     s = one(s, marker, visual, 'visible strip')
