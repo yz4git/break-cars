@@ -43,7 +43,7 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
 
     # The previous outboard-looking yaw still translated the ring toward the
     # inside of the figure-eight because its lateral sign came from the gate
-    # chord.  Pick the side from the actual road position instead: the loop bay
+    # chord. Pick the side from the actual road position instead: the loop bay
     # must move away from the course origin/other branch, not toward it.
     s = one(
         s,
@@ -60,8 +60,8 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
     )
 
     # A planar vertical circle inevitably comes back directly above its own
-    # entrance at the crown.  Keep the whole stunt in the outboard bay and push
-    # the crown forward as well.  The late descending arc then solves toward a
+    # entrance at the crown. Keep the whole stunt in the outboard bay and push
+    # the crown forward as well. The late descending arc then solves toward a
     # target behind the authored outgoing gate, leaving a real lower opening.
     s = one(
         s,
@@ -75,6 +75,17 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
         "entryScale=clamp(entryDist*.46,2.1,4.2),exitScale=clamp(exitDist*.42,2.2,5.0);",
         "entryScale=doubleOrbit?clamp(entryDist*.46,2.1,4.2):clamp(entryDist*1.02,10.0,18.0),exitScale=doubleOrbit?clamp(exitDist*.42,2.2,5.0):clamp(exitDist*.78,5.0,10.0);",
         'long outboard entry and outgoing tangent handles',
+    )
+
+    # The longer outboard S-leg must start climbing immediately, otherwise its
+    # first couple of metres can read as a flat detour before the loop. A small
+    # upward component preserves gate tangent continuity while giving the entry
+    # the unmistakable rising motion of a real loop approach.
+    s = one(
+        s,
+        "pushLeg(startFrame.p,startFrame.forward,startFrame.up,ringEntry.pos,ringEntry.tangent,ringEntry.up,entryScale,LEG_STEPS,false);",
+        "const entryForward=doubleOrbit?startFrame.forward:norm(add(startFrame.forward,mul(startFrame.up,.16)));\n  pushLeg(startFrame.p,entryForward,startFrame.up,ringEntry.pos,ringEntry.tangent,ringEntry.up,entryScale,LEG_STEPS,false);",
+        'rising outboard entry tangent',
     )
 
     s = one(
