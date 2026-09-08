@@ -18,6 +18,10 @@ DOUBLE ORBIT keeps its proven short-gate closed-planar tuning because its two
 successive loops are tightly tuned around that geometry. Rendering and collision
 always consume the same centerline and width. No hidden base road is left under
 the loop and no position/orientation teleport is introduced.
+
+This file is also one of the live-WebGL audit trigger paths, so any accepted
+reference-loop geometry is captured against the exact Pages build that contains
+it rather than being inferred from centerline-only regression tests.
 """
 from pathlib import Path
 
