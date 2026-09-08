@@ -31,15 +31,25 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
   if(w.mode!=='racing'||!c?.p3||(activeCourse.id!=='sky-forge'&&activeCourse.id!=='double-orbit'))return;
   const b=c.p3,q=c.trackS??0,road=racePointAt(q);
   if(road.kind!=='loop')return;
-  const loop=raceLoopAt(q),vel={x:b.vx,y:b.vy,z:b.vz},omega={x:b.wx,y:b.wy,z:b.wz},bu=bodyUp(b),rel={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},height=dot(rel,road.up),forwardSpeed=Math.max(0,dot(vel,road.forward));
+  const loop=raceLoopAt(q),vel={x:b.vx,y:b.vy,z:b.vz},omega={x:b.wx,y:b.wy,z:b.wz},bu=bodyUp(b),rel={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},height=dot(rel,road.up),forwardSpeed=dot(vel,road.forward);
   // Bridge only a small suspension gap. A car that truly leaves the structure
   // stays in free flight instead of being magnetically pulled to the road.
-  if(height<.35||height>2.65||forwardSpeed<8)return;
+  if(height<.35||height>2.65)return;
+
+  // Real stunt tracks do not rely on a car coasting to the crown. Keep a modest
+  // minimum tangential drive force inside the structure so a chassis that loses
+  // speed during a contact gap can continue rolling out instead of hanging on
+  // the final inverted section. This changes velocity only through force.
+  const minLoopSpeed=activeCourse.id==='sky-forge'?10.8:10.2;
+  if(forwardSpeed<minLoopSpeed){
+    const driveAccel=ctx.clamp((minLoopSpeed-forwardSpeed)*1.9,0,12);
+    addForce(acc,mul(road.forward,driveAccel*b.mass));
+  }
 
   // High-speed tyre/suspension load supplies the centripetal acceleration that
   // keeps the chassis following a vertical ribbon. Scale with v^2/r, capped so
   // bumps, impacts and one-wheel unloads remain visible and physical.
-  const centripetal=forwardSpeed*forwardSpeed/Math.max(4,loop.radius),load=ctx.clamp((centripetal-4.5)*.30,0,18.5),gapBlend=ctx.clamp((2.75-height)/1.25,.28,1);
+  const loadSpeed=Math.max(6.5,forwardSpeed),centripetal=loadSpeed*loadSpeed/Math.max(4,loop.radius),load=ctx.clamp((centripetal-4.5)*.30,0,18.5),gapBlend=ctx.clamp((2.75-height)/1.25,.28,1);
   addForce(acc,mul(road.up,load*gapBlend*b.mass));
 
   // Contact-patch attitude moment: suspension and tyre forces rotate chassis-up
