@@ -7,6 +7,11 @@ on:
     paths:
       - ".github/live-loop-visual-audit.mjs"
       - ".github/workflows/live-loop-visual-audit.yml"
+      - "scripts/prepare-pages.py"
+      - "scripts/apply-extreme-courses.py"
+      - "scripts/polish-reference-loop-geometry-v8.py"
+      - "dist/racing3d.js"
+      - "dist/track-view.js"
 
 permissions:
   contents: write
@@ -24,8 +29,18 @@ jobs:
         run: |
           npm install --no-save --package-lock=false playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Wait for Pages update
-        run: sleep 70
+      - name: Wait for this exact Pages build
+        run: |
+          set -euo pipefail
+          want="${GITHUB_SHA:0:12}"
+          for i in $(seq 1 36); do
+            got="$(curl -fsSL "https://yz4git.github.io/break-cars/build-id.txt?audit=${GITHUB_SHA}-${i}" 2>/dev/null | tr -d '\r\n' || true)"
+            echo "Pages build: ${got:-missing}; want: $want"
+            if [ "$got" = "$want" ]; then exit 0; fi
+            sleep 10
+          done
+          echo "Timed out waiting for exact Pages build" >&2
+          exit 1
       - name: Capture real WebGL gameplay
         env:
           BREAK_CARS_AUDIT_URL: https://yz4git.github.io/break-cars/
