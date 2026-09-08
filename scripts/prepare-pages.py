@@ -33,6 +33,7 @@ apply_player_auto_upright = load_function('add-player-auto-upright.py', 'break_c
 apply_auto_upright_racing_hint = load_function('fix-auto-upright-racing-hint.py', 'break_cars_auto_upright_racing_hint', 'apply_auto_upright_racing_hint')
 apply_nine_course_review_polish = load_function('polish-nine-course-review-v1.py', 'break_cars_nine_course_review_v1', 'apply_nine_course_review_polish')
 apply_nine_course_review_v2 = load_function('polish-nine-course-review-v2.py', 'break_cars_nine_course_review_v2', 'apply_nine_course_review_v2')
+apply_rampage_exit_stabilizer_v3 = load_function('stabilize-rampage-loop-exit-v3.py', 'break_cars_rampage_exit_v3', 'apply_rampage_exit_stabilizer_v3')
 
 source = Path('dist')
 target = Path('_site')
@@ -79,6 +80,8 @@ apply_extreme_courses(target)
 # stabilize arena cameras, recovery, race stunt flow and multi-loop behavior.
 apply_nine_course_review_polish(target)
 apply_nine_course_review_v2(target)
+# RAMPAGE-only post-loop guide: physical forces only, no pose/track snapping.
+apply_rampage_exit_stabilizer_v3(target)
 
 build = (os.environ.get('DEPLOY_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())[:12]
 for path in target.glob('*.js'):
