@@ -1,9 +1,9 @@
 """SKY FORGE post-loop physical stabilizer.
 
 The vertical loop remains fully free 6DoF. On the normal-road section after the
-loop, visible magnetic guide pads apply only forces/torques: they damp residual
-roll/yaw and keep a roof-bounce from launching the car far above the road. The
-guide never writes position, quaternion, velocity, trackS, or raceDistance.
+loop, visible magnetic guide pads apply only forces/torques: they absorb a roof
+bounce, damp full 3D tilt, and gently restore down-track heading. The guide never
+writes position, quaternion, velocity, trackS, or raceDistance directly.
 """
 from pathlib import Path
 
@@ -35,8 +35,8 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
 
   // Magnetic downforce is a real force, not a position correction. The roof can
   // still bounce on loop exit, but the guide absorbs the upward launch before
-  // it turns into a 30-50 m unintended flight. Airborne lateral damping keeps
-  // the chassis above the visible road without locking it to a lane.
+  // it turns into an unintended high-altitude flight. Airborne lateral damping
+  // keeps the chassis above the visible road without locking it to a lane.
   if(height>1.8||b.groundedWheels===0){
     const downAccel=ctx.clamp(Math.max(0,height-1.35)*3.15+Math.max(0,normalSpeed)*5.6,0,82),sideAccel=ctx.clamp(-lateral*1.55-sideSpeed*2.15,-16,16);
     addForce(acc,mul(road.up,-downAccel*b.mass));
@@ -48,19 +48,20 @@ def apply_sky_loop_exit_v5(target: Path) -> None:
   const target=align<.45?11.5:14.5;
   if(forwardSpeed<target)addForce(acc,mul(road.forward,(target-forwardSpeed)*b.mass*(align<.45?2.4:5.2)));
 
-  // Roll controller: restore the road-up direction, then continue damping the
-  // angular velocity instead of switching off with a large residual spin.
-  const rollRate=dot(omega,road.forward),gradient=dot(road.forward,cross(bu,road.up));
-  let dir=Math.abs(gradient)>.025?Math.sign(gradient):(Math.abs(rollRate)>.12?Math.sign(rollRate):(c.id%2?-1:1));
-  const urgency=ctx.clamp((.86-align)/1.86,0,1),desiredRoll=align<.82?dir*(1.35+urgency*1.45):0;
-  const rollTorque=ctx.clamp((desiredRoll-rollRate)*b.mass*2.05,-5.2*b.mass,5.2*b.mass),rollT=mul(road.forward,rollTorque);
-  acc.tx+=rollT.x;acc.ty+=rollT.y;acc.tz+=rollT.z;
+  // Full 3D attitude PD: align the chassis up-vector with the road normal while
+  // damping angular velocity in the road tangent plane. Near exactly 180 deg
+  // the cross-product is singular, so continue the existing roll direction (or
+  // choose a deterministic side) only until a usable correction axis appears.
+  const yawRate=dot(omega,road.up),tiltRate={x:omega.x-road.up.x*yawRate,y:omega.y-road.up.y*yawRate,z:omega.z-road.up.z*yawRate},tiltErr=cross(bu,road.up),errMag=Math.hypot(tiltErr.x,tiltErr.y,tiltErr.z),rollRate=dot(omega,road.forward);
+  if(align<-.90&&errMag<.46){const dir=Math.abs(rollRate)>.18?Math.sign(rollRate):(c.id%2?-1:1);tiltErr.x+=road.forward.x*dir*.62;tiltErr.y+=road.forward.y*dir*.62;tiltErr.z+=road.forward.z*dir*.62;}
+  const tiltK=align<0?9.6:7.8,tiltD=3.75,maxTilt=10.5*b.mass;
+  acc.tx+=ctx.clamp((tiltErr.x*tiltK-tiltRate.x*tiltD)*b.mass,-maxTilt,maxTilt);
+  acc.ty+=ctx.clamp((tiltErr.y*tiltK-tiltRate.y*tiltD)*b.mass,-maxTilt,maxTilt);
+  acc.tz+=ctx.clamp((tiltErr.z*tiltK-tiltRate.z*tiltD)*b.mass,-maxTilt,maxTilt);
 
-  // The loop can also eject the car with substantial yaw while all wheels are
-  // airborne. First damp that spin, then—once mostly upright—gently point the
+  // Damp loop-exit yaw even in the air, then gently point the mostly-upright
   // chassis down-track. This remains torque-only and still permits free flight.
-  const bf={x:2*(b.qx*b.qz+b.qy*b.qw),y:2*(b.qy*b.qz-b.qx*b.qw),z:1-2*(b.qx*b.qx+b.qy*b.qy)},forwardAlign=dot(bf,road.forward),yawRate=dot(omega,road.up),yawErr=dot(road.up,cross(bf,road.forward));
-  const desiredYaw=align>.35?ctx.clamp(yawErr*2.1,-1.55,1.55):0,yawTorque=ctx.clamp((desiredYaw-yawRate)*b.mass*(align>.35?1.35:.82),-3.0*b.mass,3.0*b.mass),yawT=mul(road.up,yawTorque);
+  const bf={x:2*(b.qx*b.qz+b.qy*b.qw),y:2*(b.qy*b.qz-b.qx*b.qw),z:1-2*(b.qx*b.qx+b.qy*b.qy)},yawErr=dot(road.up,cross(bf,road.forward)),desiredYaw=align>.35?ctx.clamp(yawErr*2.1,-1.55,1.55):0,yawTorque=ctx.clamp((desiredYaw-yawRate)*b.mass*(align>.35?1.35:.9),-3.2*b.mass,3.2*b.mass),yawT=mul(road.up,yawTorque);
   acc.tx+=yawT.x;acc.ty+=yawT.y;acc.tz+=yawT.z;
 }
 
