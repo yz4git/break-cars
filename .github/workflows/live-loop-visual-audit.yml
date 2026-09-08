@@ -1,0 +1,57 @@
+name: BREAK CARS Live Loop Visual Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/live-loop-visual-audit.mjs"
+      - ".github/workflows/live-loop-visual-audit.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Wait for Pages update
+        run: sleep 70
+      - name: Capture real WebGL gameplay
+        env:
+          BREAK_CARS_AUDIT_URL: https://yz4git.github.io/break-cars/
+        run: node .github/live-loop-visual-audit.mjs
+      - name: Upload audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: break-cars-live-loop-${{ github.sha }}
+          path: artifacts/live-loop-visual-audit
+          if-no-files-found: error
+          retention-days: 7
+      - name: Publish latest captures to visual-audit branch
+        if: success()
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/break-cars-loop-audit
+          mkdir -p /tmp/break-cars-loop-audit
+          cp -a artifacts/live-loop-visual-audit/. /tmp/break-cars-loop-audit/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan visual-audit
+          git rm -rf .
+          mkdir -p latest
+          cp -a /tmp/break-cars-loop-audit/. latest/
+          printf '%s\n' "source_sha=${GITHUB_SHA}" "captured_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" > latest/source.txt
+          git add latest
+          git commit -m "Update BREAK CARS live loop captures"
+          git push --force origin visual-audit
