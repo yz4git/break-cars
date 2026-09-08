@@ -15,8 +15,8 @@ def apply_extreme_courses(target):
  # Convert the old closed-circle insertion into an open, progressive twist loop.
  # Entry and exit are separate points on the authored base course.  The centerline
  # advances through the loop while a small lateral S-twist prevents the two lower
- # legs from occupying the same space.  A slightly tighter crown gives the stunt
- # a more realistic teardrop profile while preserving full 6DoF surface normals.
+ # legs from occupying the same space.  A tighter crown gives the stunt a tall,
+ # realistic teardrop profile while preserving full 6DoF surface normals.
  start=s.index('const raw=[];')
  end=s.index('// Remove accidental duplicate',start)
  open_loop="""const LOOP_HALF_T=.18,LOOP_TWIST=LOOP_R*.32;
@@ -31,7 +31,7 @@ for(const t of ts){
   insertedLoops.add(startCenter);
   const entry=baseAt(startCenter-LOOP_HALF_T),exit=baseAt(startCenter+LOOP_HALF_T),delta=sub(exit,entry),worldUp={x:0,y:1,z:0},f=norm({x:delta.x,y:0,z:delta.z}),side=norm(cross(worldUp,f));
   const sample=u=>{
-   const th=-Math.PI/2+u*TAU,c=Math.cos(th),sn=Math.sin(th),crown=Math.sin(Math.PI*u),radialScale=1-.16*crown,verticalScale=1-.08*crown,drift=add(entry,mul(delta,u)),lateral=LOOP_TWIST*crown*crown*Math.sin(TAU*u);
+   const th=-Math.PI/2+u*TAU,c=Math.cos(th),sn=Math.sin(th),crown=Math.sin(Math.PI*u),radialScale=1-.16*crown,verticalScale=1-.015*crown,drift=add(entry,mul(delta,u)),lateral=LOOP_TWIST*crown*crown*Math.sin(TAU*u);
    const pos=add(add(add(drift,mul(f,LOOP_R*radialScale*c)),mul(worldUp,LOOP_R*verticalScale*(1+sn))),mul(side,lateral)),center=add(drift,mul(worldUp,LOOP_R*verticalScale));
    return{pos,center};
   };
