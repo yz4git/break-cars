@@ -32,7 +32,7 @@ jobs:
               step(w,{},1/60,true);const b=c.p3;if(!b)continue;const up=bodyUp(b),surface=samplePhysicsSurface('racing',b.px,b.py,b.pz,up,true,c.trackS),road=trackPoint(c.trackS||0),align=surface?up.x*surface.normal.x+up.y*surface.normal.y+up.z*surface.normal.z:999,speed=Math.hypot(b.vx,b.vy,b.vz);
               if(speed<1.4){stuck++;longestStuck=Math.max(longestStuck,stuck);}else stuck=0;
               maxTimer=Math.max(maxTimer,c.autoUprightTime||0);
-              const snap={seed,frame,time:+w.time.toFixed(3),trackS:+c.trackS.toFixed(3),raceDistance:+c.raceDistance.toFixed(3),kind:road.kind,speed:+speed.toFixed(3),upY:+up.y.toFixed(3),align:+align.toFixed(3),wheels:b.groundedWheels,air:+(b.airTime||0).toFixed(3),timer:+(c.autoUprightTime||0).toFixed(3),y:+b.py.toFixed(3),surface:surface?.kind,d:+(surface?.d??999).toFixed(3)};
+              const snap={seed,frame:frames,time:+w.time.toFixed(3),trackS:+c.trackS.toFixed(3),raceDistance:+c.raceDistance.toFixed(3),kind:road.kind,speed:+speed.toFixed(3),upY:+up.y.toFixed(3),align:+align.toFixed(3),wheels:b.groundedWheels,air:+(b.airTime||0).toFixed(3),timer:+(c.autoUprightTime||0).toFixed(3),y:+b.py.toFixed(3),surface:surface?.kind,d:+(surface?.d??999).toFixed(3)};
               if((c.autoUprightTime||0)>.05)lastTimer=snap;
               for(const e of w.events)if(e.type==='auto-upright'){auto++;autoSnap={...snap,event:e,pre:lastTimer};}
             }
