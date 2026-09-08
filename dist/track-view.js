@@ -11,7 +11,10 @@ export function buildRaceTrack({box,sign}){
   for(let i=0;i<samples;i++){
    const s0=i/samples*LENGTH,s1=(i+1)/samples*LENGTH,p0a=trackPoint(s0,a),p0b=trackPoint(s0,b),p1a=trackPoint(s1,a),p1b=trackPoint(s1,b);
    if([p0a,p0b,p1a,p1b].some(p=>p.kind==='jump-gap'))continue;
-   const q=[offset(p0a,height),offset(p0b,height),offset(p1a,height),offset(p1a,height),offset(p0b,height),offset(p1b,height)];for(const p of q)vertices.push(p.x,p.y,p.z);
+   // Winding follows forward x right = road up, so the visible front face is
+   // the same side used by suspension/tyre physics. The previous right x
+   // forward winding pointed at -up and made loop entries read underside-first.
+   const q=[offset(p0a,height),offset(p1a,height),offset(p0b,height),offset(p1a,height),offset(p1b,height),offset(p0b,height)];for(const p of q)vertices.push(p.x,p.y,p.z);
   }
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.computeVertexNormals();const mesh=new THREE.Mesh(geo,material(color));mesh.receiveShadow=true;mesh.castShadow=false;group.add(mesh);return mesh;
  }
