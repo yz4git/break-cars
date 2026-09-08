@@ -9,8 +9,9 @@ RAMPAGE and SKY therefore use a true spatially-open loop:
   physically separated;
 - narrow the loop ribbon relative to the normal road;
 - keep the lower entry leg mostly in the incoming road direction;
-- advance the ring longitudinally as it rotates, producing a corkscrew/open
-  revolution instead of a circle that closes back above the entry gate;
+- push the upper arc forward so the loop does not close back over its entrance;
+- align the ring's endpoint advance to the outgoing road instead of overshooting
+  it and folding the exit leg back on itself;
 - keep the descending half displaced toward the outgoing side;
 - let a separate long-tangent exit leg converge onto the outgoing authored road.
 
@@ -37,8 +38,8 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
     s = one(s, "const LOOP_HALF_T=.10,LOOP_OPEN_ANGLE=.42;", "const LOOP_HALF_T=doubleOrbit?.10:.20,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=.60;", 'open gate spacing and loop lane scale')
 
     # Keep the initial ring heading close to the road. Spatial openness is
-    # created by the longitudinal corkscrew advance below rather than by forcing
-    # the entrance to yaw sideways before it can climb.
+    # created by the upper-arc advance below rather than by forcing the entrance
+    # to yaw sideways before it can climb.
     s = one(
         s,
         "const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),ringForward=startH;\n  let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));",
@@ -55,17 +56,18 @@ def apply_reference_loop_geometry_v8(target: Path) -> None:
 
     # A planar vertical circle inevitably comes back directly above its own
     # entrance at the crown, which is exactly the black underside/canopy seen in
-    # the real WebGL captures. For the two single-loop courses, advance the ring
-    # monotonically along its travel axis while it rotates. At q=0 the advance
-    # and its derivative are zero, so the incoming leg remains tangent-continuous;
-    # at q=1 the advance is roughly the authored gate chord, putting ringExit
-    # near the outgoing gate instead of behind the entrance. This is a genuine
-    # open corkscrew loop rather than a closed ring superimposed over a road.
+    # the real WebGL captures. A single monotonic 18m advance removed that canopy
+    # but could overshoot the authored exit and make the final Hermite leg reverse
+    # direction. Split the job instead: (1) endpointAdvance projects the planar
+    # ring exit toward the actual outgoing gate, and (2) crownPush adds a smooth
+    # mid-loop bulge that is zero with zero derivative at both ring gates. The
+    # upper arc therefore stays well forward of the entrance while ringExit still
+    # approaches the outgoing road from the correct side.
     s = one(
         s,
         "const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),tangent=norm(add(mul(ringForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(ringForward,-sn)));return{pos,tangent,up};};",
-        "const sepSign=exitSide>=0?1:-1,ringSep=doubleOrbit?2.2:skyForge?7.5:7.2,ringAdvance=doubleOrbit?0:clamp(gateChord*1.18,14.0,22.0);\n  const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.32)/.22),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release,advance=ringAdvance*smooth01(q);return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(startFrame.right,lat)),mul(ringForward,advance));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
-        'longitudinal open-loop clearance',
+        "const sepSign=exitSide>=0?1:-1,ringSep=doubleOrbit?2.2:skyForge?7.5:7.2,planarExit=add(add(add(ringBase,mul(ringForward,-gapAlong)),mul(ringUp,joinRise)),mul(startFrame.right,sepSign*ringSep)),endpointAdvance=doubleOrbit?0:clamp(dot(sub(endFrame.p,planarExit),ringForward),0,18),crownPush=doubleOrbit?0:skyForge?10.5:10.0;\n  const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.32)/.22),release=doubleOrbit?1-smooth01((q-.84)/.16):1,lat=sepSign*ringSep*engage*release,crown=Math.sin(Math.PI*q),advance=endpointAdvance*smooth01(q)+crownPush*crown*crown;return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(startFrame.right,lat)),mul(ringForward,advance));};\n  const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};",
+        'gate-aligned open-loop clearance',
     )
 
     s = one(
