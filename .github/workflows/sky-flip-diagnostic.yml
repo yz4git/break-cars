@@ -13,24 +13,38 @@ jobs:
         env:
           DEPLOY_SHA: ${{ github.sha }}
         run: python3 scripts/prepare-pages.py
-      - name: Trace SKY FORGE seed 1 flip
+      - name: Trace SKY FORGE seed 1 heading recovery
         run: |
           cat > /tmp/sky-flip.mjs <<'EOF'
           globalThis.location={search:'?course=sky-forge'};
           const physics=await import(`${process.cwd()}/_site/physics.js?d=${Date.now()}`);
-          const p3=await import(`${process.cwd()}/_site/physics3d.js?d=${Date.now()}`);
           const racing=await import(`${process.cwd()}/_site/racing.js?d=${Date.now()}`);
-          const {makeWorld,step}=physics;const {samplePhysicsSurface,fullPhysicsFeatureSpec}=p3;const {trackPoint,LENGTH}=racing;
+          const {makeWorld,step}=physics;const {trackPoint,LENGTH,raceLoopAt}=racing;
           const w=makeWorld(0,1,'racing');w.done=false;w.endAt=999;w.limit=999;for(const x of w.cars.slice(1)){x.finished=true;x.dead=false;x.vx=x.vz=0;}
-          const c=w.cars[0],up=b=>({x:2*(b.qx*b.qy-b.qz*b.qw),y:1-2*(b.qx*b.qx+b.qz*b.qz),z:2*(b.qy*b.qz+b.qx*b.qw)});let firstNeg=null,minAlign=1,trace=[];
-          console.log('SPEC',JSON.stringify(fullPhysicsFeatureSpec().race));
-          for(let frame=0;frame<1500&&!w.done;frame++){
-            step(w,{},1/60,true);const b=c.p3,u=up(b),road=trackPoint(c.trackS||0),s=samplePhysicsSurface('racing',b.px,b.py,b.pz,u,true,c.trackS),align=s?u.x*s.normal.x+u.y*s.normal.y+u.z*s.normal.z:9,speed=Math.hypot(b.vx,b.vy,b.vz);minAlign=Math.min(minAlign,align);
-            const snap={frame,time:+w.time.toFixed(3),s:+c.trackS.toFixed(3),d:+c.raceDistance.toFixed(3),kind:road.kind,y:+b.py.toFixed(3),roadY:+road.y.toFixed(3),speed:+speed.toFixed(3),upY:+u.y.toFixed(3),align:+align.toFixed(3),wheels:b.groundedWheels,air:+(b.airTime||0).toFixed(3),timer:+(c.autoUprightTime||0).toFixed(3),boost:!!c.rampageBoost,stabilizer:!!c.rampageExitStabilizer};
-            if(!firstNeg&&align<-.3)firstNeg=snap;
-            if((c.trackS>110&&c.trackS<220&&frame%15===0)||align<-.25||(c.autoUprightTime||0)>.05)trace.push(snap);
-            if(w.events.some(e=>e.type==='auto-upright'))break;
+          const c=w.cars[0];
+          const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+          const up=b=>({x:2*(b.qx*b.qy-b.qz*b.qw),y:1-2*(b.qx*b.qx+b.qz*b.qz),z:2*(b.qy*b.qz+b.qx*b.qw)});
+          const fwd=b=>({x:2*(b.qx*b.qz+b.qy*b.qw),y:2*(b.qy*b.qz-b.qx*b.qw),z:1-2*(b.qx*b.qx+b.qy*b.qy)});
+          const snap=(frame)=>{const b=c.p3,r=trackPoint(c.trackS||0),u=up(b),f=fwd(b),v={x:b.vx,y:b.vy,z:b.vz},o={x:b.wx,y:b.wy,z:b.wz};return{frame,time:+w.time.toFixed(2),s:+c.trackS.toFixed(2),d:+c.raceDistance.toFixed(2),kind:r.kind,speed:+Math.hypot(b.vx,b.vy,b.vz).toFixed(2),forwardSpeed:+dot(v,r.forward).toFixed(2),upAlign:+dot(u,r.up).toFixed(3),forwardAlign:+dot(f,r.forward).toFixed(3),yawRate:+dot(o,r.up).toFixed(3),rollRate:+dot(o,r.forward).toFixed(3),wheels:b.groundedWheels,timer:+(c.autoUprightTime||0).toFixed(2),guide:!!c.skyForgeExitGuide};};
+          const marks={};let lastD=c.raceDistance,still=0,loopExited=false;
+          for(let frame=0;frame<2200&&!w.done;frame++){
+            step(w,{},1/60,true);const r=trackPoint(c.trackS||0),q=snap(frame),loop=raceLoopAt(c.trackS||0);
+            if(!marks.preLoop&&c.trackS>loop.startS-12)marks.preLoop=q;
+            if(!marks.crown&&r.kind==='loop'&&q.upAlign<-.65)marks.crown=q;
+            if(marks.crown&&!loopExited&&r.kind!=='loop'){loopExited=true;marks.loopExit=q;}
+            if(loopExited&&!marks.upPositive&&q.upAlign>0)marks.upPositive=q;
+            if(loopExited&&!marks.upHalf&&q.upAlign>.5)marks.upHalf=q;
+            if(loopExited&&!marks.upGood&&q.upAlign>.86)marks.upGood=q;
+            if(loopExited&&!marks.headingBad&&q.forwardAlign<.35)marks.headingBad=q;
+            if(loopExited&&!marks.headingReverse&&q.forwardAlign<0)marks.headingReverse=q;
+            if(loopExited&&!marks.s175&&c.trackS>174)marks.s175=q;
+            if(loopExited&&!marks.s200&&c.trackS>199)marks.s200=q;
+            if(c.raceDistance-lastD<.015)still++;else still=0;lastD=c.raceDistance;
+            if(still===180)marks.stall3s=q;
+            if(still>300){marks.final=q;break;}
+            if(c.raceDistance>LENGTH*.985){marks.final=q;break;}
           }
-          console.log(JSON.stringify({length:LENGTH,firstNeg,minAlign,final:{s:c.trackS,d:c.raceDistance,time:w.time},trace:trace.slice(-260)},null,2));
+          marks.final??=snap(2200);
+          console.log(JSON.stringify({length:+LENGTH.toFixed(2),marks},null,2));
           EOF
           node /tmp/sky-flip.mjs
