@@ -15,7 +15,7 @@ def apply_racing3d_projection_fix(target: Path) -> None:
     s = one(
         s,
         "let delta=p.s-c.trackS;if(delta>LENGTH/2)delta-=LENGTH;if(delta<-LENGTH/2)delta+=LENGTH;c.trackS=p.s;\n // Ordered progress remains continuous through the vertical loop and the upper/lower crossover.\n if(Math.abs(delta)>5.5||Math.abs(p.lane)>TRACK.halfWidth+1.5)return;",
-        "let delta=p.s-c.trackS;if(delta>LENGTH/2)delta-=LENGTH;if(delta<-LENGTH/2)delta+=LENGTH;\n // Never commit an ambiguous loop/crossover projection. Keeping the previous hint\n // prevents one rejected branch from becoming the preferred branch next frame.\n if(Math.abs(delta)>5.5||Math.abs(p.lane)>TRACK.halfWidth+1.5){c.projectionRejects=(c.projectionRejects||0)+1;return;}\n c.trackS=p.s;",
+        "let delta=p.s-c.trackS;if(delta>LENGTH/2)delta-=LENGTH;if(delta<-LENGTH/2)delta+=LENGTH;\n // Projection may move only as far as the rigid body could plausibly travel in\n // this frame. The old fixed 5.5m allowance let a 20m/s car jump five metres\n // around the loop in 1/60s, instantly swapping to a very different tangent.\n const bodySpeed=c.p3?Math.hypot(c.p3.vx||0,c.p3.vy||0,c.p3.vz||0):Math.hypot(c.vx||0,c.vz||0),maxProjectionStep=clamp(bodySpeed*dt*2.6+.55,1.2,2.6);\n if(Math.abs(delta)>maxProjectionStep||Math.abs(p.lane)>TRACK.halfWidth+1.5){c.projectionRejects=(c.projectionRejects||0)+1;return;}\n c.trackS=p.s;",
         "advance commit order",
     )
     racing.write_text(s)
