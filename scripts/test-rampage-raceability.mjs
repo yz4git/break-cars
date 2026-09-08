@@ -34,7 +34,8 @@ for(;frames<1900&&!solo.done&&p.raceDistance<target;frames++){
   if(speed<1.4){stuck++;longestStuck=Math.max(longestStuck,stuck);}else stuck=0;
   for(const e of solo.events){if(e.type==='recover')recover++;if(e.type==='auto-upright'){auto++;if(!autoSample)autoSample={frame:frames,s:+p.trackS.toFixed(2),race:+p.raceDistance.toFixed(2),kind,x:+b.px.toFixed(2),y:+b.py.toFixed(2),z:+b.pz.toFixed(2),upY:+upY(b).toFixed(2),speed:+speed.toFixed(2)};}}
 }
-assert.ok(p.raceDistance>=target,`natural grid start should complete a lap: ${p.raceDistance-start}/${spec.length}`);
+const finalRoad=racePointAt(p.trackS),finalBody=p.p3,finalSpeed=Math.hypot(finalBody.vx,finalBody.vy,finalBody.vz);
+assert.ok(p.raceDistance>=target,`natural grid start should complete a lap: ${p.raceDistance-start}/${spec.length}; s=${p.trackS.toFixed(2)} kind=${finalRoad.kind} pos=(${finalBody.px.toFixed(2)},${finalBody.py.toFixed(2)},${finalBody.pz.toFixed(2)}) speed=${finalSpeed.toFixed(2)} upY=${upY(finalBody).toFixed(2)} stuck=${(longestStuck/60).toFixed(2)}s auto=${auto} recover=${recover}`);
 assert.ok(loopInverted,'natural approach must reach the inverted crown of the loop');
 assert.ok(loopExited,'car must exit the loop after inversion');
 assert.ok(bridgeSeen,'natural lap must reach the elevated crossover');
