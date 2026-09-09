@@ -1,11 +1,11 @@
 """Keep the RAMPAGE clearance fix isolated from the other stunt courses.
 
-RAMPAGE keeps the new broad outboard open loop requested by the visual review.
-SKY FORGE and DOUBLE ORBIT use the proven forward-progress helix from the last
-fully green build, with a small symmetric lower-leg rise so the ordinary road
-visibly flows up into (and back down out of) the loop instead of reading flat at
-the gates. The lift is smooth, force-free geometry: position/tangent/normal are
-still continuous at both road joins.
+RAMPAGE uses a broad outboard open loop whose entry and exit are true parts of
+one continuous road.  The ring advances forward through the revolution so the
+lower entry/exit legs stay physically separated instead of forming the old X
+under the loop.  SKY FORGE and DOUBLE ORBIT keep the proven forward-progress
+helix, with a small symmetric lower-leg rise so the ordinary road visibly flows
+up into (and back down out of) the loop instead of reading flat at the gates.
 
 This transform runs after v8 and replaces only the generated loop-centerline
 construction. Rendering/collision continue to consume the same centerline.
@@ -61,16 +61,17 @@ for(const t of ts){
     raw.push({x:here.pos.x,y:here.pos.y,z:here.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});
    }
   }else{
-   // RAMPAGE-only outboard open loop. The whole elevated ring stays outside the
-   // figure-eight; long physical legs are the only parts that merge to the road.
+   // RAMPAGE-only outboard open loop. The ring progresses down-track during
+   // the revolution; this is the crucial open-loop displacement that leaves a
+   // real gap between the lower entry and exit ribbons instead of crossing them.
    const startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),gateVec=sub(endFrame.p,startFrame.p),gateChord=len(gateVec),worldUp={x:0,y:1,z:0};
    const startH=horizontal(startFrame.forward)||norm(startFrame.forward),flatRight=norm(cross(worldUp,startH)),outwardSign=(startFrame.p.x*flatRight.x+startFrame.p.z*flatRight.z)>=0?1:-1,ringForward=norm(rotateAround(startH,worldUp,outwardSign*.16));
    let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=flatRight;const ringUp=norm(cross(ringForward,ringRight));
    const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=clamp(gateChord*.34,7.0,11.5),legRise=1.45,ringSideShift=17.0;
    const desiredEntry=add(add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise)),mul(flatRight,outwardSign*ringSideShift));
    const ringBase=sub(sub(desiredEntry,mul(ringForward,gapAlong)),mul(ringUp,joinRise));
-   const ringSep=7.5,crownPush=9.5;
-   const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.12)/.30),lat=outwardSign*ringSep*engage,crown=Math.sin(Math.PI*q),advance=crownPush*crown*crown;return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lat)),mul(ringForward,advance));};
+   const ringSep=7.5,crownPush=9.5,openForwardSweep=29.0;
+   const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.12)/.30),lat=outwardSign*ringSep*engage,crown=Math.sin(Math.PI*q),advance=crownPush*crown*crown+openForwardSweep*smooth01(q);return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lat)),mul(ringForward,advance));};
    const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};
    const ringEntry=circleAt(open),ringExit=circleAt(TAU-open),entryDist=len(sub(ringEntry.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.88,13.0,24.0),exitScale=clamp(exitDist*.88,14.0,26.0);
    const LEG_STEPS=Math.max(12,Math.round(LOOP_STEPS*.18)),RING_STEPS=Math.max(48,LOOP_STEPS-LEG_STEPS*2);
