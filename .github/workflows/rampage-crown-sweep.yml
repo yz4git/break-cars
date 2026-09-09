@@ -16,12 +16,12 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Compare fine lookahead candidates
+      - name: Compare omega exit guidance candidates
         shell: bash
         run: |
           set -u
           cp scripts/boost-rampage-loop-v6.py /tmp/boost-original.py
-          candidates=(la044 la042 la040 la038 la035 la032 blend85la045 blend90la045)
+          candidates=(baseline la12 la10 la08 blend60 blend70 la10blend60 currentExit)
           for candidate in "${candidates[@]}"; do
             cp /tmp/boost-original.py scripts/boost-rampage-loop-v6.py
             CANDIDATE="$candidate" python3 - <<'PY'
@@ -30,24 +30,15 @@ jobs:
           p=Path('scripts/boost-rampage-loop-v6.py')
           s=p.read_text()
           c=os.environ['CANDIDATE']
-          # Remove the experimental direct crown rescue first; refine only the
-          # existing look-ahead guide so the natural 12-car trajectory remains intact.
-          s=s.replace('crownRescue=inLoop&&loopT>.43&&loopT<.50,','crownRescue=false,')
-          lookahead = {
-              'la044': '.044',
-              'la042': '.042',
-              'la040': '.040',
-              'la038': '.038',
-              'la035': '.035',
-              'la032': '.032',
-              'blend85la045': '.045',
-              'blend90la045': '.045',
-          }[c]
-          s=s.replace('speed*.075', f'speed*{lookahead}')
-          if c == 'blend85la045':
-              s=s.replace('exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40)', 'exitBlend?.42:.85),mul(ahead.forward,exitBlend?.58:.15)')
-          elif c == 'blend90la045':
-              s=s.replace('exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40)', 'exitBlend?.42:.90),mul(ahead.forward,exitBlend?.58:.10)')
+          if c in {'la12','la10','la08','la10blend60'}:
+              factor={'la12':'.12','la10':'.10','la08':'.08','la10blend60':'.10'}[c]
+              s=s.replace('speed*.16)):Math.min(2.4', f'speed*{factor})):Math.min(2.4')
+          if c in {'blend60','la10blend60'}:
+              s=s.replace('exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40)', 'exitBlend?.60:.60),mul(ahead.forward,exitBlend?.40:.40)')
+          elif c == 'blend70':
+              s=s.replace('exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40)', 'exitBlend?.70:.60),mul(ahead.forward,exitBlend?.30:.40)')
+          elif c == 'currentExit':
+              s=s.replace('guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40))):road.forward', 'guideForward=curveGuide?(exitBlend?road.forward:norm(add(mul(road.forward,.60),mul(ahead.forward,.40)))):road.forward')
           p.write_text(s)
           PY
             rm -rf _site
@@ -57,12 +48,14 @@ jobs:
               continue
             fi
             set +e
+            node scripts/test-natural-loop-connection.mjs >/tmp/natural.log 2>&1
+            natural=$?
             node scripts/test-rampage-raceability.mjs >/tmp/race.log 2>&1
             race=$?
             node scripts/test-rampage-boost.mjs >/tmp/boost.log 2>&1
             boost=$?
             set -e
-            echo "=== $candidate race=$race boost=$boost ==="
-            grep -E 'RAMPAGE raceability OK|AssertionError|natural approach|minimum loop sample|RAMPAGE open-loop boost OK|loop speed fell|inverted crown lacks|loop entry should|max .*runaway' /tmp/race.log /tmp/boost.log || true
+            echo "=== $candidate natural=$natural race=$race boost=$boost ==="
+            grep -E 'Natural front-entry open loops OK|RAMPAGE lower pair|RAMPAGE raceability OK|AssertionError|minimum loop sample|RAMPAGE open-loop boost OK|loop speed fell|inverted crown lacks|loop entry should|max .*runaway' /tmp/natural.log /tmp/race.log /tmp/boost.log || true
           done
           cp /tmp/boost-original.py scripts/boost-rampage-loop-v6.py
