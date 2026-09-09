@@ -1,11 +1,12 @@
 """Keep the RAMPAGE clearance fix isolated from the other stunt courses.
 
 RAMPAGE uses a broad outboard open loop whose entry and exit are true parts of
-one continuous road.  The ring advances forward through the revolution so the
-lower entry/exit legs stay physically separated instead of forming the old X
-under the loop.  SKY FORGE and DOUBLE ORBIT keep the proven forward-progress
-helix, with a small symmetric lower-leg rise so the ordinary road visibly flows
-up into (and back down out of) the loop instead of reading flat at the gates.
+one continuous road. The descending exit is routed around the outside of the
+entry leg before it rejoins the authored road, so the lower ribbons stay apart
+instead of forming an X under the loop. SKY FORGE and DOUBLE ORBIT keep the
+proven forward-progress helix, with a small symmetric lower-leg rise so the
+ordinary road visibly flows up into (and back down out of) the loop instead of
+reading flat at the gates.
 
 This transform runs after v8 and replaces only the generated loop-centerline
 construction. Rendering/collision continue to consume the same centerline.
@@ -61,17 +62,17 @@ for(const t of ts){
     raw.push({x:here.pos.x,y:here.pos.y,z:here.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});
    }
   }else{
-   // RAMPAGE-only outboard open loop. The ring progresses down-track during
-   // the revolution; this is the crucial open-loop displacement that leaves a
-   // real gap between the lower entry and exit ribbons instead of crossing them.
+   // RAMPAGE-only outboard open loop. The ring itself stays close to a vertical
+   // revolution; the descending lower leg takes a separate outside route before
+   // merging with the outgoing road, avoiding the old X-shaped underpass.
    const startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),gateVec=sub(endFrame.p,startFrame.p),gateChord=len(gateVec),worldUp={x:0,y:1,z:0};
    const startH=horizontal(startFrame.forward)||norm(startFrame.forward),flatRight=norm(cross(worldUp,startH)),outwardSign=(startFrame.p.x*flatRight.x+startFrame.p.z*flatRight.z)>=0?1:-1,ringForward=norm(rotateAround(startH,worldUp,outwardSign*.16));
    let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=flatRight;const ringUp=norm(cross(ringForward,ringRight));
    const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=clamp(gateChord*.34,7.0,11.5),legRise=1.45,ringSideShift=17.0;
    const desiredEntry=add(add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise)),mul(flatRight,outwardSign*ringSideShift));
    const ringBase=sub(sub(desiredEntry,mul(ringForward,gapAlong)),mul(ringUp,joinRise));
-   const ringSep=7.5,crownPush=9.5,openForwardSweep=29.0;
-   const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.12)/.30),lat=outwardSign*ringSep*engage,crown=Math.sin(Math.PI*q),advance=crownPush*crown*crown+openForwardSweep*smooth01(q);return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lat)),mul(ringForward,advance));};
+   const ringSep=12.0,crownPush=9.5;
+   const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.12)/.30),lat=outwardSign*ringSep*engage,crown=Math.sin(Math.PI*q),advance=crownPush*crown*crown;return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lat)),mul(ringForward,advance));};
    const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};
    const ringEntry=circleAt(open),ringExit=circleAt(TAU-open),entryDist=len(sub(ringEntry.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.88,13.0,24.0),exitScale=clamp(exitDist*.88,14.0,26.0);
    const LEG_STEPS=Math.max(12,Math.round(LOOP_STEPS*.18)),RING_STEPS=Math.max(48,LOOP_STEPS-LEG_STEPS*2);
@@ -87,7 +88,9 @@ for(const t of ts){
     const q=j/RING_STEPS,th=open+(TAU-open*2)*q,p=circleAt(th);
     raw.push({x:p.pos.x,y:p.pos.y,z:p.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:p.up,explicitForward:p.tangent});
    }
-   pushLeg(ringExit.pos,ringExit.tangent,ringExit.up,endFrame.p,endFrame.forward,endFrame.up,exitScale,LEG_STEPS,true);
+   const exitWay=add(add(ringExit.pos,mul(ringForward,20)),mul(flatRight,outwardSign*12)),exitWayForward=norm(add(ringForward,endFrame.forward)),exitWayUp=ringUp,exitWayDistA=len(sub(exitWay,ringExit.pos)),exitWayDistB=len(sub(endFrame.p,exitWay)),exitScaleA=clamp(exitWayDistA*.9,14,34),exitScaleB=clamp(exitWayDistB*.78,18,42);
+   pushLeg(ringExit.pos,ringExit.tangent,ringExit.up,exitWay,exitWayForward,exitWayUp,exitScaleA,Math.max(9,Math.round(LEG_STEPS*.75)),true);
+   pushLeg(exitWay,exitWayForward,exitWayUp,endFrame.p,endFrame.forward,endFrame.up,exitScaleB,LEG_STEPS,true);
   }
   continue;
  }
