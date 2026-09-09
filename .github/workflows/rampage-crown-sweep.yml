@@ -16,29 +16,30 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Compare omega mid-descent guidance candidates
+      - name: Compare hidden Omega throat separation candidates
         shell: bash
         run: |
           set -u
-          cp scripts/boost-rampage-loop-v6.py /tmp/boost-original.py
-          candidates=(baseline dla06 dla08 dla10 ahead55 ahead65 combo0655 combo0865)
+          cp scripts/polish-rampage-reference-loop-v11.py /tmp/loop-original.py
+          candidates=(d12w32 d15w32 d15w38 d18w38 d18w44 d22w44)
           for candidate in "${candidates[@]}"; do
-            cp /tmp/boost-original.py scripts/boost-rampage-loop-v6.py
+            cp /tmp/loop-original.py scripts/polish-rampage-reference-loop-v11.py
             CANDIDATE="$candidate" python3 - <<'PY'
           import os
           from pathlib import Path
-          p=Path('scripts/boost-rampage-loop-v6.py')
+          p=Path('scripts/polish-rampage-reference-loop-v11.py')
           s=p.read_text()
           c=os.environ['CANDIDATE']
-          marker='crownBand=inLoop&&loopT>.30&&loopT<.70,exitBlend='
-          s=s.replace(marker,'crownBand=inLoop&&loopT>.30&&loopT<.70,midDescent=inLoop&&loopT>.43&&loopT<.66&&road.forward.y<-.20,exitBlend=')
-          if c in {'dla06','dla08','dla10','combo0655','combo0865'}:
-              factor={'dla06':'.060','dla08':'.080','dla10':'.100','combo0655':'.060','combo0865':'.080'}[c]
-              s=s.replace('exitBlend?Math.min(4.0,Math.max(1.25,speed*.16)):Math.min(2.4,Math.max(.75,speed*.042))',f'exitBlend?Math.min(4.0,Math.max(1.25,speed*.16)):midDescent?Math.min(3.2,Math.max(1.0,speed*{factor})):Math.min(2.4,Math.max(.75,speed*.042))')
-          if c in {'ahead55','ahead65','combo0655','combo0865'}:
-              ahead={'ahead55':'.55','ahead65':'.65','combo0655':'.55','combo0865':'.65'}[c]
-              current=str(round(1-float(ahead),2))
-              s=s.replace('guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40))):road.forward',f'guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:midDescent?{current}:.60),mul(ahead.forward,exitBlend?.58:midDescent?{ahead}:.40))):road.forward')
+          vals={
+            'd12w32':('12.0','.32'),
+            'd15w32':('15.0','.32'),
+            'd15w38':('15.0','.38'),
+            'd18w38':('18.0','.38'),
+            'd18w44':('18.0','.44'),
+            'd22w44':('22.0','.44'),
+          }
+          depth,window=vals[c]
+          s=s.replace('throatDepth=9.0,depthWindow=.30',f'throatDepth={depth},depthWindow={window}')
           p.write_text(s)
           PY
             rm -rf _site
@@ -56,6 +57,6 @@ jobs:
             boost=$?
             set -e
             echo "=== $candidate natural=$natural race=$race boost=$boost ==="
-            grep -E 'Natural front-entry open loops OK|RAMPAGE lower pair|RAMPAGE raceability OK|AssertionError|minimum loop sample|RAMPAGE open-loop boost OK|loop speed fell|inverted crown lacks|loop entry should|max .*runaway' /tmp/natural.log /tmp/race.log /tmp/boost.log || true
+            grep -E 'Natural front-entry open loops OK|RAMPAGE lower pair|front-leg advance|RAMPAGE raceability OK|AssertionError|minimum loop sample|RAMPAGE open-loop boost OK|loop speed fell|inverted crown lacks|loop entry should|max .*runaway' /tmp/natural.log /tmp/race.log /tmp/boost.log || true
           done
-          cp /tmp/boost-original.py scripts/boost-rampage-loop-v6.py
+          cp /tmp/loop-original.py scripts/polish-rampage-reference-loop-v11.py
