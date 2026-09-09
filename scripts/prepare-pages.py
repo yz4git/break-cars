@@ -41,6 +41,7 @@ apply_racing_sign_visibility_v4 = load_function('polish-racing-sign-visibility-v
 apply_reference_loop_geometry_v8 = load_function('polish-reference-loop-geometry-v8.py', 'break_cars_reference_loop_geometry_v8', 'apply_reference_loop_geometry_v8')
 apply_course_specific_loop_geometry_v9 = load_function('polish-course-specific-loop-geometry-v9.py', 'break_cars_course_specific_loop_geometry_v9', 'apply_course_specific_loop_geometry_v9')
 apply_rampage_reference_loop_v10 = load_function('polish-rampage-reference-loop-v10.py', 'break_cars_rampage_reference_loop_v10', 'apply_rampage_reference_loop_v10')
+apply_rampage_reference_loop_v11 = load_function('polish-rampage-reference-loop-v11.py', 'break_cars_rampage_reference_loop_v11', 'apply_rampage_reference_loop_v11')
 
 source = Path('dist')
 target = Path('_site')
@@ -85,8 +86,7 @@ apply_extreme_courses = load_function('apply-extreme-courses.py', 'break_cars_ex
 apply_extreme_courses(target)
 # Real-WebGL review showed the planar, full-width RAMPAGE loop reading as a
 # black barrel over the entry road. v8 establishes its outboard proportions;
-# v9 isolates course-specific geometry; v10 makes RAMPAGE a long forward/up
-# vertical loop with only a mild depth twist, matching the reference track.
+# v9 isolates course-specific geometry; v10 opens the lower throat.
 apply_reference_loop_geometry_v8(target)
 apply_course_specific_loop_geometry_v9(target)
 apply_rampage_reference_loop_v10(target)
@@ -108,6 +108,9 @@ apply_double_orbit_pack_v7(target)
 # Keep loop branding visible as track dressing without blocking chase-camera
 # views during jump, crown and exit-stabilizer stunt moments.
 apply_racing_sign_visibility_v4(target)
+# Final RAMPAGE-only truth: one planar reference-style circle and an exterior
+# iPhone-safe stage camera. Run last so older review layers cannot deform it.
+apply_rampage_reference_loop_v11(target)
 
 build = (os.environ.get('DEPLOY_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())[:12]
 for path in target.glob('*.js'):
