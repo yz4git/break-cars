@@ -56,25 +56,26 @@ for(const [index,loop] of loops.entries()){
   assert.ok(maxY-minY>10,`${selected} loop ${index+1}: vertical revolution too shallow`);
   assert.ok(minUpDot<-.72,`${selected} loop ${index+1}: loop never reaches a true inverted surface`);
 
-  // RAMPAGE previously looked correct in centerline/gate tests while the two
-  // lower road ribbons actually crossed into a visible X. Check the whole low
-  // part of the loop against itself in plan view, excluding nearby samples on
-  // the same continuous branch. The 10.5m centerline gap leaves clearance for
-  // the full ribbon rather than merely avoiding a mathematical line crossing.
+  // RAMPAGE previously passed centerline/gate tests while its two lower road
+  // ribbons visibly formed an X. Inspect a deeper 6m-high slice and require a
+  // gap based on the rendered loop width itself. This protects the full ribbon,
+  // not merely the mathematical centerline, while ignoring adjacent samples on
+  // the same continuous branch.
   let lowerClearance=Infinity;
   if(selected==='rampage-3d'&&index===0){
     const N=360,points=[];
     for(let i=0;i<=N;i++){
       const p=racePointAt(loop.startS+span*i/N);
-      if(p.y<minY+4.2)points.push({i,p});
+      if(p.y<minY+6.0)points.push({i,p});
     }
     for(let a=0;a<points.length;a++)for(let b=a+1;b<points.length;b++){
-      if(points[b].i-points[a].i<N*.22)continue;
+      if(points[b].i-points[a].i<N*.18)continue;
       const p=points[a].p,q=points[b].p,d=Math.hypot(p.x-q.x,p.z-q.z);
       lowerClearance=Math.min(lowerClearance,d);
     }
+    const required=spec.loopHalfWidth*2+2.0;
     assert.ok(Number.isFinite(lowerClearance),`${selected}: lower-loop clearance test found no separated branches`);
-    assert.ok(lowerClearance>10.5,`${selected}: lower entry/exit ribbons overlap or form an X (centerline clearance=${lowerClearance.toFixed(2)}m)`);
+    assert.ok(lowerClearance>required,`${selected}: lower entry/exit ribbons overlap or form an X (centerline clearance=${lowerClearance.toFixed(2)}m, required>${required.toFixed(2)}m)`);
   }
 
   // The separate descending leg must merge into the outgoing road in the same
