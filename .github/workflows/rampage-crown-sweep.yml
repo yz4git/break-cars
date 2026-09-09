@@ -16,12 +16,12 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Compare crown assist candidates
+      - name: Compare fine lookahead candidates
         shell: bash
         run: |
           set -u
           cp scripts/boost-rampage-loop-v6.py /tmp/boost-original.py
-          candidates=(baseline entry31_8 entry32_2 direct1_0 direct1_5 direct2_0 driveCurrent blend80 lookaheadSmall)
+          candidates=(la044 la042 la040 la038 la035 la032 blend85la045 blend90la045)
           for candidate in "${candidates[@]}"; do
             cp /tmp/boost-original.py scripts/boost-rampage-loop-v6.py
             CANDIDATE="$candidate" python3 - <<'PY'
@@ -30,33 +30,24 @@ jobs:
           p=Path('scripts/boost-rampage-loop-v6.py')
           s=p.read_text()
           c=os.environ['CANDIDATE']
-          # The checked-in version contains a 3.2 m/s^2 current-tangent rescue.
-          # Candidate transforms are intentionally tiny and independent.
-          if c == 'baseline':
-              s=s.replace('crownRescue=inLoop&&loopT>.43&&loopT<.50,','crownRescue=false,')
-          elif c == 'entry31_8':
-              s=s.replace('crownRescue=inLoop&&loopT>.43&&loopT<.50,','crownRescue=false,')
-              s=s.replace('loopT<.12?31.0:','loopT<.12?31.8:').replace('):31.5,steepClimb','):31.8,steepClimb')
-          elif c == 'entry32_2':
-              s=s.replace('crownRescue=inLoop&&loopT>.43&&loopT<.50,','crownRescue=false,')
-              s=s.replace('loopT<.12?31.0:','loopT<.12?32.2:').replace('):31.5,steepClimb','):32.2,steepClimb')
-          elif c == 'direct1_0':
-              s=s.replace('3.2*b.mass','1.0*b.mass')
-          elif c == 'direct1_5':
-              s=s.replace('3.2*b.mass','1.5*b.mass')
-          elif c == 'direct2_0':
-              s=s.replace('3.2*b.mass','2.0*b.mass')
-          elif c == 'driveCurrent':
-              s=s.replace('crownRescue=inLoop&&loopT>.43&&loopT<.50,','crownRescue=false,')
-              s=s.replace('addForce(acc,mul(curveGuide?guideForward:road.forward,force));c.rampageBoost=true;', 'addForce(acc,mul(crownBand?road.forward:(curveGuide?guideForward:road.forward),force));c.rampageBoost=true;')
-          elif c == 'blend80':
-              s=s.replace('crownRescue=inLoop&&loopT>.43&&loopT<.50,','crownRescue=false,')
-              s=s.replace('exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40)', 'exitBlend?.42:.80),mul(ahead.forward,exitBlend?.58:.20)')
-          elif c == 'lookaheadSmall':
-              s=s.replace('crownRescue=inLoop&&loopT>.43&&loopT<.50,','crownRescue=false,')
-              s=s.replace('speed*.075','speed*.045')
-          else:
-              raise SystemExit(c)
+          # Remove the experimental direct crown rescue first; refine only the
+          # existing look-ahead guide so the natural 12-car trajectory remains intact.
+          s=s.replace('crownRescue=inLoop&&loopT>.43&&loopT<.50,','crownRescue=false,')
+          lookahead = {
+              'la044': '.044',
+              'la042': '.042',
+              'la040': '.040',
+              'la038': '.038',
+              'la035': '.035',
+              'la032': '.032',
+              'blend85la045': '.045',
+              'blend90la045': '.045',
+          }[c]
+          s=s.replace('speed*.075', f'speed*{lookahead}')
+          if c == 'blend85la045':
+              s=s.replace('exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40)', 'exitBlend?.42:.85),mul(ahead.forward,exitBlend?.58:.15)')
+          elif c == 'blend90la045':
+              s=s.replace('exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40)', 'exitBlend?.42:.90),mul(ahead.forward,exitBlend?.58:.10)')
           p.write_text(s)
           PY
             rm -rf _site
