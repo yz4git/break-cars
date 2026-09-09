@@ -5,9 +5,9 @@ itself rises into the loop, runs one open revolution, and returns directly to
 the authored outgoing road. There are no separate lower entry/exit splines and
 therefore no X-shaped underpass beneath the ring. A broad gate interval plus a
 smooth outboard envelope keeps the full ribbon clear of the nearby figure-eight
-branch. A gentle depth twist sends the rising and falling halves to opposite
-sides of the loop plane, like a real open/twisted stunt track, while both loop
-gates remain exact continuations of the original road.
+branch. A depth twist sends the rising and falling halves to opposite sides of
+the loop plane, like a real open/twisted stunt track, while both loop gates
+remain exact continuations of the original road.
 
 SKY FORGE and DOUBLE ORBIT keep the proven forward-progress helix, with a small
 symmetric lower-leg rise so the ordinary road visibly flows up into (and back
@@ -78,7 +78,7 @@ for(const t of ts){
    const ringUp=norm(cross(loopForward,flatRight)),outwardSign=(startFrame.p.x*flatRight.x+startFrame.p.z*flatRight.z)>=0?1:-1;
    const gateLift=x=>.82*smooth01(x/.055)*(1-smooth01((x-.12)/.085));
    const sample=u=>{
-    const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),phase=u-Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),en=Math.sin(Math.PI*u),env=en*en,outboard=14*env,twist=18*Math.sin(TAU*u)*env,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*.64;
+    const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),phase=u-Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),en=Math.sin(Math.PI*u),env=en*en,outboard=14*env,twist=32*Math.sin(TAU*u)*env,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*.64;
     const lateral=outwardSign*(outboard+twist),pos=add(add(add(add(frame.p,mul(loopForward,horizR*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise));
     const radial=norm(add(mul(ringUp,c),mul(loopForward,-sn))),loopWeight=smooth01(u/.095)*smooth01((1-u)/.095),upSeed=mixV(frame.up,radial,loopWeight);
     return{pos,frame,upSeed};
