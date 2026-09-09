@@ -6,11 +6,12 @@ away from the unrelated figure-eight road only after a straight gate lead, and
 the two lower branches get opposite forward offsets so their ribbons never form
 an X.
 
-The final descending leg is not allowed to wander and then snap back at the
-last gate. Its X/Z centerline is C1-blended onto a guide ray traced backward
-from the outgoing authored road. The last portion therefore already points in
-the exact outgoing-road direction before reaching the gate, matching the toy-
-track reference where the loop simply becomes the road again.
+The descending half begins merging toward the outgoing road well before the
+bottom. Its X/Z centerline is C1-blended onto a ray traced backward from the
+outgoing authored road, then remains exactly on that ray for the final 23% of
+the loop parameter. The car therefore has a long physical run in which its
+velocity can align with the outgoing road instead of encountering a last-second
+change of heading at the gate.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -37,8 +38,8 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     s = one(
         s,
         "const lateral=outwardSign*(outboard+twist),pos=add(add(add(add(frame.p,mul(loopForward,horizR*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise));",
-        "const lateral=outwardSign*(outboard+twist),basePos=add(add(add(add(frame.p,mul(loopForward,horizR*sn+openAlong)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise)),exitAlign=smooth01((u-.72)/.23),exitGuide=add(endFrame.p,mul(endH,-55*(1-u))),pos={x:basePos.x+(exitGuide.x-basePos.x)*exitAlign,y:basePos.y,z:basePos.z+(exitGuide.z-basePos.z)*exitAlign};",
-        'outgoing-road aligned loop position',
+        "const lateral=outwardSign*(outboard+twist),basePos=add(add(add(add(frame.p,mul(loopForward,horizR*sn+openAlong)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise)),exitAlign=smooth01((u-.55)/.22),exitGuide=add(endFrame.p,mul(endH,-68*(1-u))),pos={x:basePos.x+(exitGuide.x-basePos.x)*exitAlign,y:basePos.y,z:basePos.z+(exitGuide.z-basePos.z)*exitAlign};",
+        'long outgoing-road aligned loop position',
     )
     path.write_text(s)
 
