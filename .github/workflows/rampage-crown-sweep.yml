@@ -16,12 +16,12 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Compare omega exit guidance candidates
+      - name: Compare omega mid-descent guidance candidates
         shell: bash
         run: |
           set -u
           cp scripts/boost-rampage-loop-v6.py /tmp/boost-original.py
-          candidates=(baseline la12 la10 la08 blend60 blend70 la10blend60 currentExit)
+          candidates=(baseline dla06 dla08 dla10 ahead55 ahead65 combo0655 combo0865)
           for candidate in "${candidates[@]}"; do
             cp /tmp/boost-original.py scripts/boost-rampage-loop-v6.py
             CANDIDATE="$candidate" python3 - <<'PY'
@@ -30,15 +30,15 @@ jobs:
           p=Path('scripts/boost-rampage-loop-v6.py')
           s=p.read_text()
           c=os.environ['CANDIDATE']
-          if c in {'la12','la10','la08','la10blend60'}:
-              factor={'la12':'.12','la10':'.10','la08':'.08','la10blend60':'.10'}[c]
-              s=s.replace('speed*.16)):Math.min(2.4', f'speed*{factor})):Math.min(2.4')
-          if c in {'blend60','la10blend60'}:
-              s=s.replace('exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40)', 'exitBlend?.60:.60),mul(ahead.forward,exitBlend?.40:.40)')
-          elif c == 'blend70':
-              s=s.replace('exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40)', 'exitBlend?.70:.60),mul(ahead.forward,exitBlend?.30:.40)')
-          elif c == 'currentExit':
-              s=s.replace('guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40))):road.forward', 'guideForward=curveGuide?(exitBlend?road.forward:norm(add(mul(road.forward,.60),mul(ahead.forward,.40)))):road.forward')
+          marker='crownBand=inLoop&&loopT>.30&&loopT<.70,exitBlend='
+          s=s.replace(marker,'crownBand=inLoop&&loopT>.30&&loopT<.70,midDescent=inLoop&&loopT>.43&&loopT<.66&&road.forward.y<-.20,exitBlend=')
+          if c in {'dla06','dla08','dla10','combo0655','combo0865'}:
+              factor={'dla06':'.060','dla08':'.080','dla10':'.100','combo0655':'.060','combo0865':'.080'}[c]
+              s=s.replace('exitBlend?Math.min(4.0,Math.max(1.25,speed*.16)):Math.min(2.4,Math.max(.75,speed*.042))',f'exitBlend?Math.min(4.0,Math.max(1.25,speed*.16)):midDescent?Math.min(3.2,Math.max(1.0,speed*{factor})):Math.min(2.4,Math.max(.75,speed*.042))')
+          if c in {'ahead55','ahead65','combo0655','combo0865'}:
+              ahead={'ahead55':'.55','ahead65':'.65','combo0655':'.55','combo0865':'.65'}[c]
+              current=str(round(1-float(ahead),2))
+              s=s.replace('guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40))):road.forward',f'guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:midDescent?{current}:.60),mul(ahead.forward,exitBlend?.58:midDescent?{ahead}:.40))):road.forward')
           p.write_text(s)
           PY
             rm -rf _site
