@@ -9,16 +9,16 @@ detached hoop mesh.
 The production RAMPAGE radius is already enlarged by v8. Here the extra opening
 needed by the wide race ribbon is confined to the two LOWER legs only. A smooth
 zero-slope bump pushes the ascending lower leg backward and the descending lower
-leg forward, then fades completely before the upper sides of the ring. The
-upper half therefore remains a clean vertical circle instead of inheriting the
-old full-height corkscrew-like distortion.
+leg forward, then fades completely before the upper sides of the ring. A small
+extra lower-leg splay restores comfortable ribbon clearance without altering the
+upper circular silhouette.
 
 The entry keeps the proven ~40 degree opening while the descending side exits
-the circular arc at a gentler ~26 degree angle. This preserves the tested lower
-ribbon separation and full inversion while reducing the final tangent rotation a
-fast physical car must make before the ordinary road. The last Hermite segment
-then only has to flatten a modest slope instead of correcting the old sharp
-40-degree departure in roughly two metres.
+the circular arc at a gentler ~26 degree angle. This preserves the full inversion
+while reducing the final tangent rotation a fast physical car must make before
+the ordinary road. The last Hermite segment then only has to flatten a modest
+slope instead of correcting the old sharp 40-degree departure in roughly two
+metres.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -44,7 +44,7 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     return{pos,frame,upSeed};
    };"""
 
-    new = """const entryOpen=.70,exitOpen=.46,entryEnd=.12,exitStart=.88,arc=TAU-entryOpen-exitOpen,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=7,lowerWindow=.30;
+    new = """const entryOpen=.70,exitOpen=.46,entryEnd=.12,exitStart=.88,arc=TAU-entryOpen-exitOpen,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=7.6,lowerWindow=.30;
    const entryAnchor=add(add(startFrame.p,mul(startFrame.forward,entryLead)),mul(ringUp,joinLift)),desiredExit=add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift));
    const sinEntry=Math.sin(entryOpen),cosEntry=Math.cos(entryOpen),sinExit=Math.sin(exitOpen),cosExit=Math.cos(exitOpen),circleExit=add(mul(loopForward,-LOOP_R*(sinEntry+sinExit)),mul(ringUp,LOOP_R*(cosEntry-cosExit))),drift=sub(sub(desiredExit,entryAnchor),circleExit),lowerBump=x=>x>0&&x<lowerWindow?Math.sin(Math.PI*x/lowerWindow)**2:0;
    const ringPoint=q=>{
