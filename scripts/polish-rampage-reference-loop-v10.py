@@ -1,17 +1,18 @@
 """Build the RAMPAGE stunt as the road itself, in the toy-track reference form.
 
 The previous full-circle-on-a-moving-spine variants could only gain clearance by
-making the lower road travel sideways for too long.  This version removes the
+making the lower road travel sideways for too long. This version removes the
 bottom part of the vertical circle and replaces it with two real transition
-legs.  The incoming road rises into the front side of the ring; after the crown,
+legs. The incoming road rises into the front side of the ring; after the crown,
 the descending side returns through a laterally offset lower leg and merges into
-the authored outgoing road.  There is no flat chord under the ring and no
+the authored outgoing road. There is no flat chord under the ring and no
 separate hoop mesh.
 
-Only the lower part carries a modest twist.  The vertical crown remains almost
-planar, while the open angle plus opposite lower-side offsets give the full road
-ribbon physical clearance.  Hermite legs use the actual gate tangents, so both
-ends remain continuous with the normal road.
+Only the lower part carries a modest twist. The vertical crown remains almost
+planar. The ring is biased outward from the figure-eight crossing, and a short
+zero-slope entry lift makes the road visibly start climbing immediately instead
+of travelling flat beneath the stunt. Hermite legs still use the actual gate
+tangents, so both ends remain continuous with the normal road.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -37,7 +38,7 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     return{pos,frame,upSeed};
    };"""
 
-    new = """const open=.88,entryEnd=.20,exitStart=.78,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),sideMag=7.5,baseOut=9,baseLead=gapAlong+15,gateLift=x=>.82*smooth01(x/.055)*(1-smooth01((x-.12)/.085));
+    new = """const open=.88,entryEnd=.20,exitStart=.78,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),sideMag=7.5,baseOut=15,baseLead=gapAlong+15,gateLift=x=>2.0*smooth01(x/.055)*(1-smooth01((x-.12)/.085));
    const ringBase=add(add(startFrame.p,mul(loopForward,baseLead)),mul(flatRight,outwardSign*baseOut));
    const ringPoint=(th,q)=>{const c=Math.cos(th),sn=Math.sin(th),side=outwardSign*sideMag*Math.cos(Math.PI*q),pos=add(add(add(ringBase,mul(loopForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,side)),up=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up};};
    const ringEntry=ringPoint(open,0),ringExit=ringPoint(TAU-open,1),entryT=norm(add(mul(loopForward,Math.cos(open)),mul(ringUp,Math.sin(open)))),exitT=norm(add(mul(loopForward,Math.cos(open)),mul(ringUp,-Math.sin(open))));
