@@ -8,11 +8,12 @@ the descending side returns through a laterally offset lower leg and merges into
 the authored outgoing road. There is no flat chord under the ring and no
 separate hoop mesh.
 
-Only the lower part carries a modest twist. The vertical crown remains almost
-planar. The ring is biased outward from the figure-eight crossing, and a short
-zero-slope entry lift makes the road visibly start climbing immediately instead
-of travelling flat beneath the stunt. Hermite legs still use the actual gate
-tangents, so both ends remain continuous with the normal road.
+Only the lower transition legs carry the extra opening needed by the wide race
+road. Their opposite bell-shaped lateral offsets are exactly zero at the normal
+road gates and at the vertical-ring joins, so the crown remains almost planar
+and the stunt does not become a corkscrew. The ring is biased outward from the
+figure-eight crossing, and a short zero-slope entry lift makes the road visibly
+start climbing immediately.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -38,7 +39,7 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     return{pos,frame,upSeed};
    };"""
 
-    new = """const open=.88,entryEnd=.20,exitStart=.78,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),sideMag=7.5,baseOut=15,baseLead=gapAlong+15,gateLift=x=>2.0*smooth01(x/.055)*(1-smooth01((x-.12)/.085));
+    new = """const open=.88,entryEnd=.20,exitStart=.78,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),sideMag=7.5,legSplay=8.5,baseOut=15,baseLead=gapAlong+15,gateLift=x=>2.0*smooth01(x/.055)*(1-smooth01((x-.12)/.085));
    const ringBase=add(add(startFrame.p,mul(loopForward,baseLead)),mul(flatRight,outwardSign*baseOut));
    const ringPoint=(th,q)=>{const c=Math.cos(th),sn=Math.sin(th),side=outwardSign*sideMag*Math.cos(Math.PI*q),pos=add(add(add(ringBase,mul(loopForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,side)),up=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up};};
    const ringEntry=ringPoint(open,0),ringExit=ringPoint(TAU-open,1),entryT=norm(add(mul(loopForward,Math.cos(open)),mul(ringUp,Math.sin(open)))),exitT=norm(add(mul(loopForward,Math.cos(open)),mul(ringUp,-Math.sin(open))));
@@ -46,8 +47,8 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
    const entryDist=len(sub(ringEntry.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.62,9,25),exitScale=clamp(exitDist*.62,9,25);
    const sample=u=>{
     const gateRise=gateLift(u)+gateLift(1-u);
-    if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),w=smooth01(q),seed=mixV(startFrame.up,ringEntry.up,w),base=hermiteOpen(startFrame.p,startFrame.forward,ringEntry.pos,entryT,entryScale,entryScale,q),pos=add(base,mul(ringUp,gateRise));return{pos,frame:{up:seed},upSeed:seed};}
-    if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),w=smooth01(q),seed=mixV(ringExit.up,endFrame.up,w),base=hermiteOpen(ringExit.pos,exitT,endFrame.p,endFrame.forward,exitScale,exitScale,q),pos=add(base,mul(ringUp,gateRise));return{pos,frame:{up:seed},upSeed:seed};}
+    if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),w=smooth01(q),seed=mixV(startFrame.up,ringEntry.up,w),base=hermiteOpen(startFrame.p,startFrame.forward,ringEntry.pos,entryT,entryScale,entryScale,q),splay=outwardSign*legSplay*Math.sin(Math.PI*q)**2,pos=add(add(base,mul(flatRight,splay)),mul(ringUp,gateRise));return{pos,frame:{up:seed},upSeed:seed};}
+    if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),w=smooth01(q),seed=mixV(ringExit.up,endFrame.up,w),base=hermiteOpen(ringExit.pos,exitT,endFrame.p,endFrame.forward,exitScale,exitScale,q),splay=-outwardSign*legSplay*Math.sin(Math.PI*q)**2,pos=add(add(base,mul(flatRight,splay)),mul(ringUp,gateRise));return{pos,frame:{up:seed},upSeed:seed};}
     const q=(u-entryEnd)/(exitStart-entryEnd),th=open+(TAU-open*2)*q,ring=ringPoint(th,q);return{pos:ring.pos,frame:{up:ring.up},upSeed:ring.up};
    };"""
 
