@@ -9,16 +9,16 @@ detached hoop mesh.
 The production RAMPAGE radius is already enlarged by v8. Here the extra opening
 needed by the wide race ribbon is confined to the two LOWER legs only. A smooth
 zero-slope bump pushes the ascending lower leg backward and the descending lower
-leg forward, then fades completely before the upper sides of the ring. A small
-extra lower-leg splay restores comfortable ribbon clearance without altering the
-upper circular silhouette.
+leg forward, then fades completely before the upper sides of the ring. The
+upper half therefore remains the proven clean vertical circle.
 
-The entry keeps the proven ~40 degree opening while the descending side exits
-the circular arc at a gentler ~26 degree angle. This preserves the full inversion
-while reducing the final tangent rotation a fast physical car must make before
-the ordinary road. The last Hermite segment then only has to flatten a modest
-slope instead of correcting the old sharp 40-degree departure in roughly two
-metres.
+The key exit polish is deliberately late-only. The ring is byte-for-byte
+geometrically equivalent to the proven symmetric revolution through the crown
+and most of the descending side. Only the final 38 percent of the ring advances
+its angular phase by about nine degrees, with zero-slope easing at both ends.
+A matching positional correction also eases in only on that lower descending
+leg so the original road endpoint is unchanged. This preserves natural vehicle
+inversion while reducing the final tangent rotation before the ordinary road.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -44,16 +44,18 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     return{pos,frame,upSeed};
    };"""
 
-    new = """const entryOpen=.70,exitOpen=.46,entryEnd=.12,exitStart=.88,arc=TAU-entryOpen-exitOpen,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=7.6,lowerWindow=.30;
+    new = """const open=.70,entryEnd=.12,exitStart=.88,arc=TAU-open*2,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=7.5,lowerWindow=.30,exitAdvance=.16,exitEaseStart=.62;
    const entryAnchor=add(add(startFrame.p,mul(startFrame.forward,entryLead)),mul(ringUp,joinLift)),desiredExit=add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift));
-   const sinEntry=Math.sin(entryOpen),cosEntry=Math.cos(entryOpen),sinExit=Math.sin(exitOpen),cosExit=Math.cos(exitOpen),circleExit=add(mul(loopForward,-LOOP_R*(sinEntry+sinExit)),mul(ringUp,LOOP_R*(cosEntry-cosExit))),drift=sub(sub(desiredExit,entryAnchor),circleExit),lowerBump=x=>x>0&&x<lowerWindow?Math.sin(Math.PI*x/lowerWindow)**2:0;
+   const sinOpen=Math.sin(open),cosOpen=Math.cos(open),baseCircleExit=mul(loopForward,-2*LOOP_R*sinOpen),baseDrift=sub(sub(desiredExit,entryAnchor),baseCircleExit),lowerBump=x=>x>0&&x<lowerWindow?Math.sin(Math.PI*x/lowerWindow)**2:0;
+   const exitEase=q=>smooth01((q-exitEaseStart)/(1-exitEaseStart)),thetaAt=q=>open+arc*q+exitAdvance*exitEase(q);
+   const finalTheta=thetaAt(1),finalCircle=add(mul(loopForward,LOOP_R*(Math.sin(finalTheta)-sinOpen)),mul(ringUp,LOOP_R*(cosOpen-Math.cos(finalTheta)))),exitCorrection=sub(baseCircleExit,finalCircle);
    const ringPoint=q=>{
-    const th=entryOpen+arc*q,c=Math.cos(th),sn=Math.sin(th),splay=lowerBump(q)-lowerBump(1-q),circle=add(mul(loopForward,LOOP_R*(sn-sinEntry)-forwardSplay*splay),mul(ringUp,LOOP_R*(cosEntry-c))),pos=add(add(entryAnchor,circle),mul(drift,q));
+    const th=thetaAt(q),c=Math.cos(th),sn=Math.sin(th),splay=lowerBump(q)-lowerBump(1-q),circle=add(mul(loopForward,LOOP_R*(sn-sinOpen)-forwardSplay*splay),mul(ringUp,LOOP_R*(cosOpen-c))),pos=add(add(add(entryAnchor,circle),mul(baseDrift,q)),mul(exitCorrection,exitEase(q)));
     const radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};
    };
    const ringEntry=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ringEntry.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos));
    const hermiteOpen=(p0,t0,p1,t1,s0,s1,q)=>{const q2=q*q,q3=q2*q,h00=2*q3-3*q2+1,h10=q3-2*q2+q,h01=-2*q3+3*q2,h11=q3-q2;return{x:p0.x*h00+t0.x*s0*h10+p1.x*h01+t1.x*s1*h11,y:p0.y*h00+t0.y*s0*h10+p1.y*h01+t1.y*s1*h11,z:p0.z*h00+t0.z*s0*h10+p1.z*h01+t1.z*s1*h11};};
-   const entryScale=clamp(len(sub(ringEntry.pos,startFrame.p))*.9,1.8,3.6),exitScale=clamp(len(sub(endFrame.p,ringExit.pos))*1.05,2.0,4.0);
+   const entryScale=clamp(len(sub(ringEntry.pos,startFrame.p))*.9,1.8,3.6),exitScale=clamp(len(sub(endFrame.p,ringExit.pos))*.95,1.9,3.8);
    const sample=u=>{
     if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ringEntry.up,smooth01(q)),pos=hermiteOpen(startFrame.p,startFrame.forward,ringEntry.pos,entryT,entryScale,entryScale,q);return{pos,frame:{up:seed},upSeed:seed};}
     if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),seed=mixV(ringExit.up,endFrame.up,smooth01(q)),pos=hermiteOpen(ringExit.pos,exitT,endFrame.p,endFrame.forward,exitScale,exitScale,q);return{pos,frame:{up:seed},upSeed:seed};}
