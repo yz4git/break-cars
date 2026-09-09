@@ -1,11 +1,11 @@
 """Keep the RAMPAGE clearance fix isolated from the other stunt courses.
 
-RAMPAGE now uses a conventional toy-track style vertical loop: the authored road
+RAMPAGE uses a conventional toy-track style vertical loop: the authored road
 itself rises into the loop, runs one open revolution, and returns directly to
-the authored outgoing road. The stunt lives on the outer right-hand lobe of the
-figure-eight, away from the central crossing. A compact gate interval there has
-nearly aligned incoming/outgoing tangents and no unrelated road underneath the
-loop, which is the geometry the reference photo calls for.
+the authored outgoing road. The stunt lives on the clear outer shoulder of the
+right-hand lobe of the figure-eight, away from the central crossing. The .44
+center gives a longer, straighter gate chord and substantially more separation
+from unrelated parts of the base course than the previous .56 placement.
 
 SKY FORGE and DOUBLE ORBIT keep the proven forward-progress helix, with a small
 symmetric lower-leg rise so the ordinary road visibly flows up into (and back
@@ -24,7 +24,7 @@ def apply_course_specific_loop_geometry_v9(target: Path) -> None:
     end = s.index('// Remove accidental duplicate', start)
 
     block = r"""const LOOP_HALF_T=(doubleOrbit||skyForge)?.18:.19,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?.58:1;
-const RAMPAGE_LOOP_T=.56,loopCenters=doubleOrbit?[LOOP_T,3.85]:skyForge?[LOOP_T]:[RAMPAGE_LOOP_T];
+const RAMPAGE_LOOP_T=.44,loopCenters=doubleOrbit?[LOOP_T,3.85]:skyForge?[LOOP_T]:[RAMPAGE_LOOP_T];
 const raw=[];
 const ts=[];for(let i=0;i<=BASE_STEPS;i++)ts.push(i/BASE_STEPS*TAU);for(const c of loopCenters)ts.push(c-LOOP_HALF_T,c+LOOP_HALF_T);ts.sort((a,b)=>a-b);
 const insertedLoops=new Set();
