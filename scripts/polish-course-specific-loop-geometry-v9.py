@@ -3,11 +3,10 @@
 RAMPAGE now uses a conventional toy-track style vertical loop: the authored road
 itself rises into the loop, runs one open revolution, and returns directly to
 the authored outgoing road. There are no separate lower entry/exit splines and
-therefore no X-shaped underpass beneath the ring. A broad gate interval plus a
-smooth outboard envelope keeps the full ribbon clear of the nearby figure-eight
-branch. A depth twist sends the rising and falling halves to opposite sides of
-the loop plane, like a real open/twisted stunt track, while both loop gates
-remain exact continuations of the original road.
+therefore no X-shaped underpass beneath the ring. The loop is placed on a part
+of the figure-eight where incoming and outgoing road tangents are nearly
+parallel, so the road can enter and leave the stunt naturally instead of
+folding sideways to reconcile a sharp underlying course turn.
 
 SKY FORGE and DOUBLE ORBIT keep the proven forward-progress helix, with a small
 symmetric lower-leg rise so the ordinary road visibly flows up into (and back
@@ -26,7 +25,7 @@ def apply_course_specific_loop_geometry_v9(target: Path) -> None:
     end = s.index('// Remove accidental duplicate', start)
 
     block = r"""const LOOP_HALF_T=(doubleOrbit||skyForge)?.18:.36,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?.58:1;
-const loopCenters=doubleOrbit?[LOOP_T,3.85]:[LOOP_T];
+const RAMPAGE_LOOP_T=3.20,loopCenters=doubleOrbit?[LOOP_T,3.85]:skyForge?[LOOP_T]:[RAMPAGE_LOOP_T];
 const raw=[];
 const ts=[];for(let i=0;i<=BASE_STEPS;i++)ts.push(i/BASE_STEPS*TAU);for(const c of loopCenters)ts.push(c-LOOP_HALF_T,c+LOOP_HALF_T);ts.sort((a,b)=>a-b);
 const insertedLoops=new Set();
@@ -48,11 +47,6 @@ for(const t of ts){
   const startT=startCenter-LOOP_HALF_T,endT=startCenter+LOOP_HALF_T;
 
   if(doubleOrbit||skyForge){
-   // Proven forward-progress open helix. The authored spine advances throughout
-   // the revolution, so rising/falling halves stay out of the same corridor.
-   // Add only a low, smooth gate lift. Its derivative is zero at u=0/1, so the
-   // loop remains exactly tangent to the ordinary road while visibly climbing
-   // within the first couple of metres (and descending naturally at the exit).
    const lowerLegLift=x=>(doubleOrbit?.82:.48)*smooth01(x/.055)*(1-smooth01((x-.11)/.09));
    const sample=u=>{
     const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),phase=u-Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),sideR=LOOP_R*(doubleOrbit?1.35:1.55),vertR=LOOP_R,sideAxis=norm({x:frame.right.x,y:0,z:frame.right.z}),gateLift=lowerLegLift(u)+lowerLegLift(1-u);
@@ -66,12 +60,6 @@ for(const t of ts){
     raw.push({x:here.pos.x,y:here.pos.y,z:here.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});
    }
   }else{
-   // RAMPAGE is one continuous road surface, not a ring object placed on top of
-   // a road. The base spine moves from the incoming gate to the outgoing gate
-   // while a vertical revolution is added in the forward/up plane. A smooth
-   // outboard bow clears the nearby figure-eight branch; an antisymmetric depth
-   // twist separates the rising and falling halves instead of letting them form
-   // an X at the bottom. All offsets have zero derivative at both gates.
    const startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),worldUp={x:0,y:1,z:0};
    const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),sumH=add(startH,endH),loopForward=len(sumH)>.2?norm(sumH):startH;
    let flatRight=norm(cross(worldUp,loopForward));if(len(flatRight)<.2)flatRight=startFrame.right;
