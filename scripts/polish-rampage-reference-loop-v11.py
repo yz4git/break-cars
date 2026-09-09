@@ -37,7 +37,7 @@ def apply_rampage_reference_loop_v11(target: Path) -> None:
 
     start = s.index("const open=.70,entryEnd=.12,exitStart=.88")
     end = s.index("const hermiteOpen=", start)
-    clean_ring = """const open=.60,entryEnd=.20,exitStart=.80,arc=TAU-open*2,joinLift=.52,outboardShift=17.0,entryLead=2.0,exitLead=1.8;\n   const outboard=mul(flatRight,outwardSign*outboardShift),desiredExit=add(add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift)),outboard),sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExitDelta=add(mul(loopForward,-2*LOOP_R*sinOpen),mul(ringUp,0));\n   const ringEntry=sub(desiredExit,circleExitDelta);\n   const ringPoint=q=>{\n    const th=open+arc*clamp(q,0,1),c=Math.cos(th),sn=Math.sin(th),pos=add(ringEntry,add(mul(loopForward,LOOP_R*(sn-sinOpen)),mul(ringUp,LOOP_R*(cosOpen-c)))),radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};\n   };\n   const ring0=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ring0.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos));\n   """
+    clean_ring = """const open=.60,entryEnd=.20,exitStart=.80,arc=TAU-open*2,joinLift=.52,outboardShift=17.0,entryLead=2.0,exitLead=1.8;\n   const outboard=mul(flatRight,outwardSign*outboardShift),desiredExit=add(add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift)),outboard),sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExitDelta=add(mul(loopForward,-2*LOOP_R*sinOpen),mul(ringUp,0));\n   const ringEntry=sub(desiredExit,circleExitDelta);\n   const ringPoint=q=>{\n    const th=open+arc*clamp(q,0,1),c=Math.cos(th),sn=Math.sin(th),pos=add(ringEntry,add(mul(loopForward,LOOP_R*(sn-sinOpen)),mul(ringUp,LOOP_R*(cosOpen-c)))),radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};\n   };\n   const ring0=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ring0.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos)),entryLaunchT=norm(add(startFrame.forward,mul(ringUp,.34)));\n   """
     s = s[:start] + clean_ring + s[end:]
 
     old_handles = "const entryScale=clamp(len(sub(ringEntry.pos,startFrame.p))*.9,1.8,3.6),exitScale=clamp(len(sub(endFrame.p,ringExit.pos))*.95,1.9,3.8);"
@@ -47,7 +47,7 @@ def apply_rampage_reference_loop_v11(target: Path) -> None:
     s = one(
         s,
         "if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ringEntry.up,smooth01(q)),pos=hermiteOpen(startFrame.p,startFrame.forward,ringEntry.pos,entryT,entryScale,entryScale,q);return{pos,frame:{up:seed},upSeed:seed};}",
-        "if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ring0.up,smooth01(q)),pos=hermiteOpen(startFrame.p,startFrame.forward,ring0.pos,entryT,entryScale,entryScale,q);return{pos,frame:{up:seed},upSeed:seed};}",
+        "if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ring0.up,smooth01(q)),pos=hermiteOpen(startFrame.p,entryLaunchT,ring0.pos,entryT,entryScale,entryScale,q);return{pos,frame:{up:seed},upSeed:seed};}",
         'outboard rising entry leg',
     )
     # v10's exit branch already connects ringExit to endFrame with Hermite. With
