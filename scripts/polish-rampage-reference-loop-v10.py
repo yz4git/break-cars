@@ -6,12 +6,12 @@ road itself rises through a short entry blend, becomes the loop, and returns
 through a short exit blend. There is no flat chord under the ring and no
 detached hoop mesh.
 
-The production RAMPAGE radius is already enlarged by v8. Here the extra opening
-needed by the wide race ribbon is confined to the two LOWER legs only. A smooth
-zero-slope bump pushes the ascending lower leg backward and the descending lower
-leg forward, then fades completely before the upper sides of the ring. The
-upper half therefore remains a clean vertical circle instead of inheriting the
-old full-height corkscrew-like distortion.
+The wide race ribbon needs physical clearance at the bottom of the loop. Keep
+the upper revolution clean and vertical, but give only the entry/exit transition
+legs a small opposite sideways bow. The bow has zero displacement and zero slope
+at both ends, so the authored road and the circular core remain continuous. This
+reads as the slight lower-throat twist of a real open stunt loop rather than a
+full-height corkscrew.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -37,9 +37,9 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     return{pos,frame,upSeed};
    };"""
 
-    new = """const open=.70,entryEnd=.12,exitStart=.88,arc=TAU-open*2,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=7,lowerWindow=.30;
+    new = """const open=.70,entryEnd=.12,exitStart=.88,arc=TAU-open*2,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=7,lowerWindow=.30,throatSide=7.2;
    const entryAnchor=add(add(startFrame.p,mul(startFrame.forward,entryLead)),mul(ringUp,joinLift)),desiredExit=add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift));
-   const sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExit=mul(loopForward,-2*LOOP_R*sinOpen),drift=sub(sub(desiredExit,entryAnchor),circleExit),lowerBump=x=>x>0&&x<lowerWindow?Math.sin(Math.PI*x/lowerWindow)**2:0;
+   const sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExit=mul(loopForward,-2*LOOP_R*sinOpen),drift=sub(sub(desiredExit,entryAnchor),circleExit),lowerBump=x=>x>0&&x<lowerWindow?Math.sin(Math.PI*x/lowerWindow)**2:0,throatBump=q=>Math.sin(Math.PI*clamp(q,0,1))**2;
    const ringPoint=q=>{
     const th=open+arc*q,c=Math.cos(th),sn=Math.sin(th),splay=lowerBump(q)-lowerBump(1-q),circle=add(mul(loopForward,LOOP_R*(sn-sinOpen)-forwardSplay*splay),mul(ringUp,LOOP_R*(cosOpen-c))),pos=add(add(entryAnchor,circle),mul(drift,q));
     const radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};
@@ -48,8 +48,8 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
    const hermiteOpen=(p0,t0,p1,t1,s0,s1,q)=>{const q2=q*q,q3=q2*q,h00=2*q3-3*q2+1,h10=q3-2*q2+q,h01=-2*q3+3*q2,h11=q3-q2;return{x:p0.x*h00+t0.x*s0*h10+p1.x*h01+t1.x*s1*h11,y:p0.y*h00+t0.y*s0*h10+p1.y*h01+t1.y*s1*h11,z:p0.z*h00+t0.z*s0*h10+p1.z*h01+t1.z*s1*h11};};
    const entryScale=clamp(len(sub(ringEntry.pos,startFrame.p))*.9,1.8,3.6),exitScale=clamp(len(sub(endFrame.p,ringExit.pos))*.9,1.8,3.6);
    const sample=u=>{
-    if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ringEntry.up,smooth01(q)),pos=hermiteOpen(startFrame.p,startFrame.forward,ringEntry.pos,entryT,entryScale,entryScale,q);return{pos,frame:{up:seed},upSeed:seed};}
-    if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),seed=mixV(ringExit.up,endFrame.up,smooth01(q)),pos=hermiteOpen(ringExit.pos,exitT,endFrame.p,endFrame.forward,exitScale,exitScale,q);return{pos,frame:{up:seed},upSeed:seed};}
+    if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ringEntry.up,smooth01(q)),base=hermiteOpen(startFrame.p,startFrame.forward,ringEntry.pos,entryT,entryScale,entryScale,q),pos=add(base,mul(flatRight,-outwardSign*throatSide*throatBump(q)));return{pos,frame:{up:seed},upSeed:seed};}
+    if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),seed=mixV(ringExit.up,endFrame.up,smooth01(q)),base=hermiteOpen(ringExit.pos,exitT,endFrame.p,endFrame.forward,exitScale,exitScale,q),pos=add(base,mul(flatRight,outwardSign*throatSide*throatBump(q)));return{pos,frame:{up:seed},upSeed:seed};}
     const q=(u-entryEnd)/(exitStart-entryEnd),ring=ringPoint(q);return{pos:ring.pos,frame:{up:ring.up},upSeed:ring.up};
    };"""
 
