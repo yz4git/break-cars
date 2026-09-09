@@ -40,6 +40,7 @@ apply_double_orbit_pack_v7 = load_function('tune-double-orbit-pack-v7.py', 'brea
 apply_racing_sign_visibility_v4 = load_function('polish-racing-sign-visibility-v4.py', 'break_cars_racing_sign_visibility_v4', 'apply_racing_sign_visibility_v4')
 apply_reference_loop_geometry_v8 = load_function('polish-reference-loop-geometry-v8.py', 'break_cars_reference_loop_geometry_v8', 'apply_reference_loop_geometry_v8')
 apply_course_specific_loop_geometry_v9 = load_function('polish-course-specific-loop-geometry-v9.py', 'break_cars_course_specific_loop_geometry_v9', 'apply_course_specific_loop_geometry_v9')
+apply_rampage_reference_loop_v10 = load_function('polish-rampage-reference-loop-v10.py', 'break_cars_rampage_reference_loop_v10', 'apply_rampage_reference_loop_v10')
 
 source = Path('dist')
 target = Path('_site')
@@ -84,10 +85,11 @@ apply_extreme_courses = load_function('apply-extreme-courses.py', 'break_cars_ex
 apply_extreme_courses(target)
 # Real-WebGL review showed the planar, full-width RAMPAGE loop reading as a
 # black barrel over the entry road. v8 establishes its outboard proportions;
-# v9 then isolates that geometry to RAMPAGE and restores the proven 0ead helix
-# construction for SKY FORGE and DOUBLE ORBIT.
+# v9 isolates course-specific geometry; v10 makes RAMPAGE a long forward/up
+# vertical loop with only a mild depth twist, matching the reference track.
 apply_reference_loop_geometry_v8(target)
 apply_course_specific_loop_geometry_v9(target)
+apply_rampage_reference_loop_v10(target)
 # The final review layers consume the fully course-aware runtime so they can
 # stabilize arena cameras, recovery, race stunt flow and multi-loop behavior.
 apply_nine_course_review_polish(target)
