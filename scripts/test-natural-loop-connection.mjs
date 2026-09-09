@@ -19,6 +19,7 @@ assert.equal(loops.length,selected==='double-orbit'?2:1,`${selected}: unexpected
 
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+const flatNorm=v=>{const n=Math.hypot(v.x,v.z)||1;return{x:v.x/n,y:0,z:v.z/n};};
 
 for(const [index,loop] of loops.entries()){
   const span=loop.endS-loop.startS,before=racePointAt(loop.startS-.18),after=racePointAt(loop.endS+.18);
@@ -57,7 +58,10 @@ for(const [index,loop] of loops.entries()){
     }
     assert.ok(Number.isFinite(lowerClearance),`${selected}: lower-loop clearance test found no separated branches`);
     const minClear=(spec.loopHalfWidth||spec.halfWidth)*2+3.3;
-    if(lowerPair){const [a,b]=lowerPair;console.log(`RAMPAGE lower pair: s=${a.s.toFixed(2)} (${a.p.x.toFixed(2)},${a.p.y.toFixed(2)},${a.p.z.toFixed(2)}) vs s=${b.s.toFixed(2)} (${b.p.x.toFixed(2)},${b.p.y.toFixed(2)},${b.p.z.toFixed(2)}) d=${lowerClearance.toFixed(2)} required>${minClear.toFixed(2)}`);}
+    if(lowerPair){
+      const [a,b]=lowerPair,delta=sub(b.p,a.p),gateForward=flatNorm(before.forward),gateRight=flatNorm(before.right),along=dot(delta,gateForward),across=dot(delta,gateRight);
+      console.log(`RAMPAGE lower pair: f=${(a.i/N).toFixed(3)} s=${a.s.toFixed(2)} (${a.p.x.toFixed(2)},${a.p.y.toFixed(2)},${a.p.z.toFixed(2)}) vs f=${(b.i/N).toFixed(3)} s=${b.s.toFixed(2)} (${b.p.x.toFixed(2)},${b.p.y.toFixed(2)},${b.p.z.toFixed(2)}) d=${lowerClearance.toFixed(2)} along=${along.toFixed(2)} across=${across.toFixed(2)} required>${minClear.toFixed(2)}`);
+    }
     assert.ok(lowerClearance>minClear,`${selected}: lower entry/exit ribbons overlap or form an X (centerline clearance=${lowerClearance.toFixed(2)}m, required>${minClear.toFixed(2)}m)`);
   }
 
