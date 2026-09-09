@@ -1,21 +1,16 @@
-"""Build the RAMPAGE stunt as the road itself, in the toy-track reference form.
+"""Make RAMPAGE read as one continuous toy-track vertical loop.
 
-The previous full-circle-on-a-moving-spine variants could only gain clearance by
-making the lower road travel sideways for too long. This version removes the
-bottom part of the vertical circle and replaces it with two real transition
-legs. The incoming road rises into the front side of the ring; after the crown,
-the descending side returns through a laterally offset lower leg and merges into
-the authored outgoing road. There is no flat chord under the ring and no
-separate hoop mesh.
+The loop is no longer laid over the figure-eight crossing. v9 places it on an
+outer, nearly straight road section; this transform shapes that interval into an
+open vertical revolution. The normal road itself rises through a short entry
+blend, becomes the loop, and returns through a short exit blend. There is no
+flat chord under the ring and no detached hoop mesh.
 
-Only the lower transition legs carry the extra opening needed by the wide race
-road. Their opposite bell-shaped lateral offsets are exactly zero at the normal
-road gates and at the vertical-ring joins, so the crown remains almost planar
-and the stunt does not become a corkscrew. The wide 17 m race ribbon needs more
-than centerline-only clearance, so the two lower legs splay farther apart only
-through their middle while preserving both gate and ring-join tangencies. The
-ring is biased outward from the figure-eight crossing, and a short zero-slope
-entry lift makes the road visibly start climbing immediately.
+The bottom opening is created in the loop's own forward/up plane rather than by
+throwing the road sideways. An antisymmetric forward splay widens the ascending
+and descending lower halves, is exactly zero at the two road joins and at the
+crown, and has zero endpoint slope. This gives the broad toy-track lower opening
+needed by the 17 m race ribbon without turning the stunt into a corkscrew.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -41,20 +36,23 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     return{pos,frame,upSeed};
    };"""
 
-    new = """const open=.88,entryEnd=.20,exitStart=.78,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),sideMag=7.5,legSplay=23,baseOut=15,baseLead=gapAlong+15,gateLift=x=>2.0*smooth01(x/.055)*(1-smooth01((x-.12)/.085));
-   const ringBase=add(add(startFrame.p,mul(loopForward,baseLead)),mul(flatRight,outwardSign*baseOut));
-   const ringPoint=(th,q)=>{const c=Math.cos(th),sn=Math.sin(th),side=outwardSign*sideMag*Math.cos(Math.PI*q),pos=add(add(add(ringBase,mul(loopForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,side)),up=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up};};
-   const ringEntry=ringPoint(open,0),ringExit=ringPoint(TAU-open,1),entryT=norm(add(mul(loopForward,Math.cos(open)),mul(ringUp,Math.sin(open)))),exitT=norm(add(mul(loopForward,Math.cos(open)),mul(ringUp,-Math.sin(open))));
+    new = """const open=.70,entryEnd=.12,exitStart=.88,arc=TAU-open*2,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=9;
+   const entryAnchor=add(add(startFrame.p,mul(startFrame.forward,entryLead)),mul(ringUp,joinLift)),desiredExit=add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift));
+   const sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExit=mul(loopForward,-2*LOOP_R*sinOpen),drift=sub(sub(desiredExit,entryAnchor),circleExit);
+   const ringPoint=q=>{
+    const th=open+arc*q,c=Math.cos(th),sn=Math.sin(th),wave=Math.sin(TAU*q),splay=Math.sign(wave)*Math.pow(Math.abs(wave),1.5),circle=add(mul(loopForward,LOOP_R*(sn-sinOpen)-forwardSplay*splay),mul(ringUp,LOOP_R*(cosOpen-c))),pos=add(add(entryAnchor,circle),mul(drift,q));
+    const radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};
+   };
+   const ringEntry=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ringEntry.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos));
    const hermiteOpen=(p0,t0,p1,t1,s0,s1,q)=>{const q2=q*q,q3=q2*q,h00=2*q3-3*q2+1,h10=q3-2*q2+q,h01=-2*q3+3*q2,h11=q3-q2;return{x:p0.x*h00+t0.x*s0*h10+p1.x*h01+t1.x*s1*h11,y:p0.y*h00+t0.y*s0*h10+p1.y*h01+t1.y*s1*h11,z:p0.z*h00+t0.z*s0*h10+p1.z*h01+t1.z*s1*h11};};
-   const entryDist=len(sub(ringEntry.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.62,9,25),exitScale=clamp(exitDist*.62,9,25);
+   const entryScale=clamp(len(sub(ringEntry.pos,startFrame.p))*.9,1.8,3.6),exitScale=clamp(len(sub(endFrame.p,ringExit.pos))*.9,1.8,3.6);
    const sample=u=>{
-    const gateRise=gateLift(u)+gateLift(1-u);
-    if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),w=smooth01(q),seed=mixV(startFrame.up,ringEntry.up,w),base=hermiteOpen(startFrame.p,startFrame.forward,ringEntry.pos,entryT,entryScale,entryScale,q),splay=outwardSign*legSplay*Math.sin(Math.PI*q)**2,pos=add(add(base,mul(flatRight,splay)),mul(ringUp,gateRise));return{pos,frame:{up:seed},upSeed:seed};}
-    if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),w=smooth01(q),seed=mixV(ringExit.up,endFrame.up,w),base=hermiteOpen(ringExit.pos,exitT,endFrame.p,endFrame.forward,exitScale,exitScale,q),splay=-outwardSign*legSplay*Math.sin(Math.PI*q)**2,pos=add(add(base,mul(flatRight,splay)),mul(ringUp,gateRise));return{pos,frame:{up:seed},upSeed:seed};}
-    const q=(u-entryEnd)/(exitStart-entryEnd),th=open+(TAU-open*2)*q,ring=ringPoint(th,q);return{pos:ring.pos,frame:{up:ring.up},upSeed:ring.up};
+    if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ringEntry.up,smooth01(q)),pos=hermiteOpen(startFrame.p,startFrame.forward,ringEntry.pos,entryT,entryScale,entryScale,q);return{pos,frame:{up:seed},upSeed:seed};}
+    if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),seed=mixV(ringExit.up,endFrame.up,smooth01(q)),pos=hermiteOpen(ringExit.pos,exitT,endFrame.p,endFrame.forward,exitScale,exitScale,q);return{pos,frame:{up:seed},upSeed:seed};}
+    const q=(u-entryEnd)/(exitStart-entryEnd),ring=ringPoint(q);return{pos:ring.pos,frame:{up:ring.up},upSeed:ring.up};
    };"""
 
-    s = one(s, old, new, 'open vertical ring and transition legs')
+    s = one(s, old, new, 'planar open vertical ring')
     path.write_text(s)
 
 
