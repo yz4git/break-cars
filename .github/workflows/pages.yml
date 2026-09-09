@@ -46,7 +46,19 @@ jobs:
       - name: Test natural loop connection
         run: node scripts/test-natural-loop-connection.mjs
       - name: Test RAMPAGE raceability
-        run: node scripts/test-rampage-raceability.mjs
+        id: rampage_raceability
+        continue-on-error: true
+        run: node scripts/test-rampage-raceability.mjs 2>&1 | tee rampage-raceability.log
+      - name: Upload RAMPAGE raceability log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rampage-raceability-${{ github.sha }}
+          path: rampage-raceability.log
+          retention-days: 1
+      - name: Enforce RAMPAGE raceability
+        if: steps.rampage_raceability.outcome == 'failure'
+        run: exit 1
       - name: Test RAMPAGE boost
         run: node scripts/test-rampage-boost.mjs
       - name: Test player auto-upright
