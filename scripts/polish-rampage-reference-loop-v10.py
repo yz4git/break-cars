@@ -10,8 +10,10 @@ The production RAMPAGE radius is already enlarged by v8. Here the extra opening
 needed by the wide race ribbon is confined to the two LOWER legs only. A smooth
 zero-slope bump pushes the ascending lower leg backward and the descending lower
 leg forward, then fades completely before the upper sides of the ring. The
-upper half therefore remains a clean vertical circle instead of inheriting the
-old full-height corkscrew-like distortion.
+slightly larger lower-leg splay preserves visible ribbon clearance while the
+outgoing transition begins farther upstream. The upper half therefore remains a
+clean vertical circle instead of inheriting the old full-height corkscrew-like
+distortion.
 
 The outgoing leg begins flattening earlier in world space than the entry leg.
 This gives a fast physical car enough distance to rotate its velocity and chassis
@@ -40,7 +42,7 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     return{pos,frame,upSeed};
    };"""
 
-    new = """const open=.70,entryEnd=.12,exitStart=.80,arc=TAU-open*2,entryLead=2.2,exitLead=5.8,joinLift=.48,forwardSplay=7,lowerWindow=.30;
+    new = """const open=.70,entryEnd=.12,exitStart=.80,arc=TAU-open*2,entryLead=2.2,exitLead=5.8,joinLift=.48,forwardSplay=9.3,lowerWindow=.30;
    const entryAnchor=add(add(startFrame.p,mul(startFrame.forward,entryLead)),mul(ringUp,joinLift)),desiredExit=add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift));
    const sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExit=mul(loopForward,-2*LOOP_R*sinOpen),drift=sub(sub(desiredExit,entryAnchor),circleExit),lowerBump=x=>x>0&&x<lowerWindow?Math.sin(Math.PI*x/lowerWindow)**2:0;
    const ringPoint=q=>{
