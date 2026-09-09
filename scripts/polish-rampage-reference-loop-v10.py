@@ -1,18 +1,17 @@
-"""Make RAMPAGE read as one continuous toy-track vertical loop.
+"""Build the RAMPAGE stunt as the road itself, in the toy-track reference form.
 
-The road itself forms the stunt. There is no hidden flat chord and no separate
-hoop. The broad authored-road interval is removed, then rebuilt as a single
-smooth gate-to-gate Hermite spine carrying one vertical revolution. This avoids
-inheriting the old figure-eight turns inside the loop interval, which previously
-made the exit tangent briefly point backward even though the visible lower legs
-were separated.
+The previous full-circle-on-a-moving-spine variants could only gain clearance by
+making the lower road travel sideways for too long.  This version removes the
+bottom part of the vertical circle and replaces it with two real transition
+legs.  The incoming road rises into the front side of the ring; after the crown,
+the descending side returns through a laterally offset lower leg and merges into
+the authored outgoing road.  There is no flat chord under the ring and no
+separate hoop mesh.
 
-The rising lower leg gets the larger part of the small twist, opening away from
-the descending leg. The descending leg keeps its established clearance through
-the lower loop but its lateral offset is explicitly zero in the final gate
-approach, so the outgoing road does not have to make a last-moment sideways
-turn. The crown stays almost planar. Every added offset has zero slope at the
-actual road gates.
+Only the lower part carries a modest twist.  The vertical crown remains almost
+planar, while the open angle plus opposite lower-side offsets give the full road
+ribbon physical clearance.  Hermite legs use the actual gate tangents, so both
+ends remain continuous with the normal road.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -38,16 +37,20 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     return{pos,frame,upSeed};
    };"""
 
-    new = """const gateChord=len(sub(endFrame.p,startFrame.p)),baseHandle=clamp(gateChord*.78,17,25),gateLift=x=>.72*smooth01(x/.060)*(1-smooth01((x-.13)/.095));
-   const hermiteBase=u=>{const u2=u*u,u3=u2*u,h00=2*u3-3*u2+1,h10=u3-2*u2+u,h01=-2*u3+3*u2,h11=u3-u2;return{x:startFrame.p.x*h00+startFrame.forward.x*baseHandle*h10+endFrame.p.x*h01+endFrame.forward.x*baseHandle*h11,y:startFrame.p.y*h00+startFrame.forward.y*baseHandle*h10+endFrame.p.y*h01+endFrame.forward.y*baseHandle*h11,z:startFrame.p.z*h00+startFrame.forward.z*baseHandle*h10+endFrame.p.z*h01+endFrame.forward.z*baseHandle*h11};};
+    new = """const open=.88,entryEnd=.20,exitStart=.78,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),sideMag=7.5,baseOut=9,baseLead=gapAlong+15,gateLift=x=>.82*smooth01(x/.055)*(1-smooth01((x-.12)/.085));
+   const ringBase=add(add(startFrame.p,mul(loopForward,baseLead)),mul(flatRight,outwardSign*baseOut));
+   const ringPoint=(th,q)=>{const c=Math.cos(th),sn=Math.sin(th),side=outwardSign*sideMag*Math.cos(Math.PI*q),pos=add(add(add(ringBase,mul(loopForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,side)),up=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up};};
+   const ringEntry=ringPoint(open,0),ringExit=ringPoint(TAU-open,1),entryT=norm(add(mul(loopForward,Math.cos(open)),mul(ringUp,Math.sin(open)))),exitT=norm(add(mul(loopForward,Math.cos(open)),mul(ringUp,-Math.sin(open))));
+   const hermiteOpen=(p0,t0,p1,t1,s0,s1,q)=>{const q2=q*q,q3=q2*q,h00=2*q3-3*q2+1,h10=q3-2*q2+q,h01=-2*q3+3*q2,h11=q3-q2;return{x:p0.x*h00+t0.x*s0*h10+p1.x*h01+t1.x*s1*h11,y:p0.y*h00+t0.y*s0*h10+p1.y*h01+t1.y*s1*h11,z:p0.z*h00+t0.z*s0*h10+p1.z*h01+t1.z*s1*h11};};
+   const entryDist=len(sub(ringEntry.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.62,9,25),exitScale=clamp(exitDist*.62,9,25);
    const sample=u=>{
-    const base=hermiteBase(u),baseUp=mixV(startFrame.up,endFrame.up,smooth01(u)),frame={up:baseUp},phase=u-Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),en=Math.sin(Math.PI*u),env=en*en,entryW=clamp(u/.42,0,1),exitW=clamp(((1-u)-.035)/.385,0,1),entrySplay=32*Math.sin(Math.PI*entryW)**2*(u<.42?1:0),exitSplay=-14*Math.sin(Math.PI*exitW)**2*((1-u)<.42?1:0),outboard=20*env,twist=2.2*Math.sin(TAU*u)*env,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*1.02;
-    const lateral=outwardSign*(outboard+twist+entrySplay+exitSplay),pos=add(add(add(add(base,mul(loopForward,horizR*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise));
-    const radial=norm(add(mul(ringUp,c),mul(loopForward,-sn))),loopWeight=smooth01(u/.095)*smooth01((1-u)/.095),upSeed=mixV(baseUp,radial,loopWeight);
-    return{pos,frame,upSeed};
+    const gateRise=gateLift(u)+gateLift(1-u);
+    if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),w=smooth01(q),seed=mixV(startFrame.up,ringEntry.up,w),base=hermiteOpen(startFrame.p,startFrame.forward,ringEntry.pos,entryT,entryScale,entryScale,q),pos=add(base,mul(ringUp,gateRise));return{pos,frame:{up:seed},upSeed:seed};}
+    if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),w=smooth01(q),seed=mixV(ringExit.up,endFrame.up,w),base=hermiteOpen(ringExit.pos,exitT,endFrame.p,endFrame.forward,exitScale,exitScale,q),pos=add(base,mul(ringUp,gateRise));return{pos,frame:{up:seed},upSeed:seed};}
+    const q=(u-entryEnd)/(exitStart-entryEnd),th=open+(TAU-open*2)*q,ring=ringPoint(th,q);return{pos:ring.pos,frame:{up:ring.up},upSeed:ring.up};
    };"""
 
-    s = one(s, old, new, 'smooth gate-to-gate loop spine')
+    s = one(s, old, new, 'open vertical ring and transition legs')
     path.write_text(s)
 
 
