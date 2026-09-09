@@ -3,14 +3,15 @@
 The road itself forms the stunt. There is no hidden flat chord and no separate
 hoop. Keep the revolution mainly in the forward/up plane. RAMPAGE keeps the
 broad authored-road cut so the stunt has room to exist outside the figure-eight,
-but the visible separation is now concentrated in the *lower legs*: the rising
-entry splays outward, the circular crown stays almost planar, and the descending
-leg does not start bending back toward the outgoing road until late in the lap.
+but the visible separation is concentrated in the *lower legs*: the incoming
+and outgoing ramps peel to opposite sides only near the bottom, then merge into
+an almost planar vertical crown.
 
-This is the toy-track/open-loop shape from the reference rather than a full
-corkscrew: road -> outward rising leg -> vertical loop -> inboard descending leg
--> road. The outgoing guide is short and late so it cannot drag the lower half
-back across the incoming figure-eight branch.
+This matches the open toy-track loop reference: road -> rising entry leg ->
+vertical loop -> descending exit leg -> road. The two lower ribbons no longer
+sit on top of each other or form an X, while both gates still return smoothly to
+the authored road. The outgoing guide remains short and late so it cannot drag
+the descending half across the incoming figure-eight branch.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -31,13 +32,13 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     s = one(
         s,
         "outboard=14*env,twist=32*Math.sin(TAU*u)*env,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*.64;",
-        "entryX=clamp((u-.055)/.44,0,1),exitX=clamp(((1-u)-.055)/.44,0,1),entryOpen=Math.sin(Math.PI*entryX)**2,exitOpen=Math.sin(Math.PI*exitX)**2,openAlong=9*(exitOpen-entryOpen),outRamp=smooth01((u-.035)/.24)*smooth01(((1-u)-.035)/.30),entrySplay=10*smooth01((u-.045)/.12)*(1-smooth01((u-.22)/.16)),outboard=24*outRamp,twist=3*Math.sin(TAU*u)*outRamp,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*1.05;",
-        'lower-leg splay without crown corkscrew',
+        "entryX=clamp((u-.055)/.44,0,1),exitX=clamp(((1-u)-.055)/.44,0,1),entryOpen=Math.sin(Math.PI*entryX)**2,exitOpen=Math.sin(Math.PI*exitX)**2,openAlong=9*(exitOpen-entryOpen),outRamp=smooth01((u-.035)/.24)*smooth01(((1-u)-.035)/.30),entrySplay=14*smooth01((u-.045)/.12)*(1-smooth01((u-.22)/.16)),exitSplay=-14*smooth01(((1-u)-.045)/.12)*(1-smooth01(((1-u)-.22)/.16)),outboard=24*outRamp,twist=3*Math.sin(TAU*u)*outRamp,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*1.05;",
+        'opposed lower-leg splay without crown corkscrew',
     )
     s = one(
         s,
         "const lateral=outwardSign*(outboard+twist),pos=add(add(add(add(frame.p,mul(loopForward,horizR*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise));",
-        "const lateral=outwardSign*(outboard+twist+entrySplay),basePos=add(add(add(add(frame.p,mul(loopForward,horizR*sn+openAlong)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise)),exitAlign=smooth01((u-.74)/.20),exitGuide=add(endFrame.p,mul(endH,-36*(1-u))),pos={x:basePos.x+(exitGuide.x-basePos.x)*exitAlign,y:basePos.y,z:basePos.z+(exitGuide.z-basePos.z)*exitAlign};",
+        "const lateral=outwardSign*(outboard+twist+entrySplay+exitSplay),basePos=add(add(add(add(frame.p,mul(loopForward,horizR*sn+openAlong)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise)),exitAlign=smooth01((u-.74)/.20),exitGuide=add(endFrame.p,mul(endH,-36*(1-u))),pos={x:basePos.x+(exitGuide.x-basePos.x)*exitAlign,y:basePos.y,z:basePos.z+(exitGuide.z-basePos.z)*exitAlign};",
         'late short outgoing-road guide',
     )
     path.write_text(s)
