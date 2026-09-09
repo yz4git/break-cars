@@ -37,11 +37,11 @@ def apply_rampage_reference_loop_v11(target: Path) -> None:
 
     start = s.index("const open=.70,entryEnd=.12,exitStart=.88")
     end = s.index("const hermiteOpen=", start)
-    clean_ring = """const open=.60,entryEnd=.20,exitStart=.80,arc=TAU-open*2,joinLift=.52,outboardShift=17.0,entryLead=2.0,exitLead=1.8;\n   const outboard=mul(flatRight,outwardSign*outboardShift),desiredExit=add(add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift)),outboard),sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExitDelta=add(mul(loopForward,-2*LOOP_R*sinOpen),mul(ringUp,0));\n   const ringEntry=sub(desiredExit,circleExitDelta);\n   const ringPoint=q=>{\n    const th=open+arc*clamp(q,0,1),c=Math.cos(th),sn=Math.sin(th),pos=add(ringEntry,add(mul(loopForward,LOOP_R*(sn-sinOpen)),mul(ringUp,LOOP_R*(cosOpen-c)))),radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};\n   };\n   const ring0=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ring0.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos)),entryLaunchT=norm(add(startFrame.forward,mul(ringUp,.34)));\n   """
+    clean_ring = """const open=.60,entryEnd=.20,exitStart=.80,arc=TAU-open*2,joinLift=1.50,outboardShift=17.0,entryLead=2.0,exitLead=1.8;\n   const outboard=mul(flatRight,outwardSign*outboardShift),desiredExit=add(add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift)),outboard),sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExitDelta=add(mul(loopForward,-2*LOOP_R*sinOpen),mul(ringUp,0));\n   const ringEntry=sub(desiredExit,circleExitDelta);\n   const ringPoint=q=>{\n    const th=open+arc*clamp(q,0,1),c=Math.cos(th),sn=Math.sin(th),pos=add(ringEntry,add(mul(loopForward,LOOP_R*(sn-sinOpen)),mul(ringUp,LOOP_R*(cosOpen-c)))),radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};\n   };\n   const ring0=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ring0.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos)),entryLaunchT=norm(add(startFrame.forward,mul(ringUp,.34))),exitShoulder=add(add(ringExit.pos,mul(flatRight,outwardSign*16.0)),mul(loopForward,12.0)),shoulderT=norm(add(loopForward,mul(flatRight,-outwardSign*.58)));\n   """
     s = s[:start] + clean_ring + s[end:]
 
     old_handles = "const entryScale=clamp(len(sub(ringEntry.pos,startFrame.p))*.9,1.8,3.6),exitScale=clamp(len(sub(endFrame.p,ringExit.pos))*.95,1.9,3.8);"
-    new_handles = "const entryDist=len(sub(ring0.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.72,10.0,24.0),exitScale=clamp(exitDist*.68,8.0,20.0);"
+    new_handles = "const entryDist=len(sub(ring0.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.72,10.0,24.0),exitScale=clamp(exitDist*.68,8.0,20.0),shoulderScale=clamp(len(sub(exitShoulder,ringExit.pos))*.72,10.0,20.0),returnScale=clamp(len(sub(endFrame.p,exitShoulder))*.58,12.0,24.0);"
     s = one(s, old_handles, new_handles, 'long twisted lower legs')
 
     s = one(
@@ -50,8 +50,12 @@ def apply_rampage_reference_loop_v11(target: Path) -> None:
         "if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ring0.up,smooth01(q)),pos=hermiteOpen(startFrame.p,entryLaunchT,ring0.pos,entryT,entryScale,entryScale,q);return{pos,frame:{up:seed},upSeed:seed};}",
         'outboard rising entry leg',
     )
-    # v10's exit branch already connects ringExit to endFrame with Hermite. With
-    # the rigid outboard ring above, this becomes the separate twisted lower exit.
+    s = one(
+        s,
+        "if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),seed=mixV(ringExit.up,endFrame.up,smooth01(q)),pos=hermiteOpen(ringExit.pos,exitT,endFrame.p,endFrame.forward,exitScale,exitScale,q);return{pos,frame:{up:seed},upSeed:seed};}",
+        "if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),seed=mixV(ringExit.up,endFrame.up,smooth01(q));if(q<.5){const h=q*2,pos=hermiteOpen(ringExit.pos,exitT,exitShoulder,shoulderT,shoulderScale,shoulderScale,h);return{pos,frame:{up:seed},upSeed:seed};}const h=(q-.5)*2,pos=hermiteOpen(exitShoulder,shoulderT,endFrame.p,endFrame.forward,returnScale,returnScale,h);return{pos,frame:{up:seed},upSeed:seed};}",
+        'separate twisted exit leg',
+    )
     racing3d.write_text(s)
 
     game = target / 'game.js'
