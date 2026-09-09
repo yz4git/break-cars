@@ -1,13 +1,13 @@
-"""Make the RAMPAGE loop read like one continuous toy-track vertical loop.
+"""Make RAMPAGE read as one continuous toy-track vertical loop.
 
-The road itself forms the loop; there is no hidden flat road or independent hoop.
-Keep the loop almost entirely in the forward/up plane.  The wide figure-eight
-clearance remains an outward bow, while the lower rising and falling branches
-get opposite *forward* offsets.  That turns the closed-looking lower crossing
-into a true open loop without turning the whole stunt into a corkscrew.
+The road itself forms the stunt.  There is no hidden flat chord and no separate
+hoop.  Keep the revolution mainly in the forward/up plane, bow the whole loop
+outward only after a straight gate lead, and separate the two lower branches by
+opposite forward offsets with long C1-smooth envelopes.
 
-The branch-opening envelopes stay exactly zero in a short zone at both road
-gates, preserving the original gate tangents as well as the exact gate points.
+The first/last few percent are deliberately untouched, so entry and exit inherit
+the authored road direction before they begin to curve.  This avoids both the
+old X-shaped lower crossing and the corkscrew look of the earlier helix fix.
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
 from pathlib import Path
@@ -27,8 +27,8 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     s = one(
         s,
         "outboard=14*env,twist=32*Math.sin(TAU*u)*env,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*.64;",
-        "entryOpen=smooth01((u-.035)/.09)*(1-smooth01((u-.24)/.12)),exitOpen=smooth01(((1-u)-.035)/.09)*(1-smooth01(((1-u)-.24)/.12)),openAlong=10.5*(exitOpen-entryOpen),outboard=28*env,twist=10*Math.sin(TAU*u)*env,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*1.05;",
-        'lower branch envelopes',
+        "entryX=clamp((u-.055)/.32,0,1),exitX=clamp(((1-u)-.055)/.32,0,1),entryOpen=Math.sin(Math.PI*entryX)**2,exitOpen=Math.sin(Math.PI*exitX)**2,openAlong=14*(exitOpen-entryOpen),outRamp=smooth01((u-.035)/.18)*smooth01(((1-u)-.035)/.18),outboard=28*outRamp,twist=7*Math.sin(TAU*u)*outRamp,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*1.05;",
+        'smooth lower branch envelopes',
     )
     s = one(
         s,
