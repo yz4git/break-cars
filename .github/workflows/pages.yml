@@ -21,11 +21,12 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Prepare cache-busted Pages artifact
+      - name: Build Pages artifact
         env:
           DEPLOY_SHA: ${{ github.sha }}
+        run: python3 scripts/prepare-pages.py
+      - name: Check generated JavaScript
         run: |
-          python3 scripts/prepare-pages.py
           node --check _site/courses.js
           node --check _site/course-view.js
           node --check _site/game.js
@@ -36,14 +37,22 @@ jobs:
           node --check _site/track-view.js
           node --check _site/viewport-guard.js
           node --check _site/colosseum-ui.js
-          node scripts/test-wreck-hunt.mjs
-          node scripts/test-full-physics3d.mjs
-          node scripts/test-racing3d.mjs
-          node scripts/test-natural-loop-connection.mjs
-          node scripts/test-rampage-raceability.mjs
-          node scripts/test-rampage-boost.mjs
-          node scripts/test-player-auto-upright.mjs
-          node scripts/test-courses.mjs
+      - name: Test WRECK HUNT
+        run: node scripts/test-wreck-hunt.mjs
+      - name: Test full 3D physics
+        run: node scripts/test-full-physics3d.mjs
+      - name: Test racing 3D
+        run: node scripts/test-racing3d.mjs
+      - name: Test natural loop connection
+        run: node scripts/test-natural-loop-connection.mjs
+      - name: Test RAMPAGE raceability
+        run: node scripts/test-rampage-raceability.mjs
+      - name: Test RAMPAGE boost
+        run: node scripts/test-rampage-boost.mjs
+      - name: Test player auto-upright
+        run: node scripts/test-player-auto-upright.mjs
+      - name: Test course pack
+        run: node scripts/test-courses.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
