@@ -2,11 +2,10 @@
 
 The target is an open, realistic twisted loop rather than a closed hoop: normal
 road -> distinct rising entry leg -> clean circular upper revolution -> distinct
-descending exit leg -> normal road. The circular part itself is never stretched
-or pulled toward the road gates. Instead the whole ring lives outboard of the
-figure-eight and the lower entry/exit legs do the 3D twisting needed to rejoin
-the authored road. This keeps the reference-like Omega silhouette and prevents
-a flat road chord from passing underneath the ring.
+descending exit leg -> normal road. The upper revolution keeps a clean circular
+side silhouette. Depth separation is introduced smoothly through the loop plane,
+then fades back out before the lower exit, so entry/exit stay on their proven
+separate road gates instead of crossing underneath the ring.
 
 The camera takes over before the entry leg and stays outside the loop plane until
 after the exit. It uses world-up and enough distance/FOV for an iPhone landscape
@@ -29,33 +28,30 @@ def apply_rampage_reference_loop_v11(target: Path) -> None:
     racing3d = target / 'racing3d.js'
     s = racing3d.read_text()
 
-    # Keep v9's proven gate interval. The visible revolution is moved outboard
-    # as one rigid circle; only its two lower connection legs twist in 3D.
     gate_line = "const LOOP_HALF_T=(doubleOrbit||skyForge)?.18:.19,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?.58:1;"
     if s.count(gate_line) != 1:
         raise RuntimeError(f'RAMPAGE reference loop v11 gate interval: expected 1 match, found {s.count(gate_line)}')
 
     start = s.index("const open=.70,entryEnd=.12,exitStart=.88")
     end = s.index("const hermiteOpen=", start)
-    clean_ring = """const open=.60,entryEnd=.20,exitStart=.80,arc=TAU-open*2,joinLift=1.50,outboardShift=17.0,entryLead=2.0,exitLead=1.8;\n   const outboard=mul(flatRight,outwardSign*outboardShift),desiredExit=add(add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift)),outboard),sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExitDelta=add(mul(loopForward,-2*LOOP_R*sinOpen),mul(ringUp,0));\n   const ringEntry=sub(desiredExit,circleExitDelta);\n   const ringPoint=q=>{\n    const th=open+arc*clamp(q,0,1),c=Math.cos(th),sn=Math.sin(th),pos=add(ringEntry,add(mul(loopForward,LOOP_R*(sn-sinOpen)),mul(ringUp,LOOP_R*(cosOpen-c)))),radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};\n   };\n   const ring0=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ring0.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos)),entryLaunchT=norm(add(startFrame.forward,mul(ringUp,.34))),exitShoulder=add(add(ringExit.pos,mul(flatRight,outwardSign*16.0)),mul(loopForward,12.0)),shoulderT=norm(add(loopForward,mul(flatRight,-outwardSign*.58)));\n   """
-    s = s[:start] + clean_ring + s[end:]
+    omega_ring = """const open=.62,entryEnd=.14,exitStart=.86,arc=TAU-open*2,entryLead=2.2,exitLead=2.2,joinLift=1.05,outboardShift=16.5,exitDriftStart=.68;\n   const entryAnchor=add(add(startFrame.p,mul(startFrame.forward,entryLead)),mul(ringUp,joinLift)),desiredExit=add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift));\n   const sinOpen=Math.sin(open),cosOpen=Math.cos(open),baseCircleExit=mul(loopForward,-2*LOOP_R*sinOpen),baseDrift=sub(sub(desiredExit,entryAnchor),baseCircleExit),depthEnvelope=q=>smooth01(q/.20)*smooth01((1-q)/.22),exitEase=q=>smooth01((q-exitDriftStart)/(1-exitDriftStart));\n   const ringPoint=q=>{\n    const th=open+arc*clamp(q,0,1),c=Math.cos(th),sn=Math.sin(th),circle=add(mul(loopForward,LOOP_R*(sn-sinOpen)),mul(ringUp,LOOP_R*(cosOpen-c))),depth=outwardSign*outboardShift*depthEnvelope(q),pos=add(add(add(entryAnchor,circle),mul(flatRight,depth)),mul(baseDrift,exitEase(q))),radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};\n   };\n   const ringEntry=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ringEntry.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos)),entryLaunchT=norm(add(startFrame.forward,mul(ringUp,.34)));\n   """
+    s = s[:start] + omega_ring + s[end:]
 
-    old_handles = "const entryScale=clamp(len(sub(ringEntry.pos,startFrame.p))*.9,1.8,3.6),exitScale=clamp(len(sub(endFrame.p,ringExit.pos))*.95,1.9,3.8);"
-    new_handles = "const entryDist=len(sub(ring0.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.72,10.0,24.0),exitScale=clamp(exitDist*.68,8.0,20.0),shoulderScale=clamp(len(sub(exitShoulder,ringExit.pos))*.72,10.0,20.0),returnScale=clamp(len(sub(endFrame.p,exitShoulder))*.58,12.0,24.0);"
-    s = one(s, old_handles, new_handles, 'long twisted lower legs')
-
+    s = one(
+        s,
+        "const entryScale=clamp(len(sub(ringEntry.pos,startFrame.p))*.9,1.8,3.6),exitScale=clamp(len(sub(endFrame.p,ringExit.pos))*.95,1.9,3.8);",
+        "const entryScale=clamp(len(sub(ringEntry.pos,startFrame.p))*.92,2.8,6.5),exitScale=clamp(len(sub(endFrame.p,ringExit.pos))*.95,2.8,6.5);",
+        'short separate lower legs',
+    )
     s = one(
         s,
         "if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ringEntry.up,smooth01(q)),pos=hermiteOpen(startFrame.p,startFrame.forward,ringEntry.pos,entryT,entryScale,entryScale,q);return{pos,frame:{up:seed},upSeed:seed};}",
-        "if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ring0.up,smooth01(q)),pos=hermiteOpen(startFrame.p,entryLaunchT,ring0.pos,entryT,entryScale,entryScale,q);return{pos,frame:{up:seed},upSeed:seed};}",
-        'outboard rising entry leg',
+        "if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),seed=mixV(startFrame.up,ringEntry.up,smooth01(q)),pos=hermiteOpen(startFrame.p,entryLaunchT,ringEntry.pos,entryT,entryScale,entryScale,q);return{pos,frame:{up:seed},upSeed:seed};}",
+        'naturally rising entry leg',
     )
-    s = one(
-        s,
-        "if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),seed=mixV(ringExit.up,endFrame.up,smooth01(q)),pos=hermiteOpen(ringExit.pos,exitT,endFrame.p,endFrame.forward,exitScale,exitScale,q);return{pos,frame:{up:seed},upSeed:seed};}",
-        "if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),seed=mixV(ringExit.up,endFrame.up,smooth01(q));if(q<.5){const h=q*2,pos=hermiteOpen(ringExit.pos,exitT,exitShoulder,shoulderT,shoulderScale,shoulderScale,h);return{pos,frame:{up:seed},upSeed:seed};}const h=(q-.5)*2,pos=hermiteOpen(exitShoulder,shoulderT,endFrame.p,endFrame.forward,returnScale,returnScale,h);return{pos,frame:{up:seed},upSeed:seed};}",
-        'separate twisted exit leg',
-    )
+    # v10's short exit Hermite remains intact. ringPoint(1) is deliberately
+    # back on the outgoing road-side gate, so the lower exit never traverses the
+    # entry leg or draws a flat chord beneath the ring.
     racing3d.write_text(s)
 
     game = target / 'game.js'
