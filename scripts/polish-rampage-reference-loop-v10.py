@@ -9,9 +9,10 @@ detached hoop mesh.
 The production RAMPAGE radius is already enlarged by v8. The remaining ribbon
 clearance is confined to the low entry/exit transition throat. Keep the first
 part of the entry, both joins to the circular core, and the entire upper ring
-unchanged; only the interior of the two lower Hermite blends receives a small
-opposite offset along the travel direction. This opens the wide road surface
-without making the stunt read as a corkscrew.
+unchanged. A low-amplitude smooth plateau offsets only the interior of the two
+lower Hermite blends in opposite travel directions. The plateau is flat at the
+closest branch pair, so it increases clearance without rotating the road tangent
+there or turning the stunt into a corkscrew.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -37,9 +38,9 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     return{pos,frame,upSeed};
    };"""
 
-    new = """const open=.70,entryEnd=.12,exitStart=.88,arc=TAU-open*2,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=7,lowerWindow=.30,throatOpen=.95;
+    new = """const open=.70,entryEnd=.12,exitStart=.88,arc=TAU-open*2,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=7,lowerWindow=.30,throatOpen=.28;
    const entryAnchor=add(add(startFrame.p,mul(startFrame.forward,entryLead)),mul(ringUp,joinLift)),desiredExit=add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift));
-   const sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExit=mul(loopForward,-2*LOOP_R*sinOpen),drift=sub(sub(desiredExit,entryAnchor),circleExit),lowerBump=x=>x>0&&x<lowerWindow?Math.sin(Math.PI*x/lowerWindow)**2:0,throatBump=x=>{if(x<=.22||x>=1)return 0;const t=(x-.22)/.78;return Math.sin(Math.PI*t)**2;};
+   const sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExit=mul(loopForward,-2*LOOP_R*sinOpen),drift=sub(sub(desiredExit,entryAnchor),circleExit),lowerBump=x=>x>0&&x<lowerWindow?Math.sin(Math.PI*x/lowerWindow)**2:0,throatBump=x=>smooth01((x-.34)/.16)*(1-smooth01((x-.84)/.16));
    const ringPoint=q=>{
     const th=open+arc*q,c=Math.cos(th),sn=Math.sin(th),splay=lowerBump(q)-lowerBump(1-q),circle=add(mul(loopForward,LOOP_R*(sn-sinOpen)-forwardSplay*splay),mul(ringUp,LOOP_R*(cosOpen-c))),pos=add(add(entryAnchor,circle),mul(drift,q));
     const radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};
