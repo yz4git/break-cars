@@ -5,7 +5,7 @@ const physics = await import(`../_site/physics.js?upright=${Date.now()}`);
 const course = await import(`../_site/racing3d.js?upright=${Date.now()}`);
 const { ensureFullPhysics, resetFullPhysicsBody, updatePlayerAutoUpright } = core;
 const { makeWorld, TYPES } = physics;
-const { race3DFeatureSpec } = course;
+const { race3DFeatureSpec, racePointAt } = course;
 
 function upY(b){return 1-2*(b.qx*b.qx+b.qz*b.qz);}
 function forceRoofDown(c,groundedWheels=0){
@@ -47,11 +47,19 @@ for(const [mode,seed] of [['colosseum',101],['wreck-hunt',202],['racing',303]]){
 }
 
 // A real inverted loop crown has an inverted road normal too, so the body is
-// correctly aligned to its drivable surface and must not auto-recover.
+// correctly aligned to its drivable surface and must not auto-recover. Open
+// loops are not necessarily arc-length symmetric, so find the actual most-
+// inverted surface instead of assuming it is exactly halfway by distance.
 {
-  const w=makeWorld(0,505,'racing');ensureFullPhysics(w,TYPES);const p=w.cars[0],spec=race3DFeatureSpec(),crown=(spec.loop.startS+spec.loop.endS)*.5;
+  const w=makeWorld(0,505,'racing');ensureFullPhysics(w,TYPES);const p=w.cars[0],spec=race3DFeatureSpec();
+  let crown=spec.loop.startS,crownUp=Infinity;
+  for(let i=0;i<=240;i++){
+    const s=spec.loop.startS+(spec.loop.endS-spec.loop.startS)*i/240,road=racePointAt(s);
+    if(road.up.y<crownUp){crownUp=road.up.y;crown=s;}
+  }
+  assert.ok(crownUp<-.65,`test course must contain a truly inverted loop surface, road upY=${crownUp}`);
   p.trackS=crown;p.lane=0;resetFullPhysicsBody(w,p,TYPES);p.p3.grounded=true;p.p3.groundedWheels=4;
-  assert.ok(upY(p.p3)<-.65,`test must place car inverted at loop crown, upY=${upY(p.p3)}`);
+  assert.ok(upY(p.p3)<-.65,`test must place car inverted at actual loop crown, upY=${upY(p.p3)}`);
   for(let i=0;i<420;i++)assert.equal(updatePlayerAutoUpright(w,1/60),false,'aligned inverted loop state must not auto-recover');
   assert.equal(p.autoUprightTime,0);
 }
