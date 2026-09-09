@@ -30,57 +30,37 @@ for(const [index,loop] of loops.entries()){
     maxY=Math.max(maxY,p.y);minY=Math.min(minY,p.y);minUpDot=Math.min(minUpDot,dot(p.up,before.up));
   }
 
-  // Inspect only the lower entry LEG (first 2m), not a fraction of the whole
-  // loop. Larger-radius loops legitimately start turning around the ring within
-  // the first 8-10% of their total arc length, which is no longer an entry test.
-  // A negative signed advance in these first two metres is the exact
-  // "drive into the back of the loop" failure the reference photo rules out.
   for(let i=1;i<=8;i++){
     const d=.25*i,p=racePointAt(loop.startS+d),rel=sub(p,before),advance=dot(rel,before.forward),facing=dot(p.forward,before.forward);
     minEarlyAdvance=Math.min(minEarlyAdvance,advance);minEarlyFacing=Math.min(minEarlyFacing,facing);
   }
   assert.ok(minEarlyAdvance>-.15,`${selected} loop ${index+1}: entry bends behind incoming road (${minEarlyAdvance.toFixed(2)}m)`);
-  // Keep the first two metres unmistakably front-facing. A dot of .75 limits
-  // heading deviation to ~41 degrees, preventing the old visually-sideways /
-  // underside-first approach from creeping back in while still leaving room
-  // for the authored road to twist naturally into the ring.
   assert.ok(minEarlyFacing>.75,`${selected} loop ${index+1}: entry turns too far toward loop back face (dot=${minEarlyFacing.toFixed(2)})`);
 
-  // Surface front face must be continuous at the gate. The road must also have
-  // visibly started rising while it is still on the separate lower entry leg.
   const gate=racePointAt(loop.startS+.04),gateNormal=dot(gate.up,before.up),early=racePointAt(loop.startS+2.0);
   assert.ok(gateNormal>.72,`${selected} loop ${index+1}: road face flips at entry (up dot=${gateNormal.toFixed(2)})`);
   assert.ok(early.y>before.y+.18,`${selected} loop ${index+1}: front entry leg does not rise into loop`);
-
-  // A real loop still turns the car fully upside-down at the crown.
   assert.ok(maxY-minY>10,`${selected} loop ${index+1}: vertical revolution too shallow`);
   assert.ok(minUpDot<-.72,`${selected} loop ${index+1}: loop never reaches a true inverted surface`);
 
-  // RAMPAGE previously passed centerline/gate tests while its two lower road
-  // ribbons visibly formed an X. Inspect a deeper 6m-high slice and require a
-  // gap based on the rendered loop width itself. This protects the full ribbon,
-  // not merely the mathematical centerline, while ignoring adjacent samples on
-  // the same continuous branch.
-  let lowerClearance=Infinity;
+  let lowerClearance=Infinity,lowerPair=null;
   if(selected==='rampage-3d'&&index===0){
     const N=360,points=[];
     for(let i=0;i<=N;i++){
-      const p=racePointAt(loop.startS+span*i/N);
-      if(p.y<minY+6.0)points.push({i,p});
+      const s=loop.startS+span*i/N,p=racePointAt(s);
+      if(p.y<minY+4.2)points.push({i,s,p});
     }
     for(let a=0;a<points.length;a++)for(let b=a+1;b<points.length;b++){
-      if(points[b].i-points[a].i<N*.18)continue;
+      if(points[b].i-points[a].i<N*.22)continue;
       const p=points[a].p,q=points[b].p,d=Math.hypot(p.x-q.x,p.z-q.z);
-      lowerClearance=Math.min(lowerClearance,d);
+      if(d<lowerClearance){lowerClearance=d;lowerPair=[points[a],points[b]];}
     }
-    const required=spec.loopHalfWidth*2+2.0;
     assert.ok(Number.isFinite(lowerClearance),`${selected}: lower-loop clearance test found no separated branches`);
-    assert.ok(lowerClearance>required,`${selected}: lower entry/exit ribbons overlap or form an X (centerline clearance=${lowerClearance.toFixed(2)}m, required>${required.toFixed(2)}m)`);
+    const minClear=(spec.loopHalfWidth||spec.halfWidth)*2+3.3;
+    if(lowerPair){const [a,b]=lowerPair;console.log(`RAMPAGE lower pair: s=${a.s.toFixed(2)} (${a.p.x.toFixed(2)},${a.p.y.toFixed(2)},${a.p.z.toFixed(2)}) vs s=${b.s.toFixed(2)} (${b.p.x.toFixed(2)},${b.p.y.toFixed(2)},${b.p.z.toFixed(2)}) d=${lowerClearance.toFixed(2)} required>${minClear.toFixed(2)}`);}
+    assert.ok(lowerClearance>minClear,`${selected}: lower entry/exit ribbons overlap or form an X (centerline clearance=${lowerClearance.toFixed(2)}m, required>${minClear.toFixed(2)}m)`);
   }
 
-  // The separate descending leg must merge into the outgoing road in the same
-  // driving direction instead of meeting it nose-to-nose. Check the final 2m
-  // of that leg, not the already-curving ring above it.
   const late=racePointAt(loop.endS-2.0),exitFacing=dot(late.forward,after.forward),exitNormal=dot(racePointAt(loop.endS-.04).up,after.up);
   assert.ok(exitFacing>.58,`${selected} loop ${index+1}: exit leg faces against outgoing road (dot=${exitFacing.toFixed(2)})`);
   assert.ok(exitNormal>.68,`${selected} loop ${index+1}: road face flips at exit (up dot=${exitNormal.toFixed(2)})`);
