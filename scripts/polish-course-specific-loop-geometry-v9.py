@@ -1,12 +1,15 @@
 """Keep the RAMPAGE clearance fix isolated from the other stunt courses.
 
-RAMPAGE uses a broad outboard open loop whose entry and exit are true parts of
-one continuous road. The descending exit is routed around the outside of the
-entry leg before it rejoins the authored road, so the lower ribbons stay apart
-instead of forming an X under the loop. SKY FORGE and DOUBLE ORBIT keep the
-proven forward-progress helix, with a small symmetric lower-leg rise so the
-ordinary road visibly flows up into (and back down out of) the loop instead of
-reading flat at the gates.
+RAMPAGE now uses a conventional toy-track style vertical loop: the authored road
+itself rises into the loop, runs one open revolution, and returns directly to
+the authored outgoing road. There are no separate lower entry/exit splines and
+therefore no X-shaped underpass beneath the ring. A broad gate interval plus a
+smooth outboard envelope keeps the full ribbon clear of the nearby figure-eight
+branch while both loop gates remain exact continuations of the original road.
+
+SKY FORGE and DOUBLE ORBIT keep the proven forward-progress helix, with a small
+symmetric lower-leg rise so the ordinary road visibly flows up into (and back
+down out of) the loop instead of reading flat at the gates.
 
 This transform runs after v8 and replaces only the generated loop-centerline
 construction. Rendering/collision continue to consume the same centerline.
@@ -34,7 +37,6 @@ const roadFrameAt=t=>{
 const mixV=(a,b,u)=>norm({x:a.x+(b.x-a.x)*u,y:a.y+(b.y-a.y)*u,z:a.z+(b.z-a.z)*u});
 const smooth01=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
 const horizontal=v=>{const h={x:v.x,y:0,z:v.z},l=len(h);return l>.2?mul(h,1/l):null;};
-const hermite=(p0,t0,p1,t1,scale,u)=>{const u2=u*u,u3=u2*u,h00=2*u3-3*u2+1,h10=u3-2*u2+u,h01=-2*u3+3*u2,h11=u3-u2;return{x:h00*p0.x+h10*scale*t0.x+h01*p1.x+h11*scale*t1.x,y:h00*p0.y+h10*scale*t0.y+h01*p1.y+h11*scale*t1.y,z:h00*p0.z+h10*scale*t0.z+h01*p1.z+h11*scale*t1.z};};
 const orthoUp=(seed,tangent,fallback)=>{const p=sub(seed,mul(tangent,dot(seed,tangent)));return len(p)>.15?norm(p):fallback;};
 for(const t of ts){
  if(t>TAU+EPS)continue;
@@ -62,35 +64,26 @@ for(const t of ts){
     raw.push({x:here.pos.x,y:here.pos.y,z:here.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});
    }
   }else{
-   // RAMPAGE-only outboard open loop. The ring itself stays close to a vertical
-   // revolution; the descending lower leg takes a separate outside route before
-   // merging with the outgoing road, avoiding the old X-shaped underpass.
-   const startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),gateVec=sub(endFrame.p,startFrame.p),gateChord=len(gateVec),worldUp={x:0,y:1,z:0};
-   const startH=horizontal(startFrame.forward)||norm(startFrame.forward),flatRight=norm(cross(worldUp,startH)),outwardSign=(startFrame.p.x*flatRight.x+startFrame.p.z*flatRight.z)>=0?1:-1,ringForward=norm(rotateAround(startH,worldUp,outwardSign*.16));
-   let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=flatRight;const ringUp=norm(cross(ringForward,ringRight));
-   const open=LOOP_OPEN_ANGLE,gapAlong=LOOP_R*Math.sin(open),joinRise=LOOP_R*(1-Math.cos(open)),legLead=clamp(gateChord*.34,7.0,11.5),legRise=1.45,ringSideShift=17.0;
-   const desiredEntry=add(add(add(startFrame.p,mul(startH,legLead)),mul(ringUp,legRise)),mul(flatRight,outwardSign*ringSideShift));
-   const ringBase=sub(sub(desiredEntry,mul(ringForward,gapAlong)),mul(ringUp,joinRise));
-   const ringSep=12.0,crownPush=9.5;
-   const circlePos=th=>{const c=Math.cos(th),sn=Math.sin(th),q=clamp((th-open)/(TAU-open*2),0,1),engage=smooth01((q-.12)/.30),lat=outwardSign*ringSep*engage,crown=Math.sin(Math.PI*q),advance=crownPush*crown*crown;return add(add(add(add(ringBase,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lat)),mul(ringForward,advance));};
-   const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),h=.0025,a=circlePos(Math.max(open,th-h)),b=circlePos(Math.min(TAU-open,th+h)),pos=circlePos(th),tangent=norm(sub(b,a)),seed=norm(add(mul(ringUp,c),mul(ringForward,-sn))),up=orthoUp(seed,tangent,ringUp);return{pos,tangent,up};};
-   const ringEntry=circleAt(open),ringExit=circleAt(TAU-open),entryDist=len(sub(ringEntry.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.88,13.0,24.0),exitScale=clamp(exitDist*.88,14.0,26.0);
-   const LEG_STEPS=Math.max(12,Math.round(LOOP_STEPS*.18)),RING_STEPS=Math.max(48,LOOP_STEPS-LEG_STEPS*2);
-   const pushLeg=(p0,t0,u0,p1,t1,u1,scale,steps,skipFirst=false)=>{
-    for(let j=skipFirst?1:0;j<=steps;j++){
-     const q=j/steps,dq=.18/steps,pos=hermite(p0,t0,p1,t1,scale,q),prev=hermite(p0,t0,p1,t1,scale,Math.max(0,q-dq)),next=hermite(p0,t0,p1,t1,scale,Math.min(1,q+dq)),tangent=norm(sub(next,prev)),w=smooth01(q),seed=mixV(u0,u1,w),up=orthoUp(seed,tangent,ringUp);
-     raw.push({x:pos.x,y:pos.y,z:pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});
-    }
+   // RAMPAGE is one continuous road surface, not a ring object placed on top of
+   // a road. The base spine moves from the incoming gate to the outgoing gate
+   // while a vertical revolution is added in the forward/up plane. Because the
+   // two bottom ends live at different authored-road positions, the loop is
+   // naturally open at the bottom and cannot form the old X-shaped crossing.
+   const startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),worldUp={x:0,y:1,z:0};
+   const startH=horizontal(startFrame.forward)||norm(startFrame.forward),endH=horizontal(endFrame.forward)||norm(endFrame.forward),sumH=add(startH,endH),loopForward=len(sumH)>.2?norm(sumH):startH;
+   let flatRight=norm(cross(worldUp,loopForward));if(len(flatRight)<.2)flatRight=startFrame.right;
+   const ringUp=norm(cross(loopForward,flatRight)),outwardSign=(startFrame.p.x*flatRight.x+startFrame.p.z*flatRight.z)>=0?1:-1;
+   const gateLift=x=>.82*smooth01(x/.055)*(1-smooth01((x-.12)/.085));
+   const sample=u=>{
+    const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),phase=u-Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),en=Math.sin(Math.PI*u),outboard=7.5*en*en,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*.82;
+    const pos=add(add(add(add(frame.p,mul(loopForward,horizR*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,outwardSign*outboard)),mul(ringUp,gateRise));
+    const radial=norm(add(mul(ringUp,c),mul(loopForward,-sn))),loopWeight=smooth01(u/.095)*smooth01((1-u)/.095),upSeed=mixV(frame.up,radial,loopWeight);
+    return{pos,frame,upSeed};
    };
-   const entryForward=norm(add(startFrame.forward,mul(startFrame.up,.20)));
-   pushLeg(startFrame.p,entryForward,startFrame.up,ringEntry.pos,ringEntry.tangent,ringEntry.up,entryScale,LEG_STEPS,false);
-   for(let j=1;j<=RING_STEPS;j++){
-    const q=j/RING_STEPS,th=open+(TAU-open*2)*q,p=circleAt(th);
-    raw.push({x:p.pos.x,y:p.pos.y,z:p.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:p.up,explicitForward:p.tangent});
+   for(let j=0;j<=LOOP_STEPS;j++){
+    const u=j/LOOP_STEPS,du=.25/LOOP_STEPS,here=sample(u),prev=sample(Math.max(0,u-du)),next=sample(Math.min(1,u+du)),tangent=norm(sub(next.pos,prev.pos)),up=orthoUp(here.upSeed,tangent,here.frame.up);
+    raw.push({x:here.pos.x,y:here.pos.y,z:here.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});
    }
-   const exitWay=add(add(ringExit.pos,mul(ringForward,20)),mul(flatRight,outwardSign*12)),exitWayForward=norm(add(ringForward,endFrame.forward)),exitWayUp=ringUp,exitWayDistA=len(sub(exitWay,ringExit.pos)),exitWayDistB=len(sub(endFrame.p,exitWay)),exitScaleA=clamp(exitWayDistA*.9,14,34),exitScaleB=clamp(exitWayDistB*.78,18,42);
-   pushLeg(ringExit.pos,ringExit.tangent,ringExit.up,exitWay,exitWayForward,exitWayUp,exitScaleA,Math.max(9,Math.round(LEG_STEPS*.75)),true);
-   pushLeg(exitWay,exitWayForward,exitWayUp,endFrame.p,endFrame.forward,endFrame.up,exitScaleB,LEG_STEPS,true);
   }
   continue;
  }
