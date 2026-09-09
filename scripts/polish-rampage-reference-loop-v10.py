@@ -1,16 +1,16 @@
 """Make RAMPAGE read as one continuous toy-track vertical loop.
 
-The road itself forms the stunt.  There is no hidden flat chord and no separate
-hoop.  Keep the revolution mainly in the forward/up plane.  The whole loop bows
+The road itself forms the stunt. There is no hidden flat chord and no separate
+hoop. Keep the revolution mainly in the forward/up plane. The whole loop bows
 away from the unrelated figure-eight road only after a straight gate lead, and
 the two lower branches get opposite forward offsets so their ribbons never form
 an X.
 
-Both the outboard bow and the lower-branch opening use long C1-smooth tapers.
-The exit taper is intentionally broad: the descending leg begins aiming toward
-the outgoing authored road well before the gate instead of making a sharp last-
-second turn.  The first/last few percent remain untouched so the road gates keep
-the exact authored positions and directions.
+The final descending leg is not allowed to wander and then snap back at the
+last gate. Its X/Z centerline is C1-blended onto a guide ray traced backward
+from the outgoing authored road. The last portion therefore already points in
+the exact outgoing-road direction before reaching the gate, matching the toy-
+track reference where the loop simply becomes the road again.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -37,8 +37,8 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     s = one(
         s,
         "const lateral=outwardSign*(outboard+twist),pos=add(add(add(add(frame.p,mul(loopForward,horizR*sn)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise));",
-        "const lateral=outwardSign*(outboard+twist),pos=add(add(add(add(frame.p,mul(loopForward,horizR*sn+openAlong)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise));",
-        'forward-plane open loop position',
+        "const lateral=outwardSign*(outboard+twist),basePos=add(add(add(add(frame.p,mul(loopForward,horizR*sn+openAlong)),mul(ringUp,LOOP_R*(1-c))),mul(flatRight,lateral)),mul(ringUp,gateRise)),exitAlign=smooth01((u-.72)/.23),exitGuide=add(endFrame.p,mul(endH,-55*(1-u))),pos={x:basePos.x+(exitGuide.x-basePos.x)*exitAlign,y:basePos.y,z:basePos.z+(exitGuide.z-basePos.z)*exitAlign};",
+        'outgoing-road aligned loop position',
     )
     path.write_text(s)
 
