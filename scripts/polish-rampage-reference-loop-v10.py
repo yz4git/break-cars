@@ -1,17 +1,17 @@
 """Make RAMPAGE read as one continuous toy-track vertical loop.
 
-The loop is no longer laid over the figure-eight crossing. v9 places it on an
-outer, nearly straight road section; this transform shapes that interval into an
-open vertical revolution. The normal road itself rises through a short entry
-blend, becomes the loop, and returns through a short exit blend. There is no
-flat chord under the ring and no detached hoop mesh.
+v9 places the stunt on the outer, nearly straight lobe of the figure-eight.
+This transform shapes that interval into an open vertical revolution: the normal
+road itself rises through a short entry blend, becomes the loop, and returns
+through a short exit blend. There is no flat chord under the ring and no
+detached hoop mesh.
 
-RAMPAGE uses a larger 10.5 m loop radius than the other courses. This reduces
-the curvature and crown adhesion demand while keeping the broad toy-track
-silhouette. The bottom opening is created in the loop's own forward/up plane,
-not by throwing the road sideways. An antisymmetric forward splay widens the
-ascending and descending lower halves while remaining zero at both joins and at
-the crown.
+The production RAMPAGE radius is already enlarged by v8. Here the extra opening
+needed by the wide race ribbon is confined to the two LOWER legs only. A smooth
+zero-slope bump pushes the ascending lower leg backward and the descending lower
+leg forward, then fades completely before the upper sides of the ring. The
+upper half therefore remains a clean vertical circle instead of inheriting the
+old full-height corkscrew-like distortion.
 
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
@@ -29,15 +29,6 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     path = target / 'racing3d.js'
     s = path.read_text()
 
-    # Keep the other stunt courses on their proven radii; only RAMPAGE gets the
-    # larger, production-scale loop needed by its wide road and natural entry.
-    s = one(
-        s,
-        'loopRadius:doubleOrbit?8.6:skyForge?7.5:7.2',
-        'loopRadius:doubleOrbit?8.6:skyForge?7.5:10.5',
-        'RAMPAGE radius',
-    )
-
     old = """const gateLift=x=>.82*smooth01(x/.055)*(1-smooth01((x-.12)/.085));
    const sample=u=>{
     const spineT=startT+(endT-startT)*u,frame=roadFrameAt(spineT),phase=u-Math.sin(TAU*u)/TAU,th=phase*TAU,c=Math.cos(th),sn=Math.sin(th),en=Math.sin(Math.PI*u),env=en*en,outboard=14*env,twist=32*Math.sin(TAU*u)*env,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*.64;
@@ -46,11 +37,11 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     return{pos,frame,upSeed};
    };"""
 
-    new = """const open=.70,entryEnd=.12,exitStart=.88,arc=TAU-open*2,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=11;
+    new = """const open=.70,entryEnd=.12,exitStart=.88,arc=TAU-open*2,entryLead=2.2,exitLead=2.2,joinLift=.48,forwardSplay=7,lowerWindow=.30;
    const entryAnchor=add(add(startFrame.p,mul(startFrame.forward,entryLead)),mul(ringUp,joinLift)),desiredExit=add(add(endFrame.p,mul(endFrame.forward,-exitLead)),mul(ringUp,joinLift));
-   const sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExit=mul(loopForward,-2*LOOP_R*sinOpen),drift=sub(sub(desiredExit,entryAnchor),circleExit);
+   const sinOpen=Math.sin(open),cosOpen=Math.cos(open),circleExit=mul(loopForward,-2*LOOP_R*sinOpen),drift=sub(sub(desiredExit,entryAnchor),circleExit),lowerBump=x=>x>0&&x<lowerWindow?Math.sin(Math.PI*x/lowerWindow)**2:0;
    const ringPoint=q=>{
-    const th=open+arc*q,c=Math.cos(th),sn=Math.sin(th),wave=Math.sin(TAU*q),splay=Math.sign(wave)*Math.pow(Math.abs(wave),1.5),circle=add(mul(loopForward,LOOP_R*(sn-sinOpen)-forwardSplay*splay),mul(ringUp,LOOP_R*(cosOpen-c))),pos=add(add(entryAnchor,circle),mul(drift,q));
+    const th=open+arc*q,c=Math.cos(th),sn=Math.sin(th),splay=lowerBump(q)-lowerBump(1-q),circle=add(mul(loopForward,LOOP_R*(sn-sinOpen)-forwardSplay*splay),mul(ringUp,LOOP_R*(cosOpen-c))),pos=add(add(entryAnchor,circle),mul(drift,q));
     const radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};
    };
    const ringEntry=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ringEntry.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos));
@@ -62,7 +53,7 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     const q=(u-entryEnd)/(exitStart-entryEnd),ring=ringPoint(q);return{pos:ring.pos,frame:{up:ring.up},upSeed:ring.up};
    };"""
 
-    s = one(s, old, new, 'planar open vertical ring')
+    s = one(s, old, new, 'lower-open vertical ring')
     path.write_text(s)
 
 
