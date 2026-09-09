@@ -6,8 +6,8 @@ clearance remains an outward bow, while the lower rising and falling branches
 get opposite *forward* offsets.  That turns the closed-looking lower crossing
 into a true open loop without turning the whole stunt into a corkscrew.
 
-Both lower-branch offsets use smoothstep envelopes that are zero with zero slope
-at the road gates, so the authored incoming/outgoing road still joins exactly.
+The branch-opening envelopes stay exactly zero in a short zone at both road
+gates, preserving the original gate tangents as well as the exact gate points.
 SKY FORGE and DOUBLE ORBIT are deliberately untouched.
 """
 from pathlib import Path
@@ -27,7 +27,7 @@ def apply_rampage_reference_loop_v10(target: Path) -> None:
     s = one(
         s,
         "outboard=14*env,twist=32*Math.sin(TAU*u)*env,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*.64;",
-        "entryOpen=smooth01(u/.12)*(1-smooth01((u-.24)/.12)),exitOpen=smooth01((1-u)/.12)*(1-smooth01(((1-u)-.24)/.12)),openAlong=10.5*(exitOpen-entryOpen),outboard=28*env,twist=10*Math.sin(TAU*u)*env,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*1.05;",
+        "entryOpen=smooth01((u-.035)/.09)*(1-smooth01((u-.24)/.12)),exitOpen=smooth01(((1-u)-.035)/.09)*(1-smooth01(((1-u)-.24)/.12)),openAlong=10.5*(exitOpen-entryOpen),outboard=28*env,twist=10*Math.sin(TAU*u)*env,gateRise=gateLift(u)+gateLift(1-u),horizR=LOOP_R*1.05;",
         'lower branch envelopes',
     )
     s = one(
