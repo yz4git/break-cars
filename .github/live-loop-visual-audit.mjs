@@ -78,10 +78,15 @@ async function resumeRaf() {
 }
 
 async function readSample() {
-  return page.evaluate(() => ({
-    speed: document.querySelector('#speed b')?.textContent ?? '',
-    raceState: document.querySelector('#race-state')?.textContent ?? '',
-    telemetry: window.__breakCarsAuditState?.() ?? null,
+  // Read HUD text and rigid-body telemetry at the end of one real animation
+  // frame. A plain page.evaluate can land between the physics update and the
+  // HUD render, creating a false one-frame speed mismatch under SwiftShader.
+  return page.evaluate(() => new Promise(resolve => {
+    requestAnimationFrame(() => resolve({
+      speed: document.querySelector('#speed b')?.textContent ?? '',
+      raceState: document.querySelector('#race-state')?.textContent ?? '',
+      telemetry: window.__breakCarsAuditState?.() ?? null,
+    }));
   }));
 }
 
@@ -102,10 +107,10 @@ for (let i = 0; i < 30; i += 1) {
   await page.waitForTimeout(350);
   simulated += 0.35;
   const capture = captureFrames.has(frame);
-  if (capture) await freezeRaf();
   const sample = await readSample();
   samples.push({ frame, elapsed: Number(simulated.toFixed(2)), ...sample });
   if (capture) {
+    await freezeRaf();
     const tag = String(frame).padStart(2, '0');
     await canvas.screenshot({ path: `${outputDir}/${tag}-canvas.png` });
     await resumeRaf();
