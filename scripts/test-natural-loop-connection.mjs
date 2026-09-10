@@ -49,9 +49,13 @@ for(const [index,loop] of loops.entries()){
     const roadWidth=(spec.loopHalfWidth||spec.halfWidth)*2;
     const entryGate=racePointAt(loop.startS+.04),exitGate=racePointAt(loop.endS-.04),gateForward=flatNorm(before.forward),gateRight=flatNorm(before.right),delta=sub(exitGate,entryGate);
     const along=Math.abs(dot(delta,gateForward)),across=Math.abs(dot(delta,gateRight)),parallel=dot(flatNorm(before.forward),flatNorm(after.forward)),entryStraight=dot(entryGate.forward,before.forward),exitStraight=dot(exitGate.forward,after.forward);
-    console.log(`RAMPAGE parallel gates: width=${roadWidth.toFixed(2)}m across=${across.toFixed(2)}m along=${along.toFixed(2)}m parallel=${parallel.toFixed(3)} entryStraight=${entryStraight.toFixed(3)} exitStraight=${exitStraight.toFixed(3)}`);
-    assert.ok(Math.abs(across-roadWidth)<.85,`${selected}: entry/exit road centerlines are not separated by one road width (across=${across.toFixed(2)}m width=${roadWidth.toFixed(2)}m)`);
-    assert.ok(along<.85,`${selected}: entry/exit gates are staggered along the road instead of side-by-side (${along.toFixed(2)}m)`);
+    const expectedAcross=roadWidth*2,edgeGap=across-roadWidth,diameter=maxY-minY,expectedDiameter=roadWidth*5,innerOpening=diameter-roadWidth;
+    console.log(`RAMPAGE dimension ratios: width=${roadWidth.toFixed(2)}m across=${across.toFixed(2)}m edgeGap=${edgeGap.toFixed(2)}m diameter=${diameter.toFixed(2)}m opening=${innerOpening.toFixed(2)}m parallel=${parallel.toFixed(3)} entryStraight=${entryStraight.toFixed(3)} exitStraight=${exitStraight.toFixed(3)}`);
+    assert.ok(Math.abs(across-expectedAcross)<1.0,`${selected}: parallel road centreline spacing is not 2W (across=${across.toFixed(2)}m expected=${expectedAcross.toFixed(2)}m)`);
+    assert.ok(edgeGap>roadWidth*.85,`${selected}: parallel road edges do not leave roughly one full road width of clear gap (${edgeGap.toFixed(2)}m)`);
+    assert.ok(Math.abs(diameter-expectedDiameter)<roadWidth*.45,`${selected}: loop diameter is not approximately 5W (diameter=${diameter.toFixed(2)}m expected=${expectedDiameter.toFixed(2)}m)`);
+    assert.ok(innerOpening>roadWidth*3.5,`${selected}: visible loop opening is too small relative to road width (${innerOpening.toFixed(2)}m)`);
+    assert.ok(along<1.0,`${selected}: entry/exit gates are staggered along the road instead of side-by-side (${along.toFixed(2)}m)`);
     assert.ok(parallel>.97,`${selected}: roads before and after loop are not parallel (dot=${parallel.toFixed(3)})`);
     assert.ok(entryStraight>.96,`${selected}: loop entry does not connect straight to incoming road (dot=${entryStraight.toFixed(3)})`);
     assert.ok(exitStraight>.96,`${selected}: loop exit does not connect straight to outgoing road (dot=${exitStraight.toFixed(3)})`);
@@ -59,17 +63,14 @@ for(const [index,loop] of loops.entries()){
     const N=360,points=[];
     for(let i=0;i<=N;i++){
       const s=loop.startS+span*i/N,p=racePointAt(s);
-      if(p.y<minY+4.2)points.push({i,s,p});
+      if(p.y<minY+5.2)points.push({i,s,p});
     }
     for(let a=0;a<points.length;a++)for(let b=a+1;b<points.length;b++){
       if(points[b].i-points[a].i<N*.22)continue;
       const p=points[a].p,q=points[b].p,d=Math.hypot(p.x-q.x,p.z-q.z);
       lowerClearance=Math.min(lowerClearance,d);
     }
-    // The reference geometry intentionally puts the two straight centrelines
-    // one road width apart.  The curved lower shoulders may be slightly closer,
-    // but must not collapse back into the old overlapping-throat shape.
-    assert.ok(lowerClearance>roadWidth*.72,`${selected}: lower loop collapses despite parallel gate spacing (clearance=${lowerClearance.toFixed(2)}m width=${roadWidth.toFixed(2)}m)`);
+    assert.ok(lowerClearance>roadWidth*1.35,`${selected}: lower loop collapses despite 2W gate spacing (clearance=${lowerClearance.toFixed(2)}m width=${roadWidth.toFixed(2)}m)`);
   }
 
   const late=racePointAt(loop.endS-2.0),exitFacing=dot(late.forward,after.forward),exitNormal=dot(racePointAt(loop.endS-.04).up,after.up);
