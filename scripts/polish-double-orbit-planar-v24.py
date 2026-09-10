@@ -44,13 +44,8 @@ def apply_double_orbit_planar_v24(target: Path) -> None:
 
     replacement = """  if(doubleOrbit){
    const startFrame=roadFrameAt(startT),endFrame=roadFrameAt(endT),worldUp={x:0,y:1,z:0};
-   // Both rings use the vector between their authored centres. This keeps the
-   // two loop planes parallel/coplanar instead of inheriting different yaw from
-   // the curved figure-eight underneath them.
    const pairA=baseAt(loopCenters[0]),pairB=baseAt(loopCenters[1]),pairAxis=horizontal(sub(pairB,pairA)),startH=horizontal(startFrame.forward)||norm(startFrame.forward),ringForward=pairAxis||startH;
    let ringRight=norm(cross(worldUp,ringForward));if(len(ringRight)<.2)ringRight=startFrame.right;const ringUp=norm(cross(ringForward,ringRight));
-   // A small open lower gap gives distinct rising/falling legs, matching the
-   // toy-track reference while leaving almost the entire silhouette circular.
    const open=.30,ringBottom=baseAt(startCenter),circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBottom,mul(ringForward,LOOP_R*sn)),mul(ringUp,LOOP_R*(1-c))),tangent=norm(add(mul(ringForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(ringForward,-sn)));return{pos,tangent,up};};
    const ringEntry=circleAt(open),ringExit=circleAt(TAU-open);
    const hermiteDO=(p0,t0,p1,t1,s0,s1,u)=>{const u2=u*u,u3=u2*u,h00=2*u3-3*u2+1,h10=u3-2*u2+u,h01=-2*u3+3*u2,h11=u3-u2;return{x:p0.x*h00+t0.x*s0*h10+p1.x*h01+t1.x*s1*h11,y:p0.y*h00+t0.y*s0*h10+p1.y*h01+t1.y*s1*h11,z:p0.z*h00+t0.z*s0*h10+p1.z*h01+t1.z*s1*h11};};
@@ -78,10 +73,6 @@ def apply_double_orbit_planar_v24(target: Path) -> None:
 
     physics = target / 'physics3d.js'
     s = physics.read_text()
-    # v8 already inserts the final-jump attitude call immediately before the
-    # runoff helper. Attach the new loop guide in front of that stable pair so
-    # the complete generated pipeline, rather than an older v5 hook string, is
-    # the anchor.
     hook_old = "doubleOrbitFinalJumpAttitude(w,c,ctx,acc);doubleOrbitExitRunoff(w,c,acc,ctx);"
     hook_new = "doubleOrbitLoopGuide(w,c,acc,ctx);doubleOrbitFinalJumpAttitude(w,c,ctx,acc);doubleOrbitExitRunoff(w,c,acc,ctx);"
     s = one(s, hook_old, hook_new, 'physics hook')
@@ -93,32 +84,17 @@ def apply_double_orbit_planar_v24(target: Path) -> None:
   if(w.mode!=='racing'||activeCourse.id!=='double-orbit'||!c?.p3)return;
   const b=c.p3,q=c.trackS??0,road=racePointAt(q);if(road.kind!=='loop')return;
   const loop=raceLoopAt(q),vel={x:b.vx,y:b.vy,z:b.vz},omega={x:b.wx,y:b.wy,z:b.wz},rel={x:b.px-road.x,y:b.py-road.y,z:b.pz-road.z},height=dot(rel,road.up),forwardSpeed=dot(vel,road.forward),normalSpeed=dot(vel,road.up),lateral=dot(rel,road.right),sideSpeed=dot(vel,road.right);
-  // Keep a car close enough for real tyre/suspension contact to resume. All
-  // corrections are bounded forces; a car genuinely launched >5 m away stays
-  // free and can still crash out of the stunt.
   if(height<-.45||height>4.8)return;
   const target=c.id===0?23.5:21.5,driveAccel=forwardSpeed<target?ctx.clamp((target-forwardSpeed)*(c.id===0?6.8:5.4),0,c.id===0?42:34):0;
   if(driveAccel>0)addForce(acc,mul(road.forward,driveAccel*b.mass));
   const laneGoal=c.id===0?0:ctx.clamp((c.loopLane??0)*.48,-2.25,2.25),sideAccel=ctx.clamp((laneGoal-lateral)*5.0-sideSpeed*5.8,-38,38);addForce(acc,mul(road.right,sideAccel*b.mass));
   const speed=Math.max(8,Math.max(0,forwardSpeed)),ride=.92,centripetal=speed*speed/Math.max(4,loop.radius),normalAccel=ctx.clamp(centripetal*.56+(ride-height)*11.5-normalSpeed*4.8,0,38);addForce(acc,mul(road.up,normalAccel*b.mass));
-  // Follow the measured road curvature through the 180-degree crown. This
-  // avoids the cross-product attitude spring's shortest-path ambiguity while
-  // still applying only a physical moment around the road-right axis.
   const ds=.48,rb=racePointAt(q-ds),ra=racePointAt(q+ds),curve=cross(rb.forward,ra.forward),curvature=dot(curve,road.right)/(2*ds),desiredPitch=ctx.clamp(curvature*speed,-5.2,5.2),pitchRate=dot(omega,road.right),pitchTorque=ctx.clamp((desiredPitch-pitchRate)*b.mass*9.2,-46*b.mass,46*b.mass),pt=mul(road.right,pitchTorque);acc.tx+=pt.x;acc.ty+=pt.y;acc.tz+=pt.z;
 }
 
 """
     s = s.replace(anchor, guide + anchor, 1)
     physics.write_text(s)
-
-    # Course identity in the old shared track renderer still said RAMPAGE 3D.
-    # Make only the generated DOUBLE ORBIT presentation identify itself.
-    view = target / 'track-view.js'
-    s = view.read_text()
-    old_banner = "const banner=sign('RAMPAGE 3D',22,2.2);"
-    new_banner = "const banner=sign(activeCourse.id==='double-orbit'?'DOUBLE ORBIT':'RAMPAGE 3D',22,2.2);"
-    s = one(s, old_banner, new_banner, 'start banner')
-    view.write_text(s)
 
 
 if __name__ == '__main__':
