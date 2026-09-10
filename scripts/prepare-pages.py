@@ -46,6 +46,7 @@ apply_rampage_reference_loop_v11 = load_function('polish-rampage-reference-loop-
 apply_rampage_parallel_loop_v12 = load_function('polish-rampage-parallel-loop-v12.py', 'break_cars_rampage_parallel_loop_v12', 'apply_rampage_parallel_loop_v12')
 apply_rampage_omega_entry_v13 = load_function('tune-rampage-omega-entry-v13.py', 'break_cars_rampage_omega_entry_v13', 'apply_rampage_omega_entry_v13')
 apply_double_orbit_reference_v23 = load_function('polish-double-orbit-reference-v23.py', 'break_cars_double_orbit_reference_v23', 'apply_double_orbit_reference_v23')
+apply_double_orbit_planar_v24 = load_function('polish-double-orbit-planar-v24.py', 'break_cars_double_orbit_planar_v24', 'apply_double_orbit_planar_v24')
 
 source = Path('dist')
 target = Path('_site')
@@ -93,8 +94,10 @@ apply_rampage_parallel_loop_v12(target)
 # guide velocity through it with forces only, after final geometry is known.
 apply_rampage_omega_entry_v13(target)
 # DOUBLE ORBIT is the two-loop course from the supplied toy-track reference.
-# Apply its final visual topology only after every RAMPAGE exact-string patch.
+# First move the two insertion gates together, then replace the legacy helix
+# with two parallel circular rings and a force-only traversal guide.
 apply_double_orbit_reference_v23(target)
+apply_double_orbit_planar_v24(target)
 
 # Keep final public visual verification tied to the exact deploy SHA, including
 # late RAMPAGE dressing/visibility changes that do not alter vehicle physics.
