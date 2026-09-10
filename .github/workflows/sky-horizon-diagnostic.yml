@@ -1,0 +1,50 @@
+name: SKY FORGE slow-seed horizon diagnostic
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/sky-horizon-diagnostic.yml"
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare game
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: python3 scripts/prepare-pages.py
+      - name: Measure natural finish horizon
+        run: |
+          cat > /tmp/sky-horizon.mjs <<'EOF'
+          globalThis.location={search:'?course=sky-forge'};
+          const physics=await import(`${process.cwd()}/_site/physics.js?d=${Date.now()}`);
+          const p3=await import(`${process.cwd()}/_site/physics3d.js?d=${Date.now()}`);
+          const racing=await import(`${process.cwd()}/_site/racing.js?d=${Date.now()}`);
+          const {makeWorld,step}=physics;const {samplePhysicsSurface}=p3;const {trackPoint,LENGTH}=racing;
+          const seeds=[17,31,2468,99991],limit=3000,target=LENGTH*.985;
+          const bodyUp=b=>({x:2*(b.qx*b.qy-b.qz*b.qw),y:1-2*(b.qx*b.qx+b.qz*b.qz),z:2*(b.qy*b.qz+b.qx*b.qw)});
+          const results=[];
+          for(const seed of seeds){
+            const w=makeWorld(0,seed,'racing');w.done=false;w.endAt=999;w.limit=999;
+            for(const other of w.cars.slice(1)){other.finished=true;other.dead=false;other.vx=other.vz=0;}
+            const c=w.cars[0];let auto=0,maxTimer=0,longestStuck=0,stuck=0,frames=0,first2200=null,first2400=null,first2600=null,first2800=null;
+            for(;frames<limit&&!w.done&&c.raceDistance<target;frames++){
+              step(w,{},1/60,true);const b=c.p3;if(!b)continue;const up=bodyUp(b),surface=samplePhysicsSurface('racing',b.px,b.py,b.pz,up,true,c.trackS),road=trackPoint(c.trackS||0),speed=Math.hypot(b.vx,b.vy,b.vz);
+              if(speed<1.4){stuck++;longestStuck=Math.max(longestStuck,stuck);}else stuck=0;
+              maxTimer=Math.max(maxTimer,c.autoUprightTime||0);
+              for(const e of w.events)if(e.type==='auto-upright')auto++;
+              const snap=()=>({distance:+c.raceDistance.toFixed(2),trackS:+c.trackS.toFixed(2),speed:+speed.toFixed(2),kind:road.kind,timer:+(c.autoUprightTime||0).toFixed(3),wheels:b.groundedWheels,y:+b.py.toFixed(2)});
+              if(frames===2199)first2200=snap();
+              if(frames===2399)first2400=snap();
+              if(frames===2599)first2600=snap();
+              if(frames===2799)first2800=snap();
+            }
+            results.push({seed,finished:c.raceDistance>=target,finishFrame:frames,finishSeconds:+(frames/60).toFixed(2),distance:+c.raceDistance.toFixed(2),auto,maxTimer:+maxTimer.toFixed(3),longestStuck:+(longestStuck/60).toFixed(2),at2200:first2200,at2400:first2400,at2600:first2600,at2800:first2800});
+          }
+          console.log(JSON.stringify({length:LENGTH,target:+target.toFixed(2),limit,results},null,2));
+          if(results.some(r=>!r.finished||r.auto||r.longestStuck>2.5))process.exitCode=1;
+          EOF
+          node /tmp/sky-horizon.mjs
