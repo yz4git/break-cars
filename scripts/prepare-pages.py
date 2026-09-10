@@ -43,6 +43,7 @@ apply_course_specific_loop_geometry_v9 = load_function('polish-course-specific-l
 apply_rampage_reference_loop_v10 = load_function('polish-rampage-reference-loop-v10.py', 'break_cars_rampage_reference_loop_v10', 'apply_rampage_reference_loop_v10')
 apply_rampage_reference_loop_v11 = load_function('polish-rampage-reference-loop-v11.py', 'break_cars_rampage_reference_loop_v11', 'apply_rampage_reference_loop_v11')
 apply_rampage_parallel_loop_v12 = load_function('polish-rampage-parallel-loop-v12.py', 'break_cars_rampage_parallel_loop_v12', 'apply_rampage_parallel_loop_v12')
+apply_rampage_omega_entry_v13 = load_function('tune-rampage-omega-entry-v13.py', 'break_cars_rampage_omega_entry_v13', 'apply_rampage_omega_entry_v13')
 
 source = Path('dist')
 target = Path('_site')
@@ -83,8 +84,11 @@ apply_double_orbit_pack_v7(target)
 apply_racing_sign_visibility_v4(target)
 apply_rampage_reference_loop_v11(target)
 # Final RAMPAGE geometry rule from the visual reference: two straight parallel
-# road centrelines one road-width apart, directly joined by one clean loop.
+# road centrelines 2W apart, joined by C2 lower legs to one 5W planar Omega.
 apply_rampage_parallel_loop_v12(target)
+# The C2 lower leg has a faster tangent rotation than the old twisted ribbon;
+# guide velocity through it with forces only, after final geometry is known.
+apply_rampage_omega_entry_v13(target)
 
 # Keep final public visual verification tied to the exact deploy SHA, including
 # late RAMPAGE dressing/visibility changes that do not alter vehicle physics.
