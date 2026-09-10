@@ -86,6 +86,11 @@ def apply_rampage_omega_entry_v13(target: Path) -> None:
     hud_v19 = load_patch('polish-rampage-omega-hud-v19.py', 'break_cars_rampage_omega_hud_v19')
     hud_v19.apply_rampage_omega_hud_v19(target)
 
+    # Keep the opening identity cue, but clear the upper frame well before the
+    # player reaches the Omega so the set-piece becomes the visual focus.
+    toast_v20 = load_patch('polish-rampage-opening-toast-v20.py', 'break_cars_rampage_opening_toast_v20')
+    toast_v20.apply_rampage_opening_toast_v20(target)
+
     audit = load_patch('add-rampage-live-audit-start-v14.py', 'break_cars_rampage_live_audit_v14')
     audit.apply_rampage_live_audit_start_v14(target)
 
