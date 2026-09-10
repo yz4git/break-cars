@@ -4,9 +4,9 @@ RAMPAGE is one continuous road: ordinary approach -> gentle lower entry leg ->
 clean vertical circular revolution -> gentle lower exit leg -> ordinary road.
 The visible upper loop is strictly planar. The only 3D twist is hidden in the
 open lower throat, where entry and exit are separated along the loop-plane
-normal so the wide race ribbons cannot intersect physically. From the dedicated
-side camera that depth separation collapses visually into the compact crossover
-seen on a real toy-track Omega loop instead of a warped barrel.
+normal so the race ribbons cannot intersect physically. From the dedicated side
+camera that depth separation collapses visually into the compact crossover seen
+on a real toy-track Omega loop instead of a warped barrel.
 
 The ring is centered between the authored gates rather than dragged from one gate
 toward the other. This removes the long diagonal ramp/chord that previously cut
@@ -32,7 +32,7 @@ def apply_rampage_reference_loop_v11(target: Path) -> None:
 
     start = s.index("const open=.70,entryEnd=.12,exitStart=.88")
     end = s.index("const hermiteOpen=", start)
-    omega_ring = """const open=.30,entryEnd=.18,exitStart=.82,arc=TAU-open*2,joinLift=.78,throatDepth=18.0,depthWindow=.38;\n   const gateMid=mul(add(startFrame.p,endFrame.p),.5),gapAlong=LOOP_R*Math.sin(open),ringEntryBase=add(add(gateMid,mul(loopForward,gapAlong)),mul(ringUp,joinLift));\n   const depthAt=q=>{const a=1-smooth01(q/depthWindow),b=1-smooth01((1-q)/depthWindow);return outwardSign*throatDepth*(a-b);};\n   const ringPoint=q=>{\n    const th=open+arc*clamp(q,0,1),c=Math.cos(th),sn=Math.sin(th),circle=add(mul(loopForward,LOOP_R*(sn-Math.sin(open))),mul(ringUp,LOOP_R*(Math.cos(open)-c))),pos=add(add(ringEntryBase,circle),mul(flatRight,depthAt(q))),radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};\n   };\n   const ringEntry=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ringEntry.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos)),entryLaunchT=norm(add(startFrame.forward,mul(ringUp,.28)));\n   """
+    omega_ring = """const open=.50,entryEnd=.18,exitStart=.82,arc=TAU-open*2,joinLift=.78,throatDepth=13.0,depthWindow=.30;\n   const gateMid=mul(add(startFrame.p,endFrame.p),.5),gapAlong=LOOP_R*Math.sin(open),ringEntryBase=add(add(gateMid,mul(loopForward,gapAlong)),mul(ringUp,joinLift));\n   const depthAt=q=>{const a=1-smooth01(q/depthWindow),b=1-smooth01((1-q)/depthWindow);return outwardSign*throatDepth*(a-b);};\n   const ringPoint=q=>{\n    const th=open+arc*clamp(q,0,1),c=Math.cos(th),sn=Math.sin(th),circle=add(mul(loopForward,LOOP_R*(sn-Math.sin(open))),mul(ringUp,LOOP_R*(Math.cos(open)-c))),pos=add(add(ringEntryBase,circle),mul(flatRight,depthAt(q))),radial=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,up:radial};\n   };\n   const ringEntry=ringPoint(0),ringExit=ringPoint(1),dq=.001,entryT=norm(sub(ringPoint(dq).pos,ringEntry.pos)),exitT=norm(sub(ringExit.pos,ringPoint(1-dq).pos)),entryLaunchT=norm(add(startFrame.forward,mul(ringUp,.28)));\n   """
     s = s[:start] + omega_ring + s[end:]
 
     s = one(
