@@ -1,9 +1,9 @@
 """DOUBLE ORBIT v23: place two near-circular vertical loops side-by-side.
 
 The reference toy track shows two matching vertical rings next to each other,
-not one loop on each side of the circuit.  Keep the existing race topology,
+not one loop on each side of the circuit. Keep the existing race topology,
 physics model and loop radius, but move both loop insertions onto the same
-right-hand lobe where the base road headings are already similar.  Narrow the
+right-hand lobe where the base road headings are already similar. Narrow the
 loop ribbon and remove the old horizontal stretch so each ring reads as a
 circle instead of a wide helix.
 
@@ -26,7 +26,7 @@ def apply_double_orbit_reference_v23(target: Path) -> None:
 
     # Keep both insertions on the same visually coherent right-hand lobe.
     # At t=.58 and 1.08 the authored base centres are about 23 m apart while
-    # sharing a similar z/depth, producing the side-by-side silhouette in the
+    # sharing a similar depth, producing the side-by-side silhouette in the
     # supplied reference instead of the previous ~100 m separation.
     s = one(
         s,
@@ -35,12 +35,15 @@ def apply_double_orbit_reference_v23(target: Path) -> None:
         'twin loop centres',
     )
 
-    # Shorter gate intervals make the loop body dominate over the connecting
-    # spine, and the narrowed ribbon restores the toy-track ring proportions.
+    # Keep enough base-road span on each side of the ring for a genuinely
+    # tangent entry/exit. The first .10 experiment made the rings compact but
+    # rotated the first metres of road too abruptly (natural-loop dot=.71).
+    # .16 still leaves a clear gap between the two insertions while restoring
+    # the smooth toy-track run-up into each circle.
     s = one(
         s,
         "const LOOP_HALF_T=(doubleOrbit||skyForge)?.18:.19,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?.44:1;",
-        "const LOOP_HALF_T=doubleOrbit?.10:skyForge?.18:.19,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=doubleOrbit?.50:skyForge?1:.44;",
+        "const LOOP_HALF_T=doubleOrbit?.16:skyForge?.18:.19,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=doubleOrbit?.50:skyForge?1:.44;",
         'gate span and loop width',
     )
 
