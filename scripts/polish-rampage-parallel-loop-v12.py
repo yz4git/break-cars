@@ -5,6 +5,7 @@ Dimensionless reference proportions:
     W = loop road width
     D = 2.0 W       -> one full W of empty space between parallel road edges
     R = 2.5 W       -> outside loop diameter = 5 W
+    S = 3.5 W       -> lateral stage offset from the original course centreline
     opening         -> 2 R - W = 4 W
 
 A full circle cannot connect two laterally separated parallel roads while also
@@ -23,6 +24,12 @@ a quintic Bezier whose position, tangent and curvature match the straight road
 at one end and the circle at the other (C2 geometric join).  This keeps the
 upper ~87% of the revolution perfectly planar instead of twisting the whole
 road ribbon into a wall.
+
+The Omega stage is also offset by S=3.5W from the original figure-eight.  With
+W=7.48 m, the stage offset is 26.18 m; after subtracting the original 8.5 m
+half-width and Omega 3.74 m half-width, the local edge clearance is 13.94 m.
+That prevents the unrelated base road from physically overlapping the loop
+corridor while retaining long smooth Hermite reconnection legs.
 
 SKY FORGE and DOUBLE ORBIT are unchanged.
 """
@@ -48,15 +55,15 @@ def apply_rampage_parallel_loop_v12(target: Path) -> None:
         'road-width-derived RAMPAGE radius',
     )
 
-    # Build two long parallel straights.  D=2W means their inner edges retain
-    # exactly one complete road width of open space.
+    # Build two long parallel straights. D=2W leaves one W between road edges;
+    # S=3.5W moves the complete Omega stage clear of the original figure-eight.
     anchor = "const raw=[];\nconst ts=[];for(let i=0;i<=BASE_STEPS;i++)ts.push(i/BASE_STEPS*TAU);for(const c of loopCenters)ts.push(c-LOOP_HALF_T,c+LOOP_HALF_T);ts.sort((a,b)=>a-b);\nconst insertedLoops=new Set();\n"
     corridor = """const RAMPAGE_ENTRY_T=RAMPAGE_LOOP_T-LOOP_HALF_T,RAMPAGE_EXIT_T=RAMPAGE_LOOP_T+LOOP_HALF_T;
 const rampageWorldUp={x:0,y:1,z:0},rampageBaseMid=baseAt(RAMPAGE_LOOP_T),rampageFD=.0025,rampageFA=baseAt(RAMPAGE_LOOP_T-rampageFD),rampageFB=baseAt(RAMPAGE_LOOP_T+rampageFD);
 const rampageForward=norm({x:rampageFB.x-rampageFA.x,y:0,z:rampageFB.z-rampageFA.z});
 let rampageRight=norm(cross(rampageWorldUp,rampageForward));if(len(rampageRight)<.2)rampageRight={x:1,y:0,z:0};
-const rampageLoopRoadWidth=RACE3D_TRACK.halfWidth*LOOP_LANE_SCALE*2,rampageGateSeparation=rampageLoopRoadWidth*2.0,rampageLoopRadius=rampageLoopRoadWidth*2.5,rampageOutward=(rampageBaseMid.x*rampageRight.x+rampageBaseMid.z*rampageRight.z)>=0?1:-1;
-const rampageGateY=(baseAt(RAMPAGE_ENTRY_T).y+baseAt(RAMPAGE_EXIT_T).y)*.5,rampageGateCenter={x:rampageBaseMid.x+rampageRight.x*rampageOutward*9.5,y:rampageGateY,z:rampageBaseMid.z+rampageRight.z*rampageOutward*9.5};
+const rampageLoopRoadWidth=RACE3D_TRACK.halfWidth*LOOP_LANE_SCALE*2,rampageGateSeparation=rampageLoopRoadWidth*2.0,rampageLoopRadius=rampageLoopRoadWidth*2.5,rampageStageOffset=rampageLoopRoadWidth*3.5,rampageOutward=(rampageBaseMid.x*rampageRight.x+rampageBaseMid.z*rampageRight.z)>=0?1:-1;
+const rampageGateY=(baseAt(RAMPAGE_ENTRY_T).y+baseAt(RAMPAGE_EXIT_T).y)*.5,rampageGateCenter={x:rampageBaseMid.x+rampageRight.x*rampageOutward*rampageStageOffset,y:rampageGateY,z:rampageBaseMid.z+rampageRight.z*rampageOutward*rampageStageOffset};
 const rampageGateA=add(rampageGateCenter,mul(rampageRight,-rampageGateSeparation*.5)),rampageGateB=add(rampageGateCenter,mul(rampageRight,rampageGateSeparation*.5)),rampageOldEntry=baseAt(RAMPAGE_ENTRY_T),rampageOldExit=baseAt(RAMPAGE_EXIT_T);
 const rampageScoreAB=len(sub(rampageOldEntry,rampageGateA))+len(sub(rampageOldExit,rampageGateB)),rampageEntryGate=rampageScoreAB<=len(sub(rampageOldEntry,rampageGateB))+len(sub(rampageOldExit,rampageGateA))?rampageGateA:rampageGateB,rampageExitGate=rampageEntryGate===rampageGateA?rampageGateB:rampageGateA;
 const rampageBlendIn=RAMPAGE_ENTRY_T-.18,rampageStraightIn=RAMPAGE_ENTRY_T-.075,rampageStraightOut=RAMPAGE_EXIT_T+.075,rampageBlendOut=RAMPAGE_EXIT_T+.18,rampageLead=Math.max(20.0,rampageLoopRoadWidth*3.0);
@@ -123,7 +130,7 @@ const insertedLoops=new Set();
     path.write_text(s)
 
     # Camera is scaled from the true R and stays on the clear side of the outer
-    # lobe.  The larger loop is framed as a whole rather than chased from below.
+    # lobe. The larger loop is framed as a whole rather than chased from below.
     game = target / 'game.js'
     s = game.read_text()
     b0 = s.find("if(racingLoop){const s0=raceLoopSpec.startS")
