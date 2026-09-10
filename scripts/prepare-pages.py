@@ -86,6 +86,8 @@ apply_rampage_reference_loop_v11(target)
 # road centrelines one road-width apart, directly joined by one clean loop.
 apply_rampage_parallel_loop_v12(target)
 
+# Keep final public visual verification tied to the exact deploy SHA, including
+# late RAMPAGE dressing/visibility changes that do not alter vehicle physics.
 build = (os.environ.get('DEPLOY_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())[:12]
 for path in target.glob('*.js'):
     text = path.read_text()
