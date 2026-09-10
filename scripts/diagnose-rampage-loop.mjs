@@ -4,12 +4,13 @@ globalThis.location={search:'?course=rampage-3d'};
 const stamp=Date.now();
 const course=await import(`../_site/racing3d.js?diag=${stamp}`);
 const physics=await import(`../_site/physics.js?diag=${stamp}`);
-const {race3DFeatureSpec,racePointAt,raceCourseSamples,RACE3D_LENGTH}=course;
+const {race3DFeatureSpec,racePointAt,raceCourseSamples,projectRacePoint,RACE3D_LENGTH}=course;
 const {makeWorld,step}=physics;
 const spec=race3DFeatureSpec();
 const loop=spec.loop;
 const loopHalf=spec.loopHalfWidth||spec.halfWidth;
-const wrapDelta=(a,b)=>{let d=Math.abs(a-b);if(d>RACE3D_LENGTH/2)d=RACE3D_LENGTH-d;return d;};
+const signedDelta=(a,b)=>{let d=a-b;if(d>RACE3D_LENGTH/2)d-=RACE3D_LENGTH;if(d<-RACE3D_LENGTH/2)d+=RACE3D_LENGTH;return d;};
+const wrapDelta=(a,b)=>Math.abs(signedDelta(a,b));
 
 console.log(`RAMPAGE geom length=${spec.length.toFixed(2)} loop=${loop.startS.toFixed(2)}..${loop.endS.toFixed(2)} half=${loopHalf.toFixed(2)} roadHalf=${spec.halfWidth.toFixed(2)}`);
 
@@ -41,7 +42,7 @@ for(let s=loop.startS;s<=loop.endS;s+=(loop.endS-loop.startS)/16){
 const w=makeWorld(0,2468,'racing');w.endAt=999;w.limit=999;w.done=false;
 for(const c of w.cars.slice(1)){c.finished=true;c.dead=false;c.vx=c.vz=0;}
 const c=w.cars[0];
-let lastBucket=-1,maxRace=c.raceDistance;
+let lastBucket=-1,lastProjectionBucket=-1,maxRace=c.raceDistance;
 for(let frame=0;frame<1900&&!w.done;frame++){
   step(w,{},1/60,true);
   maxRace=Math.max(maxRace,c.raceDistance);
@@ -53,8 +54,17 @@ for(let frame=0;frame<1900&&!w.done;frame++){
     const normal=d.x*road.up.x+d.y*road.up.y+d.z*road.up.z;
     const fv=b.vx*road.forward.x+b.vy*road.forward.y+b.vz*road.forward.z;
     const sv=b.vx*road.right.x+b.vy*road.right.y+b.vz*road.right.z;
-    console.log(`CAR f=${frame} s=${c.trackS.toFixed(2)} race=${c.raceDistance.toFixed(2)} kind=${road.kind} pos=(${b.px.toFixed(2)},${b.py.toFixed(2)},${b.pz.toFixed(2)}) v=${Math.hypot(b.vx,b.vy,b.vz).toFixed(2)} fv=${fv.toFixed(2)} side=${side.toFixed(2)} sv=${sv.toFixed(2)} normal=${normal.toFixed(2)} wheels=${b.groundedWheels} upY=${(1-2*(b.qx*b.qx+b.qz*b.qz)).toFixed(2)}`);
+    console.log(`CAR f=${frame} s=${c.trackS.toFixed(2)} race=${c.raceDistance.toFixed(2)} kind=${road.kind} pos=(${b.px.toFixed(2)},${b.py.toFixed(2)},${b.pz.toFixed(2)}) v=${Math.hypot(b.vx,b.vy,b.vz).toFixed(2)} fv=${fv.toFixed(2)} side=${side.toFixed(2)} sv=${sv.toFixed(2)} normal=${normal.toFixed(2)} wheels=${b.groundedWheels} upY=${(1-2*(b.qx*b.qx+b.qz*b.qz)).toFixed(2)} rejects=${c.projectionRejects||0}`);
+  }
+  const stale=Math.abs(b.py-road.y)>6&&road.kind==='loop';
+  const projectionBucket=Math.floor(frame/6);
+  if(stale&&projectionBucket!==lastProjectionBucket){
+    lastProjectionBucket=projectionBucket;
+    const hinted=projectRacePoint(b.px,b.py,b.pz,c.trackS,true);
+    const free=projectRacePoint(b.px,b.py,b.pz,null,true);
+    const fmt=p=>p?`s=${p.s.toFixed(2)} ds=${signedDelta(p.s,c.trackS).toFixed(2)} y=${p.y.toFixed(2)} lane=${p.lane.toFixed(2)} dist=${p.distance.toFixed(2)} kind=${p.kind}`:'null';
+    console.log(`PROJ f=${frame} hintS=${c.trackS.toFixed(2)} bodyY=${b.py.toFixed(2)} hinted[${fmt(hinted)}] free[${fmt(free)}]`);
   }
 }
-console.log(`END race=${c.raceDistance.toFixed(2)} maxRace=${maxRace.toFixed(2)} s=${c.trackS.toFixed(2)} speed=${Math.hypot(c.p3.vx,c.p3.vy,c.p3.vz).toFixed(2)}`);
+console.log(`END race=${c.raceDistance.toFixed(2)} maxRace=${maxRace.toFixed(2)} s=${c.trackS.toFixed(2)} speed=${Math.hypot(c.p3.vx,c.p3.vy,c.p3.vz).toFixed(2)} rejects=${c.projectionRejects||0}`);
 assert.ok(Number.isFinite(worst.clear));
