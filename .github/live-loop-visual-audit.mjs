@@ -48,10 +48,25 @@ const canvas = page.locator('#scene');
 await canvas.waitFor({ state: 'visible', timeout: 20_000 });
 await page.screenshot({ path: `${outputDir}/01-race-countdown.png`, fullPage: true });
 
-// Let the countdown finish. Each audit sample then advances the actual game by
-// only 350 ms. SwiftShader screenshots can themselves take several seconds, so
-// pause the game around every capture; otherwise a nominal 10.5 s audit can
-// accidentally simulate for minutes while an input key remains held.
+// Read the WebGL canvas from inside the page rather than using Playwright's
+// screenshot pipeline for every frame. SwiftShader screenshots can take several
+// seconds; keeping capture in the page avoids turning a 10.5 s drive into a
+// minutes-long uncontrolled run. The game itself is never paused here.
+async function captureCanvas(path) {
+  const dataUrl = await page.evaluate(() => {
+    const source = document.querySelector('#scene');
+    if (!source) throw new Error('scene canvas missing');
+    const copy = document.createElement('canvas');
+    copy.width = source.width;
+    copy.height = source.height;
+    const ctx = copy.getContext('2d');
+    ctx.drawImage(source, 0, 0);
+    return copy.toDataURL('image/png');
+  });
+  const comma = dataUrl.indexOf(',');
+  await writeFile(path, Buffer.from(dataUrl.slice(comma + 1), 'base64'));
+}
+
 await page.waitForTimeout(3900);
 await page.keyboard.down('ArrowUp');
 
@@ -60,29 +75,21 @@ let simulated = 0;
 for (let i = 0; i < 30; i += 1) {
   await page.waitForTimeout(350);
   simulated += 0.35;
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(80);
   const tag = String(i + 1).padStart(2, '0');
   const speed = await page.locator('#speed b').innerText().catch(() => '');
   const raceState = await page.locator('#race-state').innerText().catch(() => '');
   samples.push({ frame: i + 1, elapsed: Number(simulated.toFixed(2)), speed, raceState });
-  await canvas.screenshot({ path: `${outputDir}/${tag}-canvas.png` });
-  if (i % 3 === 0) await page.screenshot({ path: `${outputDir}/${tag}-full.png`, fullPage: true });
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(80);
+  await captureCanvas(`${outputDir}/${tag}-canvas.png`);
 }
 await page.keyboard.up('ArrowUp').catch(() => {});
 
-// Capture alternate camera views while stationary so the expensive screenshots
-// cannot move the car to an unrelated piece of the figure-eight.
-await page.keyboard.press('Escape');
+// Alternate camera views are captured after the controlled drive with no input.
 await page.keyboard.press('KeyC');
 await page.waitForTimeout(120);
-await canvas.screenshot({ path: `${outputDir}/40-camera-wide.png` });
+await captureCanvas(`${outputDir}/40-camera-wide.png`);
 await page.keyboard.press('KeyC');
 await page.waitForTimeout(120);
-await canvas.screenshot({ path: `${outputDir}/41-camera-overhead.png` });
-await page.keyboard.press('Escape');
+await captureCanvas(`${outputDir}/41-camera-overhead.png`);
 
 const diagnostics = {
   url,
