@@ -13,6 +13,7 @@ on:
       - "scripts/polish-course-specific-loop-geometry-v9.py"
       - "scripts/polish-rampage-reference-loop-v10.py"
       - "scripts/polish-rampage-reference-loop-v11.py"
+      - "scripts/polish-rampage-parallel-loop-v12.py"
       - "scripts/tune-double-orbit-pack-v7.py"
       - "scripts/boost-rampage-loop-v6.py"
       - "scripts/test-natural-loop-connection.mjs"
@@ -69,7 +70,7 @@ jobs:
           mkdir -p /tmp/break-cars-loop-audit
           cp -a artifacts/live-loop-visual-audit/. /tmp/break-cars-loop-audit/
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+yz4git@users.noreply.github.com"
           git checkout --orphan visual-audit
           git rm -rf .
           mkdir -p latest
