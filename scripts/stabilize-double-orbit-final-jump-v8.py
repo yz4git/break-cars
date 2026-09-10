@@ -24,12 +24,13 @@ def apply_double_orbit_final_jump_v8(target: Path) -> None:
     physics = target / 'physics3d.js'
     s = physics.read_text()
 
-    # Insert a separate airborne attitude helper immediately before the existing
-    # DOUBLE ORBIT runoff helper. This keeps v7's ground/runoff behavior intact.
-    anchor = "function doubleOrbitRunoff"
+    # v5 introduced this helper as doubleOrbitExitRunoff; v7 then tunes its
+    # behavior in place. Anchor v8 to the current helper name so the patch stays
+    # compatible with the actual generated physics pipeline.
+    anchor = "function doubleOrbitExitRunoff"
     idx = s.find(anchor)
     if idx < 0:
-        raise RuntimeError('DOUBLE ORBIT final jump v8: runoff helper not found')
+        raise RuntimeError('DOUBLE ORBIT final jump v8: exit runoff helper not found')
 
     helper = r"""function doubleOrbitFinalJumpAttitude(w,c,ctx,acc){
  const loops=RAMPAGE_RACE_SPEC.loops;if(activeCourse.id!=='double-orbit'||!loops||loops.length<2)return;
@@ -50,16 +51,10 @@ def apply_double_orbit_final_jump_v8(target: Path) -> None:
 """
     s = s[:idx] + helper + s[idx:]
 
-    # Call the jump-only helper immediately before v7's runoff helper call. The
-    # exact call site is unique after all earlier physics patches are applied.
-    candidates = [
-        "doubleOrbitRunoff(w,c,ctx,dt,acc);",
-        "doubleOrbitRunoff(w,c,ctx,acc);",
-    ]
-    call = next((x for x in candidates if s.count(x) == 1), None)
-    if call is None:
-        counts = {x:s.count(x) for x in candidates}
-        raise RuntimeError(f'DOUBLE ORBIT final jump v8: runoff call not unique {counts}')
+    # v5 calls doubleOrbitExitRunoff(w,c,acc,ctx). Insert the jump-only helper
+    # immediately before that unique call so all existing runoff behavior is
+    # preserved and only the final-jump attitude moment is added.
+    call = "doubleOrbitExitRunoff(w,c,acc,ctx);"
     s = one(s, call, f"doubleOrbitFinalJumpAttitude(w,c,ctx,acc);{call}", 'attitude call')
     physics.write_text(s)
 
