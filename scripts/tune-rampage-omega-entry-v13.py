@@ -38,13 +38,13 @@ def apply_rampage_omega_entry_v13(target: Path) -> None:
     s = replace_once(
         s,
         "guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40))):road.forward",
-        "guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:entryTransition?.82:.60),mul(ahead.forward,exitBlend?.58:entryTransition?.18:.40))):road.forward",
+        "guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:entryTransition?.84:.60),mul(ahead.forward,exitBlend?.58:entryTransition?.16:.40))):road.forward",
         'entry tangent blend',
     )
     s = replace_once(
         s,
         "guide=crownBand?(b.groundedWheels===0?12.0:10.2):contactArc?(exitBlend?2.0:8.4):6.2",
-        "guide=entryTransition?19.0:crownBand?(b.groundedWheels===0?12.0:10.2):contactArc?(exitBlend?2.0:8.4):6.2",
+        "guide=entryTransition?20.0:crownBand?(b.groundedWheels===0?12.0:10.2):contactArc?(exitBlend?2.0:8.4):6.2",
         'entry cross-velocity damping',
     )
     s = replace_once(
