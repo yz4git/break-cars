@@ -16,30 +16,37 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Compare hidden Omega throat separation candidates
+      - name: Compare slimmer Omega ribbon candidates
         shell: bash
         run: |
           set -u
-          cp scripts/polish-rampage-reference-loop-v11.py /tmp/loop-original.py
-          candidates=(d12w32 d15w32 d15w38 d18w38 d18w44 d22w44)
+          cp scripts/polish-course-specific-loop-geometry-v9.py /tmp/v9-original.py
+          cp scripts/polish-rampage-reference-loop-v11.py /tmp/v11-original.py
+          candidates=(base w50 w46 w44 w42 w40 w38)
           for candidate in "${candidates[@]}"; do
-            cp /tmp/loop-original.py scripts/polish-rampage-reference-loop-v11.py
+            cp /tmp/v9-original.py scripts/polish-course-specific-loop-geometry-v9.py
+            cp /tmp/v11-original.py scripts/polish-rampage-reference-loop-v11.py
             CANDIDATE="$candidate" python3 - <<'PY'
           import os
           from pathlib import Path
-          p=Path('scripts/polish-rampage-reference-loop-v11.py')
-          s=p.read_text()
           c=os.environ['CANDIDATE']
           vals={
-            'd12w32':('12.0','.32'),
-            'd15w32':('15.0','.32'),
-            'd15w38':('15.0','.38'),
-            'd18w38':('18.0','.38'),
-            'd18w44':('18.0','.44'),
-            'd22w44':('22.0','.44'),
+            'base':('.58','.30','18.0','.38'),
+            'w50':('.50','.38','15.0','.34'),
+            'w46':('.46','.44','14.0','.32'),
+            'w44':('.44','.50','13.0','.30'),
+            'w42':('.42','.56','12.0','.28'),
+            'w40':('.40','.62','11.0','.27'),
+            'w38':('.38','.68','10.0','.26'),
           }
-          depth,window=vals[c]
-          s=s.replace('throatDepth=9.0,depthWindow=.30',f'throatDepth={depth},depthWindow={window}')
+          width,opening,depth,window=vals[c]
+          p=Path('scripts/polish-course-specific-loop-geometry-v9.py')
+          s=p.read_text()
+          s=s.replace("LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?.58:1",f"LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?{width}:1")
+          p.write_text(s)
+          p=Path('scripts/polish-rampage-reference-loop-v11.py')
+          s=p.read_text()
+          s=s.replace("const open=.30,entryEnd=.18,exitStart=.82,arc=TAU-open*2,joinLift=.78,throatDepth=18.0,depthWindow=.38;",f"const open={opening},entryEnd=.18,exitStart=.82,arc=TAU-open*2,joinLift=.78,throatDepth={depth},depthWindow={window};")
           p.write_text(s)
           PY
             rm -rf _site
@@ -51,12 +58,20 @@ jobs:
             set +e
             node scripts/test-natural-loop-connection.mjs >/tmp/natural.log 2>&1
             natural=$?
-            node scripts/test-rampage-raceability.mjs >/tmp/race.log 2>&1
-            race=$?
-            node scripts/test-rampage-boost.mjs >/tmp/boost.log 2>&1
-            boost=$?
+            if [ "$natural" -eq 0 ]; then
+              node scripts/test-rampage-raceability.mjs >/tmp/race.log 2>&1
+              race=$?
+              node scripts/test-rampage-boost.mjs >/tmp/boost.log 2>&1
+              boost=$?
+            else
+              race=99
+              boost=99
+              : > /tmp/race.log
+              : > /tmp/boost.log
+            fi
             set -e
             echo "=== $candidate natural=$natural race=$race boost=$boost ==="
             grep -E 'Natural front-entry open loops OK|RAMPAGE lower pair|front-leg advance|RAMPAGE raceability OK|AssertionError|minimum loop sample|RAMPAGE open-loop boost OK|loop speed fell|inverted crown lacks|loop entry should|max .*runaway' /tmp/natural.log /tmp/race.log /tmp/boost.log || true
           done
-          cp /tmp/loop-original.py scripts/polish-rampage-reference-loop-v11.py
+          cp /tmp/v9-original.py scripts/polish-course-specific-loop-geometry-v9.py
+          cp /tmp/v11-original.py scripts/polish-rampage-reference-loop-v11.py
