@@ -22,7 +22,10 @@ const racing=page.locator('[data-mode="racing"]');
 await racing.waitFor({state:'visible',timeout:15000});
 if(!(await racing.getAttribute('aria-pressed')==='true'))await racing.click({force:true});
 await page.locator('#start').click({force:true});
-await page.waitForFunction(()=>window.__breakCarsAuditState?.()?.mode==='race',undefined,{timeout:20000});
+await page.screenshot({path:`${outputDir}/00b-countdown.png`,fullPage:true});
+// Software WebGL can make a nominal 3-second countdown take much longer in
+// wall-clock time. Wait for the game state rather than weakening traversal.
+await page.waitForFunction(()=>window.__breakCarsAuditState?.()?.mode==='race',undefined,{timeout:60000});
 
 const renderer=await page.evaluate(()=>{const c=document.querySelector('#scene');return c?.getContext('webgl2')||c?.getContext('webgl')?'webgl':'none';});
 if(renderer!=='webgl')throw new Error(`WebGL renderer unavailable: ${renderer}`);
@@ -40,7 +43,7 @@ await page.keyboard.press('KeyC');await page.waitForTimeout(60);await resumeRaf(
 
 const samples=[];const loopShots=[false,false],topShots=[false,false],exitShots=[false,false];
 await page.keyboard.down('ArrowUp');
-for(let frame=1;frame<=90;frame++){
+for(let frame=1;frame<=110;frame++){
   await page.waitForTimeout(300);
   const state=await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>resolve(window.__breakCarsAuditState?.()??null))));
   if(!state)continue;
