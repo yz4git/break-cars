@@ -48,32 +48,41 @@ const canvas = page.locator('#scene');
 await canvas.waitFor({ state: 'visible', timeout: 20_000 });
 await page.screenshot({ path: `${outputDir}/01-race-countdown.png`, fullPage: true });
 
-// Let the countdown finish, then drive straight through the first stunt loop.
+// Let the countdown finish. Each audit sample then advances the actual game by
+// only 350 ms. SwiftShader screenshots can themselves take several seconds, so
+// pause the game around every capture; otherwise a nominal 10.5 s audit can
+// accidentally simulate for minutes while an input key remains held.
 await page.waitForTimeout(3900);
 await page.keyboard.down('ArrowUp');
 
 const samples = [];
-const started = Date.now();
+let simulated = 0;
 for (let i = 0; i < 30; i += 1) {
   await page.waitForTimeout(350);
-  const elapsed = (Date.now() - started) / 1000;
+  simulated += 0.35;
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(80);
   const tag = String(i + 1).padStart(2, '0');
   const speed = await page.locator('#speed b').innerText().catch(() => '');
   const raceState = await page.locator('#race-state').innerText().catch(() => '');
-  samples.push({ frame: i + 1, elapsed: Number(elapsed.toFixed(2)), speed, raceState });
+  samples.push({ frame: i + 1, elapsed: Number(simulated.toFixed(2)), speed, raceState });
   await canvas.screenshot({ path: `${outputDir}/${tag}-canvas.png` });
   if (i % 3 === 0) await page.screenshot({ path: `${outputDir}/${tag}-full.png`, fullPage: true });
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(80);
 }
 await page.keyboard.up('ArrowUp').catch(() => {});
 
-// Also capture two alternate camera views after the run, useful for reading
-// whether a lower road segment passes through or underneath the loop geometry.
+// Capture alternate camera views while stationary so the expensive screenshots
+// cannot move the car to an unrelated piece of the figure-eight.
+await page.keyboard.press('Escape');
 await page.keyboard.press('KeyC');
-await page.waitForTimeout(300);
+await page.waitForTimeout(120);
 await canvas.screenshot({ path: `${outputDir}/40-camera-wide.png` });
 await page.keyboard.press('KeyC');
-await page.waitForTimeout(300);
+await page.waitForTimeout(120);
 await canvas.screenshot({ path: `${outputDir}/41-camera-overhead.png` });
+await page.keyboard.press('Escape');
 
 const diagnostics = {
   url,
