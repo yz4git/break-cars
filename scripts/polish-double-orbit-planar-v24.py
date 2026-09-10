@@ -78,8 +78,12 @@ def apply_double_orbit_planar_v24(target: Path) -> None:
 
     physics = target / 'physics3d.js'
     s = physics.read_text()
-    hook_old = "wheelForces(w,c,u,ctx,dt,acc);rampageExitStabilizer(w,c,acc,ctx);openLoopContactAssist(w,c,acc,ctx);doubleOrbitExitRunoff(w,c,acc,ctx);skyForgeExitGuide(w,c,acc,ctx);"
-    hook_new = "wheelForces(w,c,u,ctx,dt,acc);rampageExitStabilizer(w,c,acc,ctx);openLoopContactAssist(w,c,acc,ctx);doubleOrbitLoopGuide(w,c,acc,ctx);doubleOrbitExitRunoff(w,c,acc,ctx);skyForgeExitGuide(w,c,acc,ctx);"
+    # v8 already inserts the final-jump attitude call immediately before the
+    # runoff helper. Attach the new loop guide in front of that stable pair so
+    # the complete generated pipeline, rather than an older v5 hook string, is
+    # the anchor.
+    hook_old = "doubleOrbitFinalJumpAttitude(w,c,ctx,acc);doubleOrbitExitRunoff(w,c,acc,ctx);"
+    hook_new = "doubleOrbitLoopGuide(w,c,acc,ctx);doubleOrbitFinalJumpAttitude(w,c,ctx,acc);doubleOrbitExitRunoff(w,c,acc,ctx);"
     s = one(s, hook_old, hook_new, 'physics hook')
 
     anchor = "function doubleOrbitExitRunoff(w,c,acc,ctx){"
