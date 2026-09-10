@@ -17,6 +17,22 @@ jobs:
         env:
           DEPLOY_SHA: ${{ github.sha }}
         run: python3 scripts/prepare-pages.py
+      - name: Probe loop entry geometry
+        run: |
+          cat > /tmp/probe-double-orbit-entry.mjs <<'EOF'
+          globalThis.location={search:'?course=double-orbit'};
+          const m=await import(`${process.cwd()}/_site/racing3d.js?probe=${Date.now()}`);
+          const spec=m.race3DFeatureSpec(),dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+          for(let i=0;i<spec.loops.length;i++){
+            const loop=spec.loops[i],before=m.racePointAt(loop.startS-.18),gate=m.racePointAt(loop.startS+.04);
+            console.log(`ENTRY_PROBE loop=${i+1} beforeS=${(loop.startS-.18).toFixed(3)} beforeY=${before.y.toFixed(5)} gateY=${gate.y.toFixed(5)} gateDY=${(gate.y-before.y).toFixed(5)} gateUp=${dot(gate.up,before.up).toFixed(5)}`);
+            for(const d of [0,.04,.25,.5,1,1.5,2]){
+              const p=m.racePointAt(loop.startS+d);
+              console.log(`ENTRY_PROBE loop=${i+1} d=${d.toFixed(2)} y=${p.y.toFixed(5)} dy=${(p.y-before.y).toFixed(5)} facing=${dot(p.forward,before.forward).toFixed(5)} up=${dot(p.up,before.up).toFixed(5)} kind=${p.kind}`);
+            }
+          }
+          EOF
+          node /tmp/probe-double-orbit-entry.mjs
       - name: Trace 12-car pack through both open loops
         run: |
           cat > /tmp/double-orbit.mjs <<'EOF'
