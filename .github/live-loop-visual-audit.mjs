@@ -48,6 +48,8 @@ const canvas = page.locator('#scene');
 await canvas.waitFor({ state: 'visible', timeout: 20_000 });
 await page.screenshot({ path: `${outputDir}/01-race-countdown.png`, fullPage: true });
 
+// SwiftShader screenshot encoding is expensive. Keep all 30 physics/HUD samples,
+// but freeze and encode only representative visual checkpoints through the Omega.
 async function freezeRaf() {
   await page.evaluate(() => {
     if (window.__breakCarsAuditRafFrozen) return;
@@ -75,22 +77,33 @@ async function resumeRaf() {
   });
 }
 
+async function readSample() {
+  return page.evaluate(() => ({
+    speed: document.querySelector('#speed b')?.textContent ?? '',
+    raceState: document.querySelector('#race-state')?.textContent ?? '',
+    telemetry: window.__breakCarsAuditState?.() ?? null,
+  }));
+}
+
 await page.waitForTimeout(3900);
 await page.keyboard.down('ArrowUp');
 
 const samples = [];
+const captureFrames = new Set([7, 10, 12, 14, 16, 18, 21, 25, 30]);
 let simulated = 0;
 for (let i = 0; i < 30; i += 1) {
+  const frame = i + 1;
   await page.waitForTimeout(350);
   simulated += 0.35;
-  await freezeRaf();
-  const tag = String(i + 1).padStart(2, '0');
-  const speed = await page.locator('#speed b').innerText().catch(() => '');
-  const raceState = await page.locator('#race-state').innerText().catch(() => '');
-  const telemetry = await page.evaluate(() => window.__breakCarsAuditState?.() ?? null);
-  samples.push({ frame: i + 1, elapsed: Number(simulated.toFixed(2)), speed, raceState, telemetry });
-  await canvas.screenshot({ path: `${outputDir}/${tag}-canvas.png` });
-  await resumeRaf();
+  const capture = captureFrames.has(frame);
+  if (capture) await freezeRaf();
+  const sample = await readSample();
+  samples.push({ frame, elapsed: Number(simulated.toFixed(2)), ...sample });
+  if (capture) {
+    const tag = String(frame).padStart(2, '0');
+    await canvas.screenshot({ path: `${outputDir}/${tag}-canvas.png` });
+    await resumeRaf();
+  }
 }
 await page.keyboard.up('ArrowUp').catch(() => {});
 
@@ -127,6 +140,7 @@ const loopHudErrors = loopSamples.flatMap(s => {
 const traversal = {
   telemetrySamples: physicsSamples.length,
   loopSamples: loopSamples.length,
+  visualCaptureFrames: [...captureFrames],
   inverted,
   maxLoopStallSamples,
   maxLoopStallSeconds: Number((maxLoopStallSamples * 0.35).toFixed(2)),
@@ -158,4 +172,4 @@ if (traversal.maxLoopHudSpeedErrorKmh !== null && traversal.maxLoopHudSpeedError
 if (consoleErrors.length) failures.push(`console errors: ${consoleErrors.join(' | ')}`);
 if (pageErrors.length) failures.push(`page errors: ${pageErrors.join(' | ')}`);
 if (failures.length) throw new Error(failures.join(' ; '));
-console.log(`BREAK CARS live WebGL audit OK: ${samples.length} frames, Omega samples=${loopSamples.length}, inverted=${inverted}, progress=${traversal.raceProgress}m, max loop stall=${traversal.maxLoopStallSeconds}s, HUD error=${traversal.maxLoopHudSpeedErrorKmh}km/h`);
+console.log(`BREAK CARS live WebGL audit OK: ${samples.length} telemetry frames, ${captureFrames.size} visual checkpoints, Omega samples=${loopSamples.length}, inverted=${inverted}, progress=${traversal.raceProgress}m, max loop stall=${traversal.maxLoopStallSeconds}s, HUD error=${traversal.maxLoopHudSpeedErrorKmh}km/h`);
