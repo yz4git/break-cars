@@ -97,6 +97,38 @@ await page.waitForFunction(
   undefined,
   { timeout: 20_000 },
 );
+
+// Keep the specific mobile-landscape readability issues that were discovered
+// in live captures from returning: the Japanese camera label must stay on one
+// horizontal line and the radar must remain large/contrasted enough to read.
+const ui = await page.evaluate(() => {
+  const camera = document.querySelector('#camera');
+  const radar = document.querySelector('#radar');
+  const cameraStyle = camera ? getComputedStyle(camera) : null;
+  const radarStyle = radar ? getComputedStyle(radar) : null;
+  const cr = camera?.getBoundingClientRect();
+  const rr = radar?.getBoundingClientRect();
+  return {
+    camera: {
+      text: camera?.textContent?.trim() ?? '',
+      width: cr?.width ?? 0,
+      height: cr?.height ?? 0,
+      clientWidth: camera?.clientWidth ?? 0,
+      clientHeight: camera?.clientHeight ?? 0,
+      scrollWidth: camera?.scrollWidth ?? 0,
+      scrollHeight: camera?.scrollHeight ?? 0,
+      whiteSpace: cameraStyle?.whiteSpace ?? '',
+      writingMode: cameraStyle?.writingMode ?? '',
+    },
+    radar: {
+      width: rr?.width ?? 0,
+      height: rr?.height ?? 0,
+      opacity: Number.parseFloat(radarStyle?.opacity ?? '0'),
+      backgroundColor: radarStyle?.backgroundColor ?? '',
+    },
+  };
+});
+
 await page.keyboard.down('ArrowUp');
 
 const samples = [];
@@ -166,6 +198,7 @@ const diagnostics = {
   url,
   renderer,
   viewport: await page.evaluate(() => ({ width: innerWidth, height: innerHeight, dpr: devicePixelRatio })),
+  ui,
   traversal,
   samples,
   consoleErrors,
@@ -175,6 +208,12 @@ await writeFile(`${outputDir}/diagnostics.json`, JSON.stringify(diagnostics, nul
 await browser.close();
 
 const failures = [];
+if (ui.camera.text !== '視点') failures.push(`camera label changed unexpectedly: ${ui.camera.text}`);
+if (ui.camera.whiteSpace !== 'nowrap' || !ui.camera.writingMode.startsWith('horizontal')) failures.push(`camera label can wrap: white-space=${ui.camera.whiteSpace}, writing-mode=${ui.camera.writingMode}`);
+if (ui.camera.width < 50 || ui.camera.height < 36) failures.push(`camera tap target too small: ${ui.camera.width}x${ui.camera.height}`);
+if (ui.camera.scrollWidth > ui.camera.clientWidth + 1 || ui.camera.scrollHeight > ui.camera.clientHeight + 1) failures.push(`camera label overflows/wraps: client=${ui.camera.clientWidth}x${ui.camera.clientHeight}, scroll=${ui.camera.scrollWidth}x${ui.camera.scrollHeight}`);
+if (ui.radar.width < 82 || ui.radar.height < 82) failures.push(`radar too small in landscape: ${ui.radar.width}x${ui.radar.height}`);
+if (ui.radar.opacity < 0.9) failures.push(`radar contrast opacity too low: ${ui.radar.opacity}`);
 if (physicsSamples.length !== samples.length) failures.push(`telemetry missing on ${samples.length - physicsSamples.length}/${samples.length} frames`);
 if (loopSamples.length < 3) failures.push(`Omega was not captured reliably: ${loopSamples.length} loop samples`);
 if (!inverted) failures.push('player never reached an inverted Omega attitude');
@@ -183,4 +222,4 @@ if (traversal.maxLoopHudSpeedErrorKmh !== null && traversal.maxLoopHudSpeedError
 if (consoleErrors.length) failures.push(`console errors: ${consoleErrors.join(' | ')}`);
 if (pageErrors.length) failures.push(`page errors: ${pageErrors.join(' | ')}`);
 if (failures.length) throw new Error(failures.join(' ; '));
-console.log(`BREAK CARS live WebGL audit OK: ${samples.length} telemetry frames, ${captureFrames.size} visual checkpoints, Omega samples=${loopSamples.length}, inverted=${inverted}, progress=${traversal.raceProgress}m, max loop stall=${traversal.maxLoopStallSeconds}s, HUD error=${traversal.maxLoopHudSpeedErrorKmh}km/h`);
+console.log(`BREAK CARS live WebGL audit OK: ${samples.length} telemetry frames, ${captureFrames.size} visual checkpoints, camera=${ui.camera.width}x${ui.camera.height}, radar=${ui.radar.width}x${ui.radar.height}, Omega samples=${loopSamples.length}, inverted=${inverted}, progress=${traversal.raceProgress}m, max loop stall=${traversal.maxLoopStallSeconds}s, HUD error=${traversal.maxLoopHudSpeedErrorKmh}km/h`);
