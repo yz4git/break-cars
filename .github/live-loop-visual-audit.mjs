@@ -48,23 +48,38 @@ const canvas = page.locator('#scene');
 await canvas.waitFor({ state: 'visible', timeout: 20_000 });
 await page.screenshot({ path: `${outputDir}/01-race-countdown.png`, fullPage: true });
 
-// Read the WebGL canvas from inside the page rather than using Playwright's
-// screenshot pipeline for every frame. SwiftShader screenshots can take several
-// seconds; keeping capture in the page avoids turning a 10.5 s drive into a
-// minutes-long uncontrolled run. The game itself is never paused here.
-async function captureCanvas(path) {
-  const dataUrl = await page.evaluate(() => {
-    const source = document.querySelector('#scene');
-    if (!source) throw new Error('scene canvas missing');
-    const copy = document.createElement('canvas');
-    copy.width = source.width;
-    copy.height = source.height;
-    const ctx = copy.getContext('2d');
-    ctx.drawImage(source, 0, 0);
-    return copy.toDataURL('image/png');
+// SwiftShader canvas screenshots can take several seconds. Freeze the page's
+// *next* requestAnimationFrame callbacks without entering the game's pause mode:
+// already-scheduled frames run once, queue their successor here, then stop. This
+// leaves the actual WebGL frame visible while expensive screenshot encoding runs.
+// Restoring the queued callbacks resumes the game from exactly that frame.
+async function freezeRaf() {
+  await page.evaluate(() => {
+    if (window.__breakCarsAuditRafFrozen) return;
+    window.__breakCarsAuditOriginalRaf = window.requestAnimationFrame;
+    window.__breakCarsAuditQueuedRafs = [];
+    let serial = 1;
+    window.requestAnimationFrame = cb => {
+      window.__breakCarsAuditQueuedRafs.push(cb);
+      return -serial++;
+    };
+    window.__breakCarsAuditRafFrozen = true;
   });
-  const comma = dataUrl.indexOf(',');
-  await writeFile(path, Buffer.from(dataUrl.slice(comma + 1), 'base64'));
+  // Give any RAF already scheduled before the override time to execute once and
+  // place its successor in the queue.
+  await page.waitForTimeout(100);
+}
+
+async function resumeRaf() {
+  await page.evaluate(() => {
+    if (!window.__breakCarsAuditRafFrozen) return;
+    const original = window.__breakCarsAuditOriginalRaf;
+    const queued = window.__breakCarsAuditQueuedRafs || [];
+    window.requestAnimationFrame = original;
+    window.__breakCarsAuditRafFrozen = false;
+    window.__breakCarsAuditQueuedRafs = [];
+    for (const cb of queued) original.call(window, cb);
+  });
 }
 
 await page.waitForTimeout(3900);
@@ -75,21 +90,24 @@ let simulated = 0;
 for (let i = 0; i < 30; i += 1) {
   await page.waitForTimeout(350);
   simulated += 0.35;
+  await freezeRaf();
   const tag = String(i + 1).padStart(2, '0');
   const speed = await page.locator('#speed b').innerText().catch(() => '');
   const raceState = await page.locator('#race-state').innerText().catch(() => '');
   samples.push({ frame: i + 1, elapsed: Number(simulated.toFixed(2)), speed, raceState });
-  await captureCanvas(`${outputDir}/${tag}-canvas.png`);
+  await canvas.screenshot({ path: `${outputDir}/${tag}-canvas.png` });
+  await resumeRaf();
 }
 await page.keyboard.up('ArrowUp').catch(() => {});
 
-// Alternate camera views are captured after the controlled drive with no input.
+await freezeRaf();
 await page.keyboard.press('KeyC');
-await page.waitForTimeout(120);
-await captureCanvas(`${outputDir}/40-camera-wide.png`);
+await page.waitForTimeout(80);
+await canvas.screenshot({ path: `${outputDir}/40-camera-wide.png` });
 await page.keyboard.press('KeyC');
-await page.waitForTimeout(120);
-await captureCanvas(`${outputDir}/41-camera-overhead.png`);
+await page.waitForTimeout(80);
+await canvas.screenshot({ path: `${outputDir}/41-camera-overhead.png` });
+await resumeRaf();
 
 const diagnostics = {
   url,
