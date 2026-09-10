@@ -36,6 +36,7 @@ jobs:
         run: |
           npm install --no-save --package-lock=false playwright@1.55.0
           npx playwright install --with-deps chromium
+      # Keep screenshots tied to the exact deployed commit rather than a stale Pages build.
       - name: Wait for this exact Pages build
         run: |
           set -euo pipefail
