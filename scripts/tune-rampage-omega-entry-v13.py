@@ -81,6 +81,11 @@ def apply_rampage_omega_entry_v13(target: Path) -> None:
     speedometer = load_patch('fix-racing3d-speedometer-v1.py', 'break_cars_racing3d_speedometer_v1')
     speedometer.apply_racing3d_speedometer_v1(target)
 
+    # Camera framing is now stable; reclaim the final bit of Omega throat from
+    # the centre-bottom HUD without touching vehicle physics or camera motion.
+    hud_v19 = load_patch('polish-rampage-omega-hud-v19.py', 'break_cars_rampage_omega_hud_v19')
+    hud_v19.apply_rampage_omega_hud_v19(target)
+
     audit = load_patch('add-rampage-live-audit-start-v14.py', 'break_cars_rampage_live_audit_v14')
     audit.apply_rampage_live_audit_start_v14(target)
 
