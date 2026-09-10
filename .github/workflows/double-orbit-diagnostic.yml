@@ -7,8 +7,12 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
       - name: Prepare game
         env:
           DEPLOY_SHA: ${{ github.sha }}
@@ -28,5 +32,28 @@ jobs:
           }
           const out=stats.map((st,i)=>{const c=w.cars[i],b=c.p3,p=trackPoint(c.trackS||0),rel={x:b.px-p.x,y:b.py-p.y,z:b.pz-p.z};return{id:st.id,d:+c.raceDistance.toFixed(2),s:+c.trackS.toFixed(2),kind:p.kind,loops:[...st.loops],minLane:+st.minLane.toFixed(2),maxLane:+st.maxLane.toFixed(2),maxHeight:+st.maxHeight.toFixed(2),maxAir:+st.maxAir.toFixed(2),recover:st.recover,auto:st.auto,stallAt:st.stallAt,finalLane:+dot(rel,p.right).toFixed(2),finalHeight:+dot(rel,p.up).toFixed(2),speed:+Math.hypot(b.vx,b.vy,b.vz).toFixed(2),dead:c.dead,finished:c.finished};});
           console.log(JSON.stringify({length:spec.length,loops:spec.loops,done:w.done,time:w.time,cars:out},null,2));
+          if(out[0].loops.length!==2)throw new Error(`player failed to enter both loops: ${out[0].loops}`);
           EOF
           node /tmp/double-orbit.mjs
+      - name: Install Playwright
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Serve generated game
+        run: |
+          python3 -m http.server 4173 --directory _site >/tmp/break-cars-http.log 2>&1 &
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/break-cars-http.log
+          exit 1
+      - name: Capture both loops in real WebGL
+        env:
+          BREAK_CARS_AUDIT_URL: http://127.0.0.1:4173/
+        run: node .github/double-orbit-visual-audit.mjs
+      - name: Upload DOUBLE ORBIT visual audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: double-orbit-live-${{ github.sha }}
+          path: artifacts/double-orbit-visual-audit
+          if-no-files-found: error
+          retention-days: 7
