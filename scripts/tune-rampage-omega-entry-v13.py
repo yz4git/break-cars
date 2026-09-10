@@ -64,10 +64,14 @@ def apply_rampage_omega_entry_v13(target: Path) -> None:
     )
     path.write_text(s)
 
-    # Final camera presentation uses the exact v12 geometry but an oblique view
-    # so its physically separated lower legs stay visually separated as an Omega.
-    camera = load_patch('polish-rampage-omega-camera-v15.py', 'break_cars_rampage_omega_camera_v15')
-    camera.apply_rampage_omega_camera_v15(target)
+    # v15 establishes the oblique whole-loop camera from the exact v12 geometry.
+    camera_v15 = load_patch('polish-rampage-omega-camera-v15.py', 'break_cars_rampage_omega_camera_v15')
+    camera_v15.apply_rampage_omega_camera_v15(target)
+
+    # v16 rotates the same-distance orbit farther off-axis so the two lower C2
+    # legs no longer collapse together visually into a closed hoop.
+    camera_v16 = load_patch('polish-rampage-omega-camera-v16.py', 'break_cars_rampage_omega_camera_v16')
+    camera_v16.apply_rampage_omega_camera_v16(target)
 
     # Racing HUD must read the true vx/vy/vz rigid-body speed on vertical road.
     speedometer = load_patch('fix-racing3d-speedometer-v1.py', 'break_cars_racing3d_speedometer_v1')
@@ -75,7 +79,7 @@ def apply_rampage_omega_entry_v13(target: Path) -> None:
 
     # Audit-only start comes last and does not affect ordinary gameplay URLs.
     audit = load_patch('add-rampage-live-audit-start-v14.py', 'break_cars_rampage_live_audit_v14')
-    audit.apply_rampage_live_audit_start_v14(target)
+    audit.apply_rampage_live_visual_audit_start_v14(target) if hasattr(audit, 'apply_rampage_live_visual_audit_start_v14') else audit.apply_rampage_live_audit_start_v14(target)
 
 
 if __name__ == '__main__':
