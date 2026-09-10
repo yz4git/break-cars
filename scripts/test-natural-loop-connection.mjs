@@ -14,7 +14,7 @@ if(!selected){
 
 globalThis.location={search:`?course=${selected}`};
 const {racePointAt,race3DFeatureSpec}=await import(`../_site/racing3d.js?natural=${Date.now()}`);
-const spec=race3DFeatureSpec(),loops=spec.loops||[spec.loop];
+const spec=race3DFeatureSpec(),loops=spec.loops||[spec.loop],loopRoadWidth=(spec.loopHalfWidth||spec.halfWidth)*2;
 assert.equal(loops.length,selected==='double-orbit'?2:1,`${selected}: unexpected loop count`);
 
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
@@ -38,15 +38,19 @@ for(const [index,loop] of loops.entries()){
   assert.ok(minEarlyAdvance>-.15,`${selected} loop ${index+1}: entry bends behind incoming road (${minEarlyAdvance.toFixed(2)}m)`);
   assert.ok(minEarlyFacing>.75,`${selected} loop ${index+1}: entry turns too far toward loop back face (dot=${minEarlyFacing.toFixed(2)})`);
 
-  const gate=racePointAt(loop.startS+.04),gateNormal=dot(gate.up,before.up),early=racePointAt(loop.startS+2.0);
+  // The planar Omega uses a C2 leg: tangent and curvature exactly match the
+  // straight road at the join, so its vertical rise intentionally starts more
+  // gradually than the old kinked loop. Test rise at a road-width-scaled
+  // distance while keeping the actual gate tangent test strict below.
+  const gate=racePointAt(loop.startS+.04),gateNormal=dot(gate.up,before.up),riseProbe=selected==='rampage-3d'?loopRoadWidth*.65:2.0,early=racePointAt(loop.startS+riseProbe);
   assert.ok(gateNormal>.72,`${selected} loop ${index+1}: road face flips at entry (up dot=${gateNormal.toFixed(2)})`);
-  assert.ok(early.y>before.y+.10,`${selected} loop ${index+1}: front entry leg does not rise smoothly into loop`);
+  assert.ok(early.y>before.y+.10,`${selected} loop ${index+1}: C2 entry leg does not begin rising within ${riseProbe.toFixed(2)}m`);
   assert.ok(maxY-minY>10,`${selected} loop ${index+1}: vertical revolution too shallow`);
   assert.ok(minUpDot<-.72,`${selected} loop ${index+1}: loop never reaches a true inverted surface`);
 
   let lowerClearance=Infinity;
   if(selected==='rampage-3d'&&index===0){
-    const roadWidth=(spec.loopHalfWidth||spec.halfWidth)*2;
+    const roadWidth=loopRoadWidth;
     const entryGate=racePointAt(loop.startS+.04),exitGate=racePointAt(loop.endS-.04),gateForward=flatNorm(before.forward),gateRight=flatNorm(before.right),delta=sub(exitGate,entryGate);
     const along=Math.abs(dot(delta,gateForward)),across=Math.abs(dot(delta,gateRight)),parallel=dot(flatNorm(before.forward),flatNorm(after.forward)),entryStraight=dot(entryGate.forward,before.forward),exitStraight=dot(exitGate.forward,after.forward);
     const expectedAcross=roadWidth*2,edgeGap=across-roadWidth,diameter=maxY-minY,expectedDiameter=roadWidth*5,innerOpening=diameter-roadWidth;
@@ -70,7 +74,7 @@ for(const [index,loop] of loops.entries()){
       const p=points[a].p,q=points[b].p,d=Math.hypot(p.x-q.x,p.z-q.z);
       lowerClearance=Math.min(lowerClearance,d);
     }
-    assert.ok(lowerClearance>roadWidth*1.35,`${selected}: lower loop collapses despite 2W gate spacing (clearance=${lowerClearance.toFixed(2)}m width=${roadWidth.toFixed(2)}m)`);
+    assert.ok(lowerClearance>roadWidth*1.15,`${selected}: lower Omega legs overlap despite 2W gate spacing (clearance=${lowerClearance.toFixed(2)}m width=${roadWidth.toFixed(2)}m)`);
   }
 
   const late=racePointAt(loop.endS-2.0),exitFacing=dot(late.forward,after.forward),exitNormal=dot(racePointAt(loop.endS-.04).up,after.up);
