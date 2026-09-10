@@ -62,7 +62,9 @@ function integrateBody(w,c,u,ctx,dt) {
     visual = """ if(activeCourse.id==='rampage-3d'){
   // Visible pads correspond exactly to the physical acceleration/stability zone.
   for(let ss=spec.loop.endS+2;ss<=spec.loop.endS+78;ss+=3.2)for(const lane of [-5.8,-2.9,0,2.9,5.8]){const p=trackPoint(ss,lane),pad=box(group,p.x,p.y,p.z,1.0,.035,1.12,(Math.floor((ss-spec.loop.endS)/3.2)%2)?0xa8f7ff:0x42ddeb,true);align(pad,p);pad.position.add(new THREE.Vector3(p.up.x*.09,p.up.y*.09,p.up.z*.09));}
-  const ep=trackPoint(spec.loop.endS+34,0),es=sign('EXIT STABILIZER',15,1.8);es.position.set(ep.x,ep.y+3.0,ep.z);es.rotation.y=ep.heading+Math.PI/2;group.add(es);
+  // Keep the label as track dressing, but never place a billboard across the
+  // player's post-loop chase line.
+  const ep=trackPoint(spec.loop.endS+34,TRACK.halfWidth+4.2),es=sign('EXIT STABILIZER',9.5,1.15);es.position.set(ep.x,ep.y+2.6,ep.z);es.rotation.y=ep.heading+Math.PI/2;group.add(es);
  }
 """ + marker
     s = one(s, marker, visual, 'visible strip')
