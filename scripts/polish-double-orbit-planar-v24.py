@@ -51,7 +51,12 @@ def apply_double_orbit_planar_v24(target: Path) -> None:
    const hermiteDO=(p0,t0,p1,t1,s0,s1,u)=>{const u2=u*u,u3=u2*u,h00=2*u3-3*u2+1,h10=u3-2*u2+u,h01=-2*u3+3*u2,h11=u3-u2;return{x:p0.x*h00+t0.x*s0*h10+p1.x*h01+t1.x*s1*h11,y:p0.y*h00+t0.y*s0*h10+p1.y*h01+t1.y*s1*h11,z:p0.z*h00+t0.z*s0*h10+p1.z*h01+t1.z*s1*h11};};
    const entryDist=len(sub(ringEntry.pos,startFrame.p)),exitDist=len(sub(endFrame.p,ringExit.pos)),entryScale=clamp(entryDist*.72,4.5,9.5),exitScale=clamp(exitDist*.72,4.5,9.5),LEG_STEPS=Math.max(16,Math.round(LOOP_STEPS*.20)),RING_STEPS=Math.max(64,LOOP_STEPS);
    const pushLeg=(p0,t0,u0,p1,t1,u1,s0,s1,steps,skipFirst=false)=>{for(let j=skipFirst?1:0;j<=steps;j++){const q=j/steps,dq=.18/steps,pos=hermiteDO(p0,t0,p1,t1,s0,s1,q),prev=hermiteDO(p0,t0,p1,t1,s0,s1,Math.max(0,q-dq)),next=hermiteDO(p0,t0,p1,t1,s0,s1,Math.min(1,q+dq)),tangent=norm(sub(next,prev)),seed=mixV(u0,u1,smooth01(q)),up=orthoUp(seed,tangent,ringUp);raw.push({x:pos.x,y:pos.y,z:pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:up,explicitForward:tangent});}};
-   pushLeg(startFrame.p,startFrame.forward,startFrame.up,ringEntry.pos,ringEntry.tangent,ringEntry.up,entryScale,entryScale,LEG_STEPS,false);
+   // A shallow toe-up removes the long visually-flat dead zone before the
+   // circle without creating a sharp ramp. At ~4.6 degrees it starts gaining
+   // height within the first two metres while keeping the gate almost parallel
+   // to the incoming road.
+   const entryToe=norm(add(startFrame.forward,mul(startFrame.up,.08)));
+   pushLeg(startFrame.p,entryToe,startFrame.up,ringEntry.pos,ringEntry.tangent,ringEntry.up,entryScale,entryScale,LEG_STEPS,false);
    for(let j=1;j<=RING_STEPS;j++){const q=j/RING_STEPS,th=open+(TAU-open*2)*q,p=circleAt(th);raw.push({x:p.pos.x,y:p.pos.y,z:p.pos.z,t:startCenter,kind:'loop',bank:0,explicitUp:p.up,explicitForward:p.tangent});}
    pushLeg(ringExit.pos,ringExit.tangent,ringExit.up,endFrame.p,endFrame.forward,endFrame.up,exitScale,exitScale,LEG_STEPS,true);
   }else if(skyForge){
