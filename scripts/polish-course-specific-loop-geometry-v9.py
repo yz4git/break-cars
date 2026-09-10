@@ -23,7 +23,7 @@ def apply_course_specific_loop_geometry_v9(target: Path) -> None:
     start = s.index('const LOOP_HALF_T=')
     end = s.index('// Remove accidental duplicate', start)
 
-    block = r"""const LOOP_HALF_T=(doubleOrbit||skyForge)?.18:.19,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?.58:1;
+    block = r"""const LOOP_HALF_T=(doubleOrbit||skyForge)?.18:.19,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?.44:1;
 const RAMPAGE_LOOP_T=.44,loopCenters=doubleOrbit?[LOOP_T,3.85]:skyForge?[LOOP_T]:[RAMPAGE_LOOP_T];
 const raw=[];
 const ts=[];for(let i=0;i<=BASE_STEPS;i++)ts.push(i/BASE_STEPS*TAU);for(const c of loopCenters)ts.push(c-LOOP_HALF_T,c+LOOP_HALF_T);ts.sort((a,b)=>a-b);
