@@ -24,22 +24,21 @@ def apply_double_orbit_reference_v23(target: Path) -> None:
     path = target / 'racing3d.js'
     s = path.read_text()
 
-    # Keep both insertions on the same visually coherent right-hand lobe.
-    # At t=.58 and 1.08 the authored base centres are about 23 m apart while
-    # sharing a similar depth, producing the side-by-side silhouette in the
-    # supplied reference instead of the previous ~100 m separation.
+    # Put both rings on the same smooth right-hand run. At t=.40 and .75 the
+    # base centres are about 19 m apart for a 17.2 m loop diameter, leaving a
+    # short connector like the supplied toy track. Both gates also remain well
+    # before the sharp tangent rotation around the lobe apex.
     s = one(
         s,
         "const RAMPAGE_LOOP_T=.44,loopCenters=doubleOrbit?[LOOP_T,3.85]:skyForge?[LOOP_T]:[RAMPAGE_LOOP_T];",
-        "const RAMPAGE_LOOP_T=.44,loopCenters=doubleOrbit?[.58,1.08]:skyForge?[LOOP_T]:[RAMPAGE_LOOP_T];",
+        "const RAMPAGE_LOOP_T=.44,loopCenters=doubleOrbit?[.40,.75]:skyForge?[LOOP_T]:[RAMPAGE_LOOP_T];",
         'twin loop centres',
     )
 
     # Keep enough base-road span on each side of the ring for a genuinely
     # tangent entry/exit. The first .10 experiment made the rings compact but
-    # rotated the first metres of road too abruptly (natural-loop dot=.71).
-    # .16 still leaves a clear gap between the two insertions while restoring
-    # the smooth toy-track run-up into each circle.
+    # rotated the first metres of road too abruptly. .16 keeps a short bridge
+    # between the adjacent rings while preserving a smooth approach.
     s = one(
         s,
         "const LOOP_HALF_T=(doubleOrbit||skyForge)?.18:.19,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?.44:1;",
