@@ -96,6 +96,11 @@ def apply_rampage_omega_entry_v13(target: Path) -> None:
     recover_v21 = load_patch('polish-rampage-recover-v21.py', 'break_cars_rampage_recover_v21')
     recover_v21.apply_rampage_recover_v21(target)
 
+    # Fix the last obvious iPhone landscape HUD readability issues seen in the
+    # live captures: keep the camera label on one line and strengthen radar.
+    driving_hud_v22 = load_patch('polish-driving-hud-v22.py', 'break_cars_driving_hud_v22')
+    driving_hud_v22.apply_driving_hud_v22(target)
+
     audit = load_patch('add-rampage-live-audit-start-v14.py', 'break_cars_rampage_live_audit_v14')
     audit.apply_rampage_live_audit_start_v14(target)
 
