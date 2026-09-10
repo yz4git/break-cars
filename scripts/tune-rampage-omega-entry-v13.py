@@ -38,19 +38,19 @@ def apply_rampage_omega_entry_v13(target: Path) -> None:
     s = replace_once(
         s,
         "guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:.60),mul(ahead.forward,exitBlend?.58:.40))):road.forward",
-        "guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:entryTransition?.92:.60),mul(ahead.forward,exitBlend?.58:entryTransition?.08:.40))):road.forward",
+        "guideForward=curveGuide?norm(add(mul(road.forward,exitBlend?.42:entryTransition?.925:.60),mul(ahead.forward,exitBlend?.58:entryTransition?.075:.40))):road.forward",
         'entry tangent blend',
     )
     s = replace_once(
         s,
         "guide=crownBand?(b.groundedWheels===0?12.0:10.2):contactArc?(exitBlend?2.0:8.4):6.2",
-        "guide=entryTransition?23.0:crownBand?(b.groundedWheels===0?12.0:10.2):contactArc?(exitBlend?2.0:8.4):6.2",
+        "guide=entryTransition?23.2:crownBand?(b.groundedWheels===0?12.0:10.2):contactArc?(exitBlend?2.0:8.4):6.2",
         'entry cross-velocity damping',
     )
     s = replace_once(
         s,
         "turnBase=exitBlend?26:12,turnScale=exitBlend?1.55:1.05,turnCap=exitBlend?110:70",
-        "turnBase=exitBlend?26:entryTransition?29:12,turnScale=exitBlend?1.55:entryTransition?1.49:1.05,turnCap=exitBlend?110:entryTransition?112:70",
+        "turnBase=exitBlend?26:entryTransition?29.2:12,turnScale=exitBlend?1.55:entryTransition?1.50:1.05,turnCap=exitBlend?110:entryTransition?114:70",
         'entry steering force',
     )
 
