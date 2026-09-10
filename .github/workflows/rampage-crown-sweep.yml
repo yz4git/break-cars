@@ -46,6 +46,7 @@ jobs:
           p.write_text(s)
           p=Path('scripts/polish-rampage-reference-loop-v11.py')
           s=p.read_text()
+          s=s.replace("LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?.58:1",f"LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?{width}:1")
           s=s.replace("const open=.30,entryEnd=.18,exitStart=.82,arc=TAU-open*2,joinLift=.78,throatDepth=18.0,depthWindow=.38;",f"const open={opening},entryEnd=.18,exitStart=.82,arc=TAU-open*2,joinLift=.78,throatDepth={depth},depthWindow={window};")
           p.write_text(s)
           PY
