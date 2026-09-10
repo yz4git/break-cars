@@ -48,11 +48,6 @@ const canvas = page.locator('#scene');
 await canvas.waitFor({ state: 'visible', timeout: 20_000 });
 await page.screenshot({ path: `${outputDir}/01-race-countdown.png`, fullPage: true });
 
-// SwiftShader canvas screenshots can take several seconds. Freeze the page's
-// *next* requestAnimationFrame callbacks without entering the game's pause mode:
-// already-scheduled frames run once, queue their successor here, then stop. This
-// leaves the actual WebGL frame visible while expensive screenshot encoding runs.
-// Restoring the queued callbacks resumes the game from exactly that frame.
 async function freezeRaf() {
   await page.evaluate(() => {
     if (window.__breakCarsAuditRafFrozen) return;
@@ -65,8 +60,6 @@ async function freezeRaf() {
     };
     window.__breakCarsAuditRafFrozen = true;
   });
-  // Give any RAF already scheduled before the override time to execute once and
-  // place its successor in the queue.
   await page.waitForTimeout(100);
 }
 
@@ -123,6 +116,14 @@ for (const s of loopSamples) {
 const raceProgress = physicsSamples.length > 1
   ? physicsSamples.at(-1).telemetry.raceDistance - physicsSamples[0].telemetry.raceDistance
   : 0;
+const hudErrors = physicsSamples.flatMap(s => {
+  const hud = Number.parseFloat(s.speed);
+  return Number.isFinite(hud) ? [Math.abs(hud - s.telemetry.speedMps * 3.6)] : [];
+});
+const loopHudErrors = loopSamples.flatMap(s => {
+  const hud = Number.parseFloat(s.speed);
+  return Number.isFinite(hud) ? [Math.abs(hud - s.telemetry.speedMps * 3.6)] : [];
+});
 const traversal = {
   telemetrySamples: physicsSamples.length,
   loopSamples: loopSamples.length,
@@ -132,6 +133,8 @@ const traversal = {
   raceProgress: Number(raceProgress.toFixed(2)),
   minLoopSpeedMps: loopSamples.length ? Number(Math.min(...loopSamples.map(s => s.telemetry.speedMps)).toFixed(2)) : null,
   maxLoopSpeedMps: loopSamples.length ? Number(Math.max(...loopSamples.map(s => s.telemetry.speedMps)).toFixed(2)) : null,
+  maxHudSpeedErrorKmh: hudErrors.length ? Number(Math.max(...hudErrors).toFixed(2)) : null,
+  maxLoopHudSpeedErrorKmh: loopHudErrors.length ? Number(Math.max(...loopHudErrors).toFixed(2)) : null,
 };
 
 const diagnostics = {
@@ -151,7 +154,8 @@ if (physicsSamples.length !== samples.length) failures.push(`telemetry missing o
 if (loopSamples.length < 3) failures.push(`Omega was not captured reliably: ${loopSamples.length} loop samples`);
 if (!inverted) failures.push('player never reached an inverted Omega attitude');
 if (maxLoopStallSamples >= 5) failures.push(`player stalled in Omega for ${traversal.maxLoopStallSeconds}s`);
+if (traversal.maxLoopHudSpeedErrorKmh !== null && traversal.maxLoopHudSpeedErrorKmh > 12) failures.push(`3D HUD speed diverged by ${traversal.maxLoopHudSpeedErrorKmh} km/h in Omega`);
 if (consoleErrors.length) failures.push(`console errors: ${consoleErrors.join(' | ')}`);
 if (pageErrors.length) failures.push(`page errors: ${pageErrors.join(' | ')}`);
 if (failures.length) throw new Error(failures.join(' ; '));
-console.log(`BREAK CARS live WebGL audit OK: ${samples.length} frames, Omega samples=${loopSamples.length}, inverted=${inverted}, progress=${traversal.raceProgress}m, max loop stall=${traversal.maxLoopStallSeconds}s`);
+console.log(`BREAK CARS live WebGL audit OK: ${samples.length} frames, Omega samples=${loopSamples.length}, inverted=${inverted}, progress=${traversal.raceProgress}m, max loop stall=${traversal.maxLoopStallSeconds}s, HUD error=${traversal.maxLoopHudSpeedErrorKmh}km/h`);
