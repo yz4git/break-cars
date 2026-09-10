@@ -48,8 +48,8 @@ const canvas = page.locator('#scene');
 await canvas.waitFor({ state: 'visible', timeout: 20_000 });
 await page.screenshot({ path: `${outputDir}/01-race-countdown.png`, fullPage: true });
 
-// SwiftShader screenshot encoding is expensive. Keep all 30 physics/HUD samples,
-// but freeze and encode only representative visual checkpoints through the Omega.
+// SwiftShader screenshots are expensive. Freeze only representative visual
+// checkpoints while retaining a dense 30-sample physics/HUD trace.
 async function freezeRaf() {
   await page.evaluate(() => {
     if (window.__breakCarsAuditRafFrozen) return;
@@ -85,11 +85,17 @@ async function readSample() {
   }));
 }
 
-await page.waitForTimeout(3900);
+// Do not assume a wall-clock countdown duration: SwiftShader can throttle RAF.
+// Start the measurement clock only when the game itself reports race state.
+await page.waitForFunction(
+  () => window.__breakCarsAuditState?.()?.mode === 'race',
+  undefined,
+  { timeout: 20_000 },
+);
 await page.keyboard.down('ArrowUp');
 
 const samples = [];
-const captureFrames = new Set([7, 10, 12, 14, 16, 18, 21, 25, 30]);
+const captureFrames = new Set([1, 3, 5, 7, 9, 12, 16, 22, 30]);
 let simulated = 0;
 for (let i = 0; i < 30; i += 1) {
   const frame = i + 1;
