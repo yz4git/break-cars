@@ -10,6 +10,7 @@ is written directly. The rigid body is steered with force toward the current
 road tangent plus a small look-ahead component.
 """
 from pathlib import Path
+import importlib.util
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
@@ -55,6 +56,15 @@ def apply_rampage_omega_entry_v13(target: Path) -> None:
     )
 
     path.write_text(s)
+
+    # v14 is audit-only. Keep it as the final game.js mutation after the final
+    # RAMPAGE geometry/camera/physics passes so the published visual audit starts
+    # 30 m before the exact production Omega without affecting ordinary URLs.
+    audit_path = Path(__file__).with_name('add-rampage-live-audit-start-v14.py')
+    spec = importlib.util.spec_from_file_location('break_cars_rampage_live_audit_v14', audit_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.apply_rampage_live_audit_start_v14(target)
 
 
 if __name__ == '__main__':
