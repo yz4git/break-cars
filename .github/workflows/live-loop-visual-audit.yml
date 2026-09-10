@@ -19,6 +19,7 @@ on:
       - "scripts/add-rampage-live-audit-start-v14.py"
       - "scripts/polish-rampage-omega-camera-v15.py"
       - "scripts/polish-rampage-omega-camera-v16.py"
+      - "scripts/polish-rampage-omega-camera-v17.py"
       - "scripts/fix-racing3d-speedometer-v1.py"
       - "scripts/tune-double-orbit-pack-v7.py"
       - "scripts/stabilize-double-orbit-final-jump-v8.py"
