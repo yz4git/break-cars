@@ -2,7 +2,10 @@
 
 Move the large loop billboard away from the loop/jump/chase-camera centerline.
 The sign remains as track dressing, but is smaller and sits outside the road at
-loop entry so it cannot cover the player's car during vertical stunts.
+loop entry so it cannot cover the player's car during vertical stunts.  The
+central OVER / UNDER SMASH board is also suppressed only for the narrow RAMPAGE
+loop layout; it otherwise sits directly across the dedicated loop camera sight
+line. SKY FORGE and DOUBLE ORBIT retain that crossing sign.
 
 This transform intentionally runs after the SKY FORGE exit-guide transform, so
 it also gives that physical guide a small recovery margin for rare roof-down
@@ -24,7 +27,11 @@ def apply_racing_sign_visibility_v4(target: Path) -> None:
     s = p.read_text()
     old = "const loopBoard=sign('VERTICAL WRECK LOOP',18,2);const loopP=trackPoint((spec.loop.startS+spec.loop.endS)*.5,0);loopBoard.position.set(loopP.x,loopP.y+2.5,loopP.z-5);loopBoard.rotation.y=loopP.heading+Math.PI/2;group.add(loopBoard);"
     new = "const loopP=trackPoint(spec.loop.startS-7,TRACK.halfWidth+4.2),loopBoard=sign('WRECK LOOP',10.5,1.25);loopBoard.position.set(loopP.x,loopP.y+3.4,loopP.z);loopBoard.rotation.y=loopP.heading+Math.PI/2;group.add(loopBoard);"
-    p.write_text(_replace_once(s, old, new, 'loop-board template'))
+    s = _replace_once(s, old, new, 'loop-board template')
+    old_cross = "const crossSign=sign('OVER / UNDER SMASH',20,2.2);crossSign.position.set(bridge.x,bridge.y+4.3,bridge.z);crossSign.rotation.y=bridge.heading+Math.PI/2;group.add(crossSign);"
+    new_cross = "if((spec.loopHalfWidth||TRACK.halfWidth)>TRACK.halfWidth*.7){const crossSign=sign('OVER / UNDER SMASH',20,2.2);crossSign.position.set(bridge.x,bridge.y+4.3,bridge.z);crossSign.rotation.y=bridge.heading+Math.PI/2;group.add(crossSign);}"
+    s = _replace_once(s, old_cross, new_cross, 'RAMPAGE crossing-board visibility')
+    p.write_text(s)
 
     # The open-loop projection is now locally continuous, which means SKY FORGE
     # reaches the exit guide with more varied but physically correct attitudes.
