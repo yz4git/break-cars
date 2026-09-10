@@ -16,6 +16,7 @@ on:
       - "scripts/polish-rampage-reference-loop-v11.py"
       - "scripts/polish-rampage-parallel-loop-v12.py"
       - "scripts/tune-rampage-omega-entry-v13.py"
+      - "scripts/add-rampage-live-audit-start-v14.py"
       - "scripts/tune-double-orbit-pack-v7.py"
       - "scripts/stabilize-double-orbit-final-jump-v8.py"
       - "scripts/boost-rampage-loop-v6.py"
