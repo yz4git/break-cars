@@ -1,24 +1,30 @@
-"""RAMPAGE v12: dimension the reference loop from the road width.
+"""RAMPAGE v12: road-width-driven planar Omega loop.
 
-The previous v12 correctly made the approach/exit straight and parallel, but it
-interpreted "one road width apart" as centreline separation D=W.  That leaves
-zero visual gap between the two road edges and makes the loop look cramped.
-
-This pass uses dimensionless ratios instead:
+Dimensionless reference proportions:
 
     W = loop road width
-    D = 2.0 W       -> one full road-width of clear space between road edges
-    R = 2.5 W       -> loop outside diameter = 5 W
-    inner opening   -> 2 R - W = 4 W
+    D = 2.0 W       -> one full W of empty space between parallel road edges
+    R = 2.5 W       -> outside loop diameter = 5 W
+    opening         -> 2 R - W = 4 W
 
-The two straight road centrelines therefore read as genuinely separate roads,
-while the loop is large enough to dominate the road width like the reference.
-The lateral transfer from the entry centreline to the exit centreline uses a
-quintic smoothstep.  Its first and second derivatives are zero at both ends, so
-position, tangent and curvature join the straight roads without a kink.
+A full circle cannot connect two laterally separated parallel roads while also
+matching both road tangents: that is geometrically impossible in one plane.
+The correct construction is therefore an open Omega.  Its large main arc lives
+in one exact vertical plane; only two short lower transition legs move from the
+parallel roads into that plane.
 
-A short Hermite transition farther away reconnects this local reference-shaped
-corridor to the original figure-eight. SKY FORGE and DOUBLE ORBIT are unchanged.
+The bottom cut angle is not guessed.  We choose
+
+    alpha = asin(D / (2 R))
+
+so the two endpoints of the planar main arc are separated by exactly D along
+the forward axis.  For D=2W and R=2.5W, alpha=23.578 degrees.  Each lower leg is
+a quintic Bezier whose position, tangent and curvature match the straight road
+at one end and the circle at the other (C2 geometric join).  This keeps the
+upper ~87% of the revolution perfectly planar instead of twisting the whole
+road ribbon into a wall.
+
+SKY FORGE and DOUBLE ORBIT are unchanged.
 """
 from pathlib import Path
 
@@ -34,8 +40,7 @@ def apply_rampage_parallel_loop_v12(target: Path) -> None:
     path = target / 'racing3d.js'
     s = path.read_text()
 
-    # Keep the exported/physics loop radius synchronized with the geometric
-    # road-width ratio. Current W = 8.5 * .44 * 2 = 7.48 m, so R = 18.70 m.
+    # W = 8.5 * .44 * 2 = 7.48 m; R = 2.5W = 18.70 m.
     s = one(
         s,
         "loopRadius:doubleOrbit?8.6:skyForge?7.5:11.5",
@@ -43,8 +48,8 @@ def apply_rampage_parallel_loop_v12(target: Path) -> None:
         'road-width-derived RAMPAGE radius',
     )
 
-    # Build a local corridor around the loop before roadFrameAt is evaluated.
-    # D=2W means the inner road edges have a clear gap of exactly W.
+    # Build two long parallel straights.  D=2W means their inner edges retain
+    # exactly one complete road width of open space.
     anchor = "const raw=[];\nconst ts=[];for(let i=0;i<=BASE_STEPS;i++)ts.push(i/BASE_STEPS*TAU);for(const c of loopCenters)ts.push(c-LOOP_HALF_T,c+LOOP_HALF_T);ts.sort((a,b)=>a-b);\nconst insertedLoops=new Set();\n"
     corridor = """const RAMPAGE_ENTRY_T=RAMPAGE_LOOP_T-LOOP_HALF_T,RAMPAGE_EXIT_T=RAMPAGE_LOOP_T+LOOP_HALF_T;
 const rampageWorldUp={x:0,y:1,z:0},rampageBaseMid=baseAt(RAMPAGE_LOOP_T),rampageFD=.0025,rampageFA=baseAt(RAMPAGE_LOOP_T-rampageFD),rampageFB=baseAt(RAMPAGE_LOOP_T+rampageFD);
@@ -94,27 +99,38 @@ const insertedLoops=new Set();
     s = one(s, old_frame, new_frame, 'straight gate frames')
     s = one(s, "const p=baseAt(t);raw.push({...p,explicitUp:null});", "const p=rampageCourseRoadAt(t);raw.push({...p,explicitUp:null});", 'reshape surrounding road')
 
-    # A 5W-diameter vertical loop. The side shift D=2W is distributed by a
-    # quintic blend; ds/dq and d2s/dq2 are both zero at q=0 and q=1.
+    # Exact planar Omega: only the two lower C2 legs leave the ring plane.
     ring_start = s.index("const open=.50,entryEnd=.18,exitStart=.82")
     ring_end = s.index("for(let j=0;j<=LOOP_STEPS;j++){", ring_start)
-    ring = """const gateDelta=sub(endFrame.p,startFrame.p),gateAcross=dot(gateDelta,rampageRight),parallelOffset=Math.abs(gateAcross),loopRadius=rampageLoopRadius;
-   const ringPoint=q=>{
-    q=clamp(q,0,1);const th=TAU*q,c=Math.cos(th),sn=Math.sin(th),side=rampageSmooth5(q),pos=add(add(add(startFrame.p,mul(rampageForward,loopRadius*sn)),mul(ringUp,loopRadius*(1-c))),mul(gateDelta,side)),h=.0012,qa=Math.max(0,q-h),qb=Math.min(1,q+h),tha=TAU*qa,thb=TAU*qb,pa=add(add(add(startFrame.p,mul(rampageForward,loopRadius*Math.sin(tha))),mul(ringUp,loopRadius*(1-Math.cos(tha)))),mul(gateDelta,rampageSmooth5(qa))),pb=add(add(add(startFrame.p,mul(rampageForward,loopRadius*Math.sin(thb))),mul(ringUp,loopRadius*(1-Math.cos(thb)))),mul(gateDelta,rampageSmooth5(qb))),tangent=norm(sub(pb,pa)),radial=norm(add(mul(ringUp,c),mul(rampageForward,-sn))),up=orthoUp(radial,tangent,ringUp);return{pos,up,tangent};
+    ring = """const gateDelta=sub(endFrame.p,startFrame.p),gateAcross=dot(gateDelta,rampageRight),parallelOffset=Math.abs(gateAcross),loopRadius=rampageLoopRadius,ringBase=mul(add(startFrame.p,endFrame.p),.5),openAngle=Math.asin(clamp(parallelOffset/(2*loopRadius),.08,.72)),ringArc=TAU-openAngle*2;
+   const circleAt=th=>{const c=Math.cos(th),sn=Math.sin(th),pos=add(add(ringBase,mul(loopForward,loopRadius*sn)),mul(ringUp,loopRadius*(1-c))),tangent=norm(add(mul(loopForward,c),mul(ringUp,sn))),up=norm(add(mul(ringUp,c),mul(loopForward,-sn)));return{pos,tangent,up};};
+   const ringEntry=circleAt(openAngle),ringExit=circleAt(TAU-openAngle),zero={x:0,y:0,z:0};
+   const bezier5=(c,q)=>{const v=1-q,q2=q*q,q3=q2*q,q4=q3*q,q5=q4*q,v2=v*v,v3=v2*v,v4=v3*v,v5=v4*v;return{x:c[0].x*v5+5*c[1].x*q*v4+10*c[2].x*q2*v3+10*c[3].x*q3*v2+5*c[4].x*q4*v+c[5].x*q5,y:c[0].y*v5+5*c[1].y*q*v4+10*c[2].y*q2*v3+10*c[3].y*q3*v2+5*c[4].y*q4*v+c[5].y*q5,z:c[0].z*v5+5*c[1].z*q*v4+10*c[2].z*q2*v3+10*c[3].z*q3*v2+5*c[4].z*q4*v+c[5].z*q5};};
+   const makeC2Leg=(p0,t0,a0,p1,t1,a1)=>{const speed=len(sub(p1,p0)),v0=mul(t0,speed),v1=mul(t1,speed),c0=p0,c1=add(c0,mul(v0,.2)),c2=add(sub(mul(c1,2),c0),mul(a0,.05)),c5=p1,c4=sub(c5,mul(v1,.2)),c3=add(sub(mul(c4,2),c5),mul(a1,.05));return{ctrl:[c0,c1,c2,c3,c4,c5],metric:speed};};
+   const entrySpeed=len(sub(ringEntry.pos,startFrame.p)),exitSpeed=len(sub(endFrame.p,ringExit.pos)),entryAccel=mul(ringEntry.up,entrySpeed*entrySpeed/loopRadius),exitAccel=mul(ringExit.up,exitSpeed*exitSpeed/loopRadius),entryLeg=makeC2Leg(startFrame.p,startFrame.forward,zero,ringEntry.pos,ringEntry.tangent,entryAccel),exitLeg=makeC2Leg(ringExit.pos,ringExit.tangent,exitAccel,endFrame.p,endFrame.forward,zero),ringMetric=loopRadius*ringArc,totalMetric=entryLeg.metric+ringMetric+exitLeg.metric,entryEnd=entryLeg.metric/totalMetric,exitStart=1-exitLeg.metric/totalMetric;
+   const sample=u=>{
+    if(u<=entryEnd){const q=clamp(u/entryEnd,0,1),pos=bezier5(entryLeg.ctrl,q),seed=mixV(startFrame.up,ringEntry.up,rampageSmooth5(q));return{pos,frame:{up:seed},upSeed:seed};}
+    if(u>=exitStart){const q=clamp((u-exitStart)/(1-exitStart),0,1),pos=bezier5(exitLeg.ctrl,q),seed=mixV(ringExit.up,endFrame.up,rampageSmooth5(q));return{pos,frame:{up:seed},upSeed:seed};}
+    const q=clamp((u-entryEnd)/(exitStart-entryEnd),0,1),p=circleAt(openAngle+ringArc*q);return{pos:p.pos,frame:{up:p.up},upSeed:p.up};
    };
-   const sample=u=>{const ring=ringPoint(u);return{pos:ring.pos,frame:{up:ring.up},upSeed:ring.up};};
    """
     s = s[:ring_start] + ring + s[ring_end:]
+    ramp_for = s.index("for(let j=0;j<=LOOP_STEPS;j++){", ring_start)
+    suffix = s[ramp_for:]
+    suffix = suffix.replace("for(let j=0;j<=LOOP_STEPS;j++){", "const rampageSampleSteps=128;\n   for(let j=0;j<=rampageSampleSteps;j++){", 1)
+    suffix = suffix.replace("const u=j/LOOP_STEPS,du=.25/LOOP_STEPS", "const u=j/rampageSampleSteps,du=.25/rampageSampleSteps", 1)
+    s = s[:ramp_for] + suffix
     path.write_text(s)
 
-    # Scale the stage camera with R so the larger 5W loop remains fully framed.
+    # Camera is scaled from the true R and stays on the clear side of the outer
+    # lobe.  The larger loop is framed as a whole rather than chased from below.
     game = target / 'game.js'
     s = game.read_text()
     b0 = s.find("if(racingLoop){const s0=raceLoopSpec.startS")
     b1 = s.find("}else if(racingJump){", b0)
     if b0 < 0 or b1 < 0:
         raise RuntimeError('RAMPAGE parallel loop v12 camera branch not found')
-    cam = """if(racingLoop){const s0=raceLoopSpec.startS,s1=raceLoopSpec.endS,a=trackPoint(s0,0),z=trackPoint(s1,0),mx=(a.x+z.x)*.5,my=(a.y+z.y)*.5,mz=(a.z+z.z)*.5,dx=z.x-a.x,dz=z.z-a.z,dl=Math.hypot(dx,dz)||1,nx=dx/dl,nz=dz/dl,fx=a.forward.x,fz=a.forward.z,outward=(mx*nx+mz*nz)>=0?1:-1,side=-(view===1?3.2:3.0)*raceLoopSpec.radius*outward,back=(view===1?.62:.52)*raceLoopSpec.radius,stageLift=view===1?4.0:3.0;camTarget.set(mx+nx*side-fx*back,my+raceLoopSpec.radius+stageLift,mz+nz*side-fz*back);lookTarget.set(b.px,b.py+.45,b.pz);camera.up.lerp(physicsWorldUp,1-Math.exp(-12*dt));camera.fov=view===1?58:60;"""
+    cam = """if(racingLoop){const s0=raceLoopSpec.startS,s1=raceLoopSpec.endS,a=trackPoint(s0,0),z=trackPoint(s1,0),mx=(a.x+z.x)*.5,my=(a.y+z.y)*.5,mz=(a.z+z.z)*.5,dx=z.x-a.x,dz=z.z-a.z,dl=Math.hypot(dx,dz)||1,nx=dx/dl,nz=dz/dl,fx=a.forward.x,fz=a.forward.z,outward=(mx*nx+mz*nz)>=0?1:-1,side=-(view===1?3.35:3.15)*raceLoopSpec.radius*outward,back=(view===1?.72:.62)*raceLoopSpec.radius,stageLift=view===1?4.0:3.0;camTarget.set(mx+nx*side-fx*back,my+raceLoopSpec.radius+stageLift,mz+nz*side-fz*back);lookTarget.set(b.px,b.py+.45,b.pz);camera.up.lerp(physicsWorldUp,1-Math.exp(-12*dt));camera.fov=view===1?58:60;"""
     s = s[:b0] + cam + s[b1:]
     game.write_text(s)
 
