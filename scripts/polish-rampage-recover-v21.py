@@ -26,12 +26,14 @@ def apply_rampage_recover_v21(target: Path) -> None:
 
     racing = target / 'racing.css'
     css = racing.read_text()
-    # Anchor to the recover control's own unique disabled rule. Later course
-    # patches add extra #race-results blocks, so that selector is not unique.
-    marker = '#recover:disabled{opacity:.45}'
+    # This is the last RAMPAGE presentation pass in the generated CSS pipeline.
+    # Appending avoids depending on selectors that earlier course passes may
+    # duplicate, rewrite, or remove while keeping this override deterministic.
+    signature = 'body.rampage-course-ui #recover{'
+    if signature in css:
+        raise RuntimeError('RAMPAGE recover v21 CSS already applied')
     compact = "body.rampage-course-ui #recover{min-width:78px;min-height:44px;padding:7px 9px;font-size:10px;opacity:.58;backdrop-filter:blur(3px);transition:opacity .14s ease,transform .14s ease}body.rampage-course-ui #recover small{font-size:9px}body.rampage-course-ui #recover:disabled{opacity:.34;transform:none}body.rampage-course-ui #recover:not(:disabled):hover,body.rampage-course-ui #recover:not(:disabled):focus-visible,body.rampage-course-ui #recover:not(:disabled):active{opacity:1;transform:scale(1.04)}"
-    css = one(css, marker, marker + compact, 'compact recover CSS')
-    racing.write_text(css)
+    racing.write_text(css.rstrip() + '\n' + compact + '\n')
 
 
 if __name__ == '__main__':
