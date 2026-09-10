@@ -70,10 +70,13 @@ def apply_rampage_omega_entry_v13(target: Path) -> None:
     camera_v16 = load_patch('polish-rampage-omega-camera-v16.py', 'break_cars_rampage_omega_camera_v16')
     camera_v16.apply_rampage_omega_camera_v16(target)
 
-    # Keep the Omega itself visually anchored as a set-piece while retaining a
-    # small amount of player tracking through entry, crown and exit.
     camera_v17 = load_patch('polish-rampage-omega-camera-v17.py', 'break_cars_rampage_omega_camera_v17')
     camera_v17.apply_rampage_omega_camera_v17(target)
+
+    # Preserve the stable v17 stage framing, but shift the rendered Omega a
+    # little upward so its open lower throat clears the bottom-centre HUD.
+    camera_v18 = load_patch('polish-rampage-omega-camera-v18.py', 'break_cars_rampage_omega_camera_v18')
+    camera_v18.apply_rampage_omega_camera_v18(target)
 
     speedometer = load_patch('fix-racing3d-speedometer-v1.py', 'break_cars_racing3d_speedometer_v1')
     speedometer.apply_racing3d_speedometer_v1(target)
