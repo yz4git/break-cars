@@ -18,6 +18,7 @@ on:
       - "scripts/tune-rampage-omega-entry-v13.py"
       - "scripts/add-rampage-live-audit-start-v14.py"
       - "scripts/polish-rampage-omega-camera-v15.py"
+      - "scripts/fix-racing3d-speedometer-v1.py"
       - "scripts/tune-double-orbit-pack-v7.py"
       - "scripts/stabilize-double-orbit-final-jump-v8.py"
       - "scripts/boost-rampage-loop-v6.py"
@@ -42,7 +43,6 @@ jobs:
         run: |
           npm install --no-save --package-lock=false playwright@1.55.0
           npx playwright install --with-deps chromium
-      # Keep screenshots tied to the exact deployed commit rather than a stale Pages build.
       - name: Wait for this exact Pages build
         run: |
           set -euo pipefail
