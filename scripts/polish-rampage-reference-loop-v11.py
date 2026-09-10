@@ -26,9 +26,9 @@ def apply_rampage_reference_loop_v11(target: Path) -> None:
     racing3d = target / 'racing3d.js'
     s = racing3d.read_text()
 
-    gate_line = "const LOOP_HALF_T=(doubleOrbit||skyForge)?.18:.19,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?.58:1;"
-    if s.count(gate_line) != 1:
-        raise RuntimeError(f'RAMPAGE reference loop v11 gate interval: expected 1 match, found {s.count(gate_line)}')
+    gate_prefix = "const LOOP_HALF_T=(doubleOrbit||skyForge)?.18:.19,LOOP_OPEN_ANGLE=.42,LOOP_LANE_SCALE=(!doubleOrbit&&!skyForge)?"
+    if s.count(gate_prefix) != 1:
+        raise RuntimeError(f'RAMPAGE reference loop v11 gate interval: expected 1 match, found {s.count(gate_prefix)}')
 
     start = s.index("const open=.70,entryEnd=.12,exitStart=.88")
     end = s.index("const hermiteOpen=", start)
