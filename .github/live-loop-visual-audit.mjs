@@ -94,7 +94,8 @@ for (let i = 0; i < 30; i += 1) {
   const tag = String(i + 1).padStart(2, '0');
   const speed = await page.locator('#speed b').innerText().catch(() => '');
   const raceState = await page.locator('#race-state').innerText().catch(() => '');
-  samples.push({ frame: i + 1, elapsed: Number(simulated.toFixed(2)), speed, raceState });
+  const telemetry = await page.evaluate(() => window.__breakCarsAuditState?.() ?? null);
+  samples.push({ frame: i + 1, elapsed: Number(simulated.toFixed(2)), speed, raceState, telemetry });
   await canvas.screenshot({ path: `${outputDir}/${tag}-canvas.png` });
   await resumeRaf();
 }
@@ -109,15 +110,48 @@ await page.waitForTimeout(80);
 await canvas.screenshot({ path: `${outputDir}/41-camera-overhead.png` });
 await resumeRaf();
 
+const physicsSamples = samples.filter(s => s.telemetry);
+const loopSamples = physicsSamples.filter(s => s.telemetry.roadKind === 'loop');
+const inverted = loopSamples.some(s => s.telemetry.upY < -0.55);
+let currentStall = 0;
+let maxLoopStallSamples = 0;
+for (const s of loopSamples) {
+  if (s.telemetry.speedMps < 1.4) currentStall += 1;
+  else currentStall = 0;
+  maxLoopStallSamples = Math.max(maxLoopStallSamples, currentStall);
+}
+const raceProgress = physicsSamples.length > 1
+  ? physicsSamples.at(-1).telemetry.raceDistance - physicsSamples[0].telemetry.raceDistance
+  : 0;
+const traversal = {
+  telemetrySamples: physicsSamples.length,
+  loopSamples: loopSamples.length,
+  inverted,
+  maxLoopStallSamples,
+  maxLoopStallSeconds: Number((maxLoopStallSamples * 0.35).toFixed(2)),
+  raceProgress: Number(raceProgress.toFixed(2)),
+  minLoopSpeedMps: loopSamples.length ? Number(Math.min(...loopSamples.map(s => s.telemetry.speedMps)).toFixed(2)) : null,
+  maxLoopSpeedMps: loopSamples.length ? Number(Math.max(...loopSamples.map(s => s.telemetry.speedMps)).toFixed(2)) : null,
+};
+
 const diagnostics = {
   url,
   renderer,
   viewport: await page.evaluate(() => ({ width: innerWidth, height: innerHeight, dpr: devicePixelRatio })),
+  traversal,
   samples,
   consoleErrors,
   pageErrors,
 };
 await writeFile(`${outputDir}/diagnostics.json`, JSON.stringify(diagnostics, null, 2));
 await browser.close();
-if (pageErrors.length) throw new Error(`page errors: ${pageErrors.join(' | ')}`);
-console.log(`BREAK CARS live WebGL audit OK: ${samples.length} gameplay frames`);
+
+const failures = [];
+if (physicsSamples.length !== samples.length) failures.push(`telemetry missing on ${samples.length - physicsSamples.length}/${samples.length} frames`);
+if (loopSamples.length < 3) failures.push(`Omega was not captured reliably: ${loopSamples.length} loop samples`);
+if (!inverted) failures.push('player never reached an inverted Omega attitude');
+if (maxLoopStallSamples >= 5) failures.push(`player stalled in Omega for ${traversal.maxLoopStallSeconds}s`);
+if (consoleErrors.length) failures.push(`console errors: ${consoleErrors.join(' | ')}`);
+if (pageErrors.length) failures.push(`page errors: ${pageErrors.join(' | ')}`);
+if (failures.length) throw new Error(failures.join(' ; '));
+console.log(`BREAK CARS live WebGL audit OK: ${samples.length} frames, Omega samples=${loopSamples.length}, inverted=${inverted}, progress=${traversal.raceProgress}m, max loop stall=${traversal.maxLoopStallSeconds}s`);
