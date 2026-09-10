@@ -96,16 +96,17 @@ const insertedLoops=new Set();
     s = s[:ring_start] + ring + s[ring_end:]
     path.write_text(s)
 
-    # Side/three-quarter stage camera: derive the viewing normal from the two
-    # parallel gate centrelines.  A small backward component keeps their one-road
-    # width separation visible instead of collapsing both straights into one.
+    # Three-quarter stage camera stays on the clear side of the outer lobe.  The
+    # gate delta tells us the loop-plane normal, while the midpoint/outward test
+    # selects the same clean backdrop that v11 established.  A small backward
+    # offset keeps the two one-road-width-separated straights visibly distinct.
     game = target / 'game.js'
     s = game.read_text()
     b0 = s.find("if(racingLoop){const s0=raceLoopSpec.startS")
     b1 = s.find("}else if(racingJump){", b0)
     if b0 < 0 or b1 < 0:
         raise RuntimeError('RAMPAGE parallel loop v12 camera branch not found')
-    cam = """if(racingLoop){const s0=raceLoopSpec.startS,s1=raceLoopSpec.endS,a=trackPoint(s0,0),z=trackPoint(s1,0),mx=(a.x+z.x)*.5,my=(a.y+z.y)*.5,mz=(a.z+z.z)*.5,dx=z.x-a.x,dz=z.z-a.z,dl=Math.hypot(dx,dz)||1,nx=dx/dl,nz=dz/dl,fx=a.forward.x,fz=a.forward.z,side=-(view===1?45:41),back=view===1?10:8,stageLift=view===1?3.2:2.4;camTarget.set(mx+nx*side-fx*back,my+raceLoopSpec.radius+stageLift,mz+nz*side-fz*back);lookTarget.set(b.px,b.py+.45,b.pz);camera.up.lerp(physicsWorldUp,1-Math.exp(-12*dt));camera.fov=view===1?58:60;"""
+    cam = """if(racingLoop){const s0=raceLoopSpec.startS,s1=raceLoopSpec.endS,a=trackPoint(s0,0),z=trackPoint(s1,0),mx=(a.x+z.x)*.5,my=(a.y+z.y)*.5,mz=(a.z+z.z)*.5,dx=z.x-a.x,dz=z.z-a.z,dl=Math.hypot(dx,dz)||1,nx=dx/dl,nz=dz/dl,fx=a.forward.x,fz=a.forward.z,outward=(mx*nx+mz*nz)>=0?1:-1,side=-(view===1?45:41)*outward,back=view===1?10:8,stageLift=view===1?3.2:2.4;camTarget.set(mx+nx*side-fx*back,my+raceLoopSpec.radius+stageLift,mz+nz*side-fz*back);lookTarget.set(b.px,b.py+.45,b.pz);camera.up.lerp(physicsWorldUp,1-Math.exp(-12*dt));camera.fov=view===1?58:60;"""
     s = s[:b0] + cam + s[b1:]
     game.write_text(s)
 
