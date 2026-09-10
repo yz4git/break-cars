@@ -91,6 +91,11 @@ def apply_rampage_omega_entry_v13(target: Path) -> None:
     toast_v20 = load_patch('polish-rampage-opening-toast-v20.py', 'break_cars_rampage_opening_toast_v20')
     toast_v20.apply_rampage_opening_toast_v20(target)
 
+    # Keep manual -200 recovery available exactly as before, but reduce its
+    # visual footprint on the RAMPAGE course so the stunt remains dominant.
+    recover_v21 = load_patch('polish-rampage-recover-v21.py', 'break_cars_rampage_recover_v21')
+    recover_v21.apply_rampage_recover_v21(target)
+
     audit = load_patch('add-rampage-live-audit-start-v14.py', 'break_cars_rampage_live_audit_v14')
     audit.apply_rampage_live_audit_start_v14(target)
 
