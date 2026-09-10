@@ -57,12 +57,15 @@ def apply_rampage_reference_loop_v11(target: Path) -> None:
     branch_end = s.find("}else if(racingJump){", branch_start)
     if branch_end < 0:
         raise RuntimeError('RAMPAGE reference loop v11 camera: racingJump branch boundary not found')
-    new_branch = """if(racingLoop){const s0=raceLoopSpec.startS,s1=raceLoopSpec.endS,span=Math.max(1,s1-s0),mid=trackPoint(s0+span*.50,0),center={x:mid.x+mid.up.x*raceLoopSpec.radius,y:mid.y+mid.up.y*raceLoopSpec.radius,z:mid.z+mid.up.z*raceLoopSpec.radius},rl=Math.hypot(mid.right.x,mid.right.z)||1,rx=mid.right.x/rl,rz=mid.right.z/rl,outward=(center.x*rx+center.z*rz)>=0?1:-1,side=(view===1?44:40)*outward,stageLift=view===1?3.2:2.4;camTarget.set(center.x+rx*side,center.y+stageLift,center.z+rz*side);lookTarget.set(b.px,b.py+.45,b.pz);camera.up.lerp(physicsWorldUp,1-Math.exp(-12*dt));camera.fov=view===1?58:60;"""
+    # The loop sits on the outer shoulder of the figure-eight. View it from the
+    # course-interior side toward the empty exterior, so unrelated road branches
+    # do not fill the Omega aperture. Geometry and physics remain unchanged.
+    new_branch = """if(racingLoop){const s0=raceLoopSpec.startS,s1=raceLoopSpec.endS,span=Math.max(1,s1-s0),mid=trackPoint(s0+span*.50,0),center={x:mid.x+mid.up.x*raceLoopSpec.radius,y:mid.y+mid.up.y*raceLoopSpec.radius,z:mid.z+mid.up.z*raceLoopSpec.radius},rl=Math.hypot(mid.right.x,mid.right.z)||1,rx=mid.right.x/rl,rz=mid.right.z/rl,outward=(center.x*rx+center.z*rz)>=0?1:-1,side=-(view===1?44:40)*outward,stageLift=view===1?3.2:2.4;camTarget.set(center.x+rx*side,center.y+stageLift,center.z+rz*side);lookTarget.set(b.px,b.py+.45,b.pz);camera.up.lerp(physicsWorldUp,1-Math.exp(-12*dt));camera.fov=view===1?58:60;"""
     s = s[:branch_start] + new_branch + s[branch_end:]
     s = one(
         s,
         "racingLoop=!!raceLoopSpec&&!!racePose&&p.trackS>=raceLoopSpec.startS-7&&p.trackS<=raceLoopSpec.endS+7",
-        "racingLoop=!!raceLoopSpec&&!!racePose&&p.trackS>=raceLoopSpec.startS-18&&p.trackS<=raceLoopSpec.endS+16",
+        "racingLoop=!!raceLoopSpec&&!!racePose&&p.trackS>=raceLoopSpec.startS-18&&p.trackS<=raceLoopSpec.endS+28",
         'early/late exterior camera takeover',
     )
     game.write_text(s)
