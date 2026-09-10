@@ -49,6 +49,16 @@ def apply_rampage_reference_loop_v11(target: Path) -> None:
     )
     racing3d.write_text(s)
 
+    # On RAMPAGE the exterior-facing loop camera now looks toward the old rear
+    # spectator billboard. Keep those large signs on the other stunt courses,
+    # but leave the Omega aperture clean on this reference-style course.
+    view = target / 'track-view.js'
+    s = view.read_text()
+    spectator = "for(const side of [-1,1]){for(let row=0;row<4;row++)box(group,0,1+row*1.25,side*(48+row*2.2),128,1.35,2.1,row%2?0x344653:0x475862);const b=sign('BREAK CARS / FULL CONTACT 3D',35,2.4);b.position.set(0,8.5,side*58);b.rotation.y=side>0?Math.PI:0;group.add(b);}"
+    spectator_clean = "for(const side of [-1,1]){for(let row=0;row<4;row++)box(group,0,1+row*1.25,side*(48+row*2.2),128,1.35,2.1,row%2?0x344653:0x475862);const b=sign('BREAK CARS / FULL CONTACT 3D',35,2.4);b.position.set(0,8.5,side*58);b.rotation.y=side>0?Math.PI:0;if(activeCourse.id!=='rampage-3d')group.add(b);}"
+    s = one(s, spectator, spectator_clean, 'clear Omega aperture billboard')
+    view.write_text(s)
+
     game = target / 'game.js'
     s = game.read_text()
     branch_start = s.find("if(racingLoop){const base=trackPoint(raceLoopSpec.startS,0)")
