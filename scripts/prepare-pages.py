@@ -42,6 +42,7 @@ apply_reference_loop_geometry_v8 = load_function('polish-reference-loop-geometry
 apply_course_specific_loop_geometry_v9 = load_function('polish-course-specific-loop-geometry-v9.py', 'break_cars_course_specific_loop_geometry_v9', 'apply_course_specific_loop_geometry_v9')
 apply_rampage_reference_loop_v10 = load_function('polish-rampage-reference-loop-v10.py', 'break_cars_rampage_reference_loop_v10', 'apply_rampage_reference_loop_v10')
 apply_rampage_reference_loop_v11 = load_function('polish-rampage-reference-loop-v11.py', 'break_cars_rampage_reference_loop_v11', 'apply_rampage_reference_loop_v11')
+apply_rampage_parallel_loop_v12 = load_function('polish-rampage-parallel-loop-v12.py', 'break_cars_rampage_parallel_loop_v12', 'apply_rampage_parallel_loop_v12')
 
 source = Path('dist')
 target = Path('_site')
@@ -49,32 +50,18 @@ if target.exists():
     shutil.rmtree(target)
 shutil.copytree(source, target)
 
-# Keep the large shared runtime single-source in dist; apply mode integration
-# and focused tuning to the deploy copy, failing loudly if upstream drifts.
 apply_wreck_hunt(target)
 apply_wreck_hunt_improvements(target)
 apply_wreck_hunt_final_tuning(target)
 apply_wreck_hunt_chain_tuning(target)
 apply_wreck_hunt_rush(target)
-# Stabilize the self-crossing race projection before the 6DoF layer consumes it.
 apply_racing3d_projection_fix(target)
-# Full vehicle physics consumes the final Hunt/Rush rules and owns movement,
-# suspension, contact impulses and chassis attitude. Then force wheel/chassis
-# samples to remain on the same self-crossing branch as each car's trackS.
 apply_full_physics3d(target)
 apply_racing3d_surface_hint(target)
-# Smooth course-edge and pile-up depenetration so hard landings cannot produce
-# one-frame visual warps.
 apply_smooth_racing3d_boundary(target)
 apply_full_physics_loop_polish(target)
-# The racing loop uses an exterior, world-up camera so the road surface cannot
-# swallow the chase camera while the chassis is vertical or inverted.
 apply_racing3d_loop_camera(target)
-# Post-review course polish: spread loop traffic, soften only loop contacts,
-# and keep the jump landing visible while the car is airborne.
 apply_rampage_raceability(target)
-# Make the visible BOOST LOOP a high-confidence stunt assist: physical forward
-# force targets ~103 km/h on approach and ~112 km/h in the loop.
 apply_rampage_loop_boost_v6(target)
 apply_racing3d_ui(target)
 apply_player_auto_upright(target)
@@ -84,33 +71,20 @@ apply_course_pack = load_function('apply-course-pack.py', 'break_cars_courses', 
 apply_course_pack(target)
 apply_extreme_courses = load_function('apply-extreme-courses.py', 'break_cars_extreme_courses', 'apply_extreme_courses')
 apply_extreme_courses(target)
-# Real-WebGL review showed the planar, full-width RAMPAGE loop reading as a
-# black barrel over the entry road. v8 establishes its outboard proportions;
-# v9 isolates course-specific geometry; v10 opens the lower throat.
 apply_reference_loop_geometry_v8(target)
 apply_course_specific_loop_geometry_v9(target)
 apply_rampage_reference_loop_v10(target)
-# The final review layers consume the fully course-aware runtime so they can
-# stabilize arena cameras, recovery, race stunt flow and multi-loop behavior.
 apply_nine_course_review_polish(target)
 apply_nine_course_review_v2(target)
-# Course-specific post-loop guides use physical force/torque only. Neither one
-# writes position, quaternion, trackS or raceDistance.
 apply_rampage_exit_stabilizer_v3(target)
 apply_sky_loop_exit_v5(target)
-# SKY's photo-shaped loop stays fully physical; this only breaks the singular
-# 180-degree body-up/road-up attitude where a cross-product controller has no
-# preferred recovery axis.
 apply_sky_loop_attitude_v6(target)
-# DOUBLE ORBIT keeps both open helices unchanged; this extends the visible
-# force-only inter-loop runoff through the elevated bridge bottleneck.
 apply_double_orbit_pack_v7(target)
-# Keep loop branding visible as track dressing without blocking chase-camera
-# views during jump, crown and exit-stabilizer stunt moments.
 apply_racing_sign_visibility_v4(target)
-# Final RAMPAGE-only truth: one planar reference-style circle and an exterior
-# iPhone-safe stage camera. Run last so older review layers cannot deform it.
 apply_rampage_reference_loop_v11(target)
+# Final RAMPAGE geometry rule from the visual reference: two straight parallel
+# road centrelines one road-width apart, directly joined by one clean loop.
+apply_rampage_parallel_loop_v12(target)
 
 build = (os.environ.get('DEPLOY_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())[:12]
 for path in target.glob('*.js'):
@@ -120,7 +94,6 @@ for path in target.glob('*.js'):
 index = target / 'index.html'
 html = index.read_text()
 html = re.sub(r'(href|src)="([^"?]+\.(?:css|js))(?:\?v=[^"]+)?"', lambda m: f'{m[1]}="{m[2]}?v={build}"', html)
-# No mid-game reload; clean up only this game's old caches and registrations.
 guard = '''<script>
 (async()=>{try{
  const current=BUILD_ID,key='break-cars-build';
@@ -135,6 +108,4 @@ html = html.replace('<script type="module"', guard + '<script type="module"', 1)
 index.write_text(html)
 (target / 'build-id.txt').write_text(build + '\n')
 print(f'Prepared {len(list(target.iterdir()))} assets, build {build}')
-
-# Sites accepts build/ as a static root; keep it byte-identical to Pages.
 shutil.copytree(target, Path('build'), dirs_exist_ok=True)
