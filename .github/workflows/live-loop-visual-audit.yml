@@ -23,6 +23,7 @@ on:
       - "scripts/polish-rampage-omega-camera-v18.py"
       - "scripts/polish-rampage-omega-hud-v19.py"
       - "scripts/polish-rampage-opening-toast-v20.py"
+      - "scripts/polish-rampage-recover-v21.py"
       - "scripts/fix-racing3d-speedometer-v1.py"
       - "scripts/tune-double-orbit-pack-v7.py"
       - "scripts/stabilize-double-orbit-final-jump-v8.py"
