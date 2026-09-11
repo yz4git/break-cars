@@ -79,5 +79,6 @@ expect('v8.7 automatic ending replay', game.includes('function mayhemShowdownSch
 expect('v8.7 win loss ending cards', ['MAYHEM TOUR CHAMPION','RIVAL OWNS THE NIGHT'].every(x=>game.includes(x)) && css.includes('#mayhem-showdown-ending'));
 expect('v8.7 final replay button', game.includes('FINAL SHOWDOWN REPLAY') && game.includes('FINISH CUT · SLOW MOTION'));
 expect('v8.7 showdown telemetry', game.includes('window.__breakCarsMayhemShowdown='));
+expect('v8.7.1 live replay caption preserves slow motion', game.includes('FINISH CUT · ${mayhemRivalName()} · SLOW MOTION · ${mayhemReplayShot}'));
 
 console.log('MAYHEM TOUR roadmap regression test passed.');
