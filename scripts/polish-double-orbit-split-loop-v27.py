@@ -57,7 +57,7 @@ const doubleOrbitCourseRoadAt=t=>{
 const doubleOrbitSmooth=q=>{q=clamp(q,0,1);return q*q*q*(10+q*(-15+6*q));};
 const DOUBLE_ORBIT_RING_R=LOOP_R*1.38,DOUBLE_ORBIT_SPLIT=RACE3D_TRACK.halfWidth*2+.8;
 const doubleOrbitLineAt=t=>{const q=(t-loopCenters[0])/doubleOrbitSpan;return{x:doubleOrbitA.x+(doubleOrbitB.x-doubleOrbitA.x)*q,y:doubleOrbitA.y+(doubleOrbitB.y-doubleOrbitA.y)*q,z:doubleOrbitA.z+(doubleOrbitB.z-doubleOrbitA.z)*q};};
-const doubleOrbitAxis=horizontal(sub(doubleOrbitB,doubleOrbitA))||{x:1,y:0,z:0},doubleOrbitRight=norm(cross({x:0,y:1,z:0},doubleOrbitAxis));
+const doubleOrbitDX=doubleOrbitB.x-doubleOrbitA.x,doubleOrbitDZ=doubleOrbitB.z-doubleOrbitA.z,doubleOrbitDL=Math.hypot(doubleOrbitDX,doubleOrbitDZ)||1,doubleOrbitAxis={x:doubleOrbitDX/doubleOrbitDL,y:0,z:doubleOrbitDZ/doubleOrbitDL},doubleOrbitRight={x:-doubleOrbitAxis.z,y:0,z:doubleOrbitAxis.x};
 const doubleOrbitLaneAt=t=>{const a0=loopCenters[0]-LOOP_HALF_T,a1=loopCenters[0]+LOOP_HALF_T,b0=loopCenters[1]-LOOP_HALF_T,b1=loopCenters[1]+LOOP_HALF_T;if(t<=a0)return 0;if(t<a1)return DOUBLE_ORBIT_SPLIT*doubleOrbitSmooth((t-a0)/(a1-a0));if(t<=b0)return DOUBLE_ORBIT_SPLIT;if(t<b1)return DOUBLE_ORBIT_SPLIT*(1-doubleOrbitSmooth((t-b0)/(b1-b0)));return 0;};
 const doubleOrbitCourseRoadAt=t=>{
  const base=rampageCourseRoadAt(t);if(!doubleOrbit)return base;
