@@ -27,6 +27,10 @@ def apply_mayhem_showdown_v88(target: Path) -> None:
     camera_head_new = "function mayhemReplayCinematicCamera(a,b,t,progress){if(mayhemShowdownEndingReplay&&mayhemFinalDuelActive()){mayhemShowdownReplayCameraV88(a,b,t,progress);return;}"
     s = one(s, camera_head, camera_head_new, 'final replay camera override')
 
+    frame_tick = "function mayhemShowdownFrameTick(dt){mayhemShowdownIntroTick(dt);mayhemShowdownRaceTick();}"
+    frame_tick_new = "function mayhemShowdownFrameTick(dt){mayhemShowdownIntroTick(dt);mayhemShowdownRaceTick();const ending=$('mayhem-showdown-ending');if(ending?.classList.contains('show')&&!mayhemReplayPlaying)window.__breakCarsMayhemShowdown={...(window.__breakCarsMayhemShowdown||{}),stage:'ENDING',intro:false,slowMotion:false,ending:true};}"
+    s = one(s, frame_tick, frame_tick_new, 'stable ending telemetry')
+
     s += r'''
 
 /* MAYHEM TOUR v8.8 — FINAL SHOWDOWN replay camera safety */
