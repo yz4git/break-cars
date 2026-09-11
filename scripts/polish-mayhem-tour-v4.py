@@ -9,8 +9,9 @@ without affecting normal single-event result screens.
 The v5 persistent RIVAL + LIVE MAYHEM DIRECTOR, v6 nine-course expansion,
 v7 transform-based HIGHLIGHT REPLAY, v8 product presentation polish, v8.1
 visual-review composition fixes, v8.2 peak-centered replay polish, v8.3 minimum
-cinematic replay window, v8.4 impact framing, v8.5 nine-event rivalry series and
-v8.6 DOUBLE ORBIT FINAL DUEL are chained here so Pages build order stays stable.
+cinematic replay window, v8.4 impact framing, v8.5 nine-event rivalry series,
+v8.6 DOUBLE ORBIT FINAL DUEL and v8.7 FINAL SHOWDOWN cinematics are chained here
+so Pages build order stays stable.
 """
 from pathlib import Path
 import importlib.util
@@ -107,6 +108,12 @@ def apply_mayhem_tour_v4(target: Path) -> None:
         'polish-mayhem-final-duel-v86.py',
         'break_cars_mayhem_final_duel_v86',
         'apply_mayhem_final_duel_v86',
+        target,
+    )
+    load_and_apply(
+        'polish-mayhem-showdown-v87.py',
+        'break_cars_mayhem_showdown_v87',
+        'apply_mayhem_showdown_v87',
         target,
     )
 
