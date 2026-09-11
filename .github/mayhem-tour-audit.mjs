@@ -46,6 +46,7 @@ const beginDriving=async()=>{
   await page.waitForTimeout(900);
 };
 const assertResultBadgeClear=async label=>assert(await page.locator('#tour-run-badge').count()===0,`${label}: Tour run badge overlaps result/PIT screen`);
+const assertDrivingHudHidden=async label=>assert(!(await page.locator('#driving').isVisible()),`${label}: driving HUD remains visible behind Tour result/PIT screen`);
 
 const report={menu:null,events:[],errors};
 try{
@@ -80,6 +81,7 @@ try{
   await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());await page.waitForTimeout(450);
   assert(await page.locator('[data-tour-up="power"]').isVisible(),'event 1 pit POWER choice missing');
   await assertResultBadgeClear('event 1');
+  await assertDrivingHudHidden('event 1');
   await snap('12-event1-pit.png');
   const beforePower=await tour();
   await page.click('[data-tour-up="power"]');
@@ -100,6 +102,7 @@ try{
   await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());await page.waitForTimeout(450);
   assert(await page.locator('[data-tour-up="armor"]').isVisible(),'event 2 pit ARMOR choice missing');
   await assertResultBadgeClear('event 2');
+  await assertDrivingHudHidden('event 2');
   await snap('22-event2-pit.png');
   const beforeArmor=await tour();
   await page.click('[data-tour-up="armor"]');
@@ -122,16 +125,17 @@ try{
   assert(finalVisible,'Tour final panel missing');
   assert(/MAYHEM TOUR COMPLETE/.test(finalText),'Tour completion copy missing');
   await assertResultBadgeClear('final');
+  await assertDrivingHudHidden('final');
   await snap('32-tour-complete.png');
   const finalState=await tour();
   assert(finalState?.results?.length>=3,'three Tour results were not recorded');
 
   report.events=[e1Start,e2Start,e3Start];
-  report.final={state:finalState,text:finalText,visible:finalVisible,badgeClear:true};
+  report.final={state:finalState,text:finalText,visible:finalVisible,badgeClear:true,drivingHudHidden:true};
   report.renderer=await renderer();
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
   await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify(report,null,2));
-  console.log(`MAYHEM TOUR audit PASS: car=${finalState.car} hull=${Math.round(finalState.hull*100)}% power=${finalState.power} armor=${finalState.armor} handling=${finalState.handling} total=${finalState.total} errors=${errors.length}`);
+  console.log(`MAYHEM TOUR audit PASS: car=${finalState.car} hull=${Math.round(finalState.hull*100)}% power=${finalState.power} armor=${finalState.armor} handling=${finalState.handling} total=${finalState.total} errors=${errors.length} hud=clean`);
 }catch(err){
   report.failure=String(err?.stack||err);
   try{await snap('99-failure.png');}catch{}
