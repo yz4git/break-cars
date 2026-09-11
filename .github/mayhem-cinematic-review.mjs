@@ -115,9 +115,10 @@ try{
   assert(!(await page.locator('#driving').isVisible()),'controls visible in FINAL SHOWDOWN replay');
   await snap('13-final-showdown-replay.png');
 
+  await page.waitForFunction(()=>window.__breakCarsMayhemShowdown?.stage==='ENDING',null,{timeout:22000});
   const ending=page.locator('#mayhem-showdown-ending');
-  await ending.waitFor({state:'visible',timeout:12000});
-  await page.waitForFunction(()=>document.querySelector('#mayhem-showdown-ending')?.classList.contains('show'),null,{timeout:12000});
+  await ending.waitFor({state:'visible',timeout:4000});
+  await page.waitForFunction(()=>document.querySelector('#mayhem-showdown-ending')?.classList.contains('show'),null,{timeout:4000});
   await snap('14-final-ending.png');
   assert(await ending.count()===1,'FINAL SHOWDOWN ending card missing');
   const endingText=await ending.innerText();
