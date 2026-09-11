@@ -21,12 +21,25 @@ const page=await context.newPage();
 const errors=[];
 page.on('console',m=>{if(m.type()==='error')errors.push(`console: ${m.text()}`);});
 page.on('pageerror',e=>errors.push(`page: ${String(e)}`));
-const text=async sel=>{try{return (await page.locator(sel).innerText({timeout:1200})).trim();}catch{return '';}};
+const text=async sel=>{
+  for(let i=0;i<5;i++){
+    try{const value=(await page.locator(sel).innerText({timeout:1200})).trim();if(value)return value;}catch{}
+    await page.waitForTimeout(180);
+  }
+  return '';
+};
 const snap=async name=>page.screenshot({path:path.join(out,name),fullPage:false});
 const tour=async()=>page.evaluate(()=>window.__breakCarsMayhemTour?.()??null);
 const renderer=async()=>page.evaluate(()=>{const c=document.querySelector('canvas');if(!c)return'none';try{return c.getContext('webgl2')?'webgl2':c.getContext('webgl')?'webgl':'canvas';}catch{return'canvas';}});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
 const eventUrl=i=>`${base}?course=${['crater-crown','hunt-classic','double-orbit'][i]}&tour=1&event=${i}&tourAudit=1`;
+const waitTourReady=async i=>{
+  await page.waitForFunction(index=>{
+    const state=window.__breakCarsMayhemTour?.();
+    return state?.event===index&&document.querySelector('#mode-tag')?.textContent?.includes('MAYHEM TOUR');
+  },i,{timeout:8000});
+  await page.waitForTimeout(180);
+};
 const beginDriving=async()=>{
   await page.waitForFunction(()=>typeof window.__breakCarsMayhemAuditStart==='function',{timeout:5000});
   await page.evaluate(()=>window.__breakCarsMayhemAuditStart());
@@ -52,7 +65,7 @@ try{
   await page.goto(eventUrl(0),{waitUntil:'networkidle',timeout:30000});
   await page.evaluate(()=>{const k='break-cars-mayhem-tour-v1',s=JSON.parse(sessionStorage.getItem(k));s.car=1;s.hull=.63;sessionStorage.setItem(k,JSON.stringify(s));});
   await page.reload({waitUntil:'networkidle'});
-  await page.waitForTimeout(650);
+  await waitTourReady(0);
   let state=await tour();
   assert(state?.event===0,'event 1 state missing');
   assert(state?.eventDef?.course==='crater-crown','event 1 course mismatch');
@@ -71,7 +84,8 @@ try{
   const beforePower=await tour();
   await page.click('[data-tour-up="power"]');
   await page.waitForURL(/event=1/,{timeout:10000});
-  await page.goto(eventUrl(1),{waitUntil:'networkidle',timeout:30000});await page.waitForTimeout(650);
+  await page.goto(eventUrl(1),{waitUntil:'networkidle',timeout:30000});
+  await waitTourReady(1);
   state=await tour();
   const e2Start={state,tag:await text('#mode-tag'),lead:await text('#mode-lead'),renderer:await renderer()};
   assert(state?.event===1&&state?.eventDef?.course==='hunt-classic','event 2 route/state mismatch');
@@ -90,7 +104,8 @@ try{
   const beforeArmor=await tour();
   await page.click('[data-tour-up="armor"]');
   await page.waitForURL(/event=2/,{timeout:10000});
-  await page.goto(eventUrl(2),{waitUntil:'networkidle',timeout:30000});await page.waitForTimeout(700);
+  await page.goto(eventUrl(2),{waitUntil:'networkidle',timeout:30000});
+  await waitTourReady(2);
   state=await tour();
   const e3Start={state,tag:await text('#mode-tag'),lead:await text('#mode-lead'),renderer:await renderer()};
   assert(state?.event===2&&state?.eventDef?.course==='double-orbit','event 3 route/state mismatch');
