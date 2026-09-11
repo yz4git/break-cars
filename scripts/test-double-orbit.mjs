@@ -10,6 +10,8 @@ assert.equal(spec.loops.length,2);
 assert(spec.bridge.y>14);
 assert(spec.bankMax>.6);
 assert(spec.loops.every(l=>l.radius>=11),`DOUBLE ORBIT rings must stay enlarged; radii=${spec.loops.map(l=>l.radius.toFixed(2))}`);
+const bridgeRunout=spec.bridge.s-spec.loops[1].endS;
+assert(bridgeRunout>=90,`DOUBLE ORBIT bridge crest must stay out of the twin-ring sightline; runout=${bridgeRunout.toFixed(2)}m`);
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const horizontal=v=>{const l=Math.hypot(v.x,v.z);return{x:v.x/l,z:v.z/l};};
@@ -67,6 +69,6 @@ for(let i=0;i<3600&&!pack.done;i++){
   impacts+=pack.events.filter(e=>e.type==='impact').length;
 }
 const clear=pack.cars.filter(c=>c.raceDistance>spec.loops[1].endS+8).length;
-console.log(`DOUBLE ORBIT: joins=${joinMetrics.map(j=>`L${j.loop}:${j.angleDeg}deg/${j.offset}m gap=${j.deckGap}m`).join(', ')}, radius=${spec.loops[0].radius.toFixed(2)}m, natural lap ${(frames/60).toFixed(1)}s, inverted loops=${inverted.size}, air=${air.toFixed(2)}s, cleared both loops=${clear}/12, impacts=${impacts}`);
+console.log(`DOUBLE ORBIT: joins=${joinMetrics.map(j=>`L${j.loop}:${j.angleDeg}deg/${j.offset}m gap=${j.deckGap}m`).join(', ')}, radius=${spec.loops[0].radius.toFixed(2)}m, bridge runout=${bridgeRunout.toFixed(2)}m, natural lap ${(frames/60).toFixed(1)}s, inverted loops=${inverted.size}, air=${air.toFixed(2)}s, cleared both loops=${clear}/12, impacts=${impacts}`);
 assert(clear>=7,'pack must flow through both loops');
 assert(impacts>10);
