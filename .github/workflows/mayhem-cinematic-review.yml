@@ -19,6 +19,7 @@ on:
       - 'scripts/polish-mayhem-showdown-v88.py'
       - 'scripts/polish-mayhem-recap-v89.py'
       - 'scripts/polish-mayhem-showdown-v810.py'
+      - 'scripts/polish-mayhem-result-v811.py'
       - 'scripts/add-mayhem-highlight-replay-v7.py'
       - 'scripts/apply-mayhem-rival-director-v5.py'
       - 'scripts/expand-mayhem-nine-course-v6.py'
