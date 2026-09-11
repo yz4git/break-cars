@@ -52,6 +52,7 @@ apply_double_orbit_parallel_road_v26 = load_function('polish-double-orbit-parall
 apply_double_orbit_split_loop_v27 = load_function('polish-double-orbit-split-loop-v27.py', 'break_cars_double_orbit_split_loop_v27', 'apply_double_orbit_split_loop_v27')
 apply_mayhem_tour_v1 = load_function('apply-mayhem-tour-v1.py', 'break_cars_mayhem_tour_v1', 'apply_mayhem_tour_v1')
 apply_mayhem_tour_finalize_v1 = load_function('finalize-mayhem-tour-v1.py', 'break_cars_mayhem_tour_finalize_v1', 'apply_mayhem_tour_finalize_v1')
+apply_mayhem_tour_v2 = load_function('polish-mayhem-tour-v2.py', 'break_cars_mayhem_tour_v2', 'apply_mayhem_tour_v2')
 
 source = Path('dist')
 target = Path('_site')
@@ -119,6 +120,7 @@ apply_double_orbit_reference_view_v25(target)
 # hull and pit upgrades across CRATER CROWN -> WRECK HUNT -> DOUBLE ORBIT.
 apply_mayhem_tour_v1(target)
 apply_mayhem_tour_finalize_v1(target)
+apply_mayhem_tour_v2(target)
 
 # Keep final public visual verification tied to the exact deploy SHA, including
 # late RAMPAGE dressing/visibility changes that do not alter vehicle physics.
