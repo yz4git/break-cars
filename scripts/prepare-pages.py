@@ -48,6 +48,7 @@ apply_rampage_omega_entry_v13 = load_function('tune-rampage-omega-entry-v13.py',
 apply_double_orbit_reference_v23 = load_function('polish-double-orbit-reference-v23.py', 'break_cars_double_orbit_reference_v23', 'apply_double_orbit_reference_v23')
 apply_double_orbit_planar_v24 = load_function('polish-double-orbit-planar-v24.py', 'break_cars_double_orbit_planar_v24', 'apply_double_orbit_planar_v24')
 apply_double_orbit_reference_view_v25 = load_function('polish-double-orbit-reference-view-v25.py', 'break_cars_double_orbit_reference_view_v25', 'apply_double_orbit_reference_view_v25')
+apply_double_orbit_parallel_road_v26 = load_function('polish-double-orbit-parallel-road-v26.py', 'break_cars_double_orbit_parallel_road_v26', 'apply_double_orbit_parallel_road_v26')
 
 source = Path('dist')
 target = Path('_site')
@@ -99,6 +100,10 @@ apply_rampage_omega_entry_v13(target)
 # with two parallel circular rings and a force-only traversal guide.
 apply_double_orbit_reference_v23(target)
 apply_double_orbit_planar_v24(target)
+# Straighten the ordinary road through the twin-loop stage before applying its
+# final sign/camera sightline polish. The blend back to the authored lobe stays
+# outside both loop gates.
+apply_double_orbit_parallel_road_v26(target)
 # Keep both open throats visible and stage each active ring from the side away
 # from its sibling so the other loop never blocks the stunt camera.
 apply_double_orbit_reference_view_v25(target)
