@@ -3,10 +3,10 @@
 The supplied toy-track reference reads as one clear path: approach -> two side-by-
 side vertical loops -> a large low outer U -> back to the start.  v27 already
 solved the two loop throats and keeps their entry/exit roads one road width apart.
-This late geometry-only pass leaves every point through loop two unchanged, then
-routes the rest of DOUBLE ORBIT around a stadium-like U: a rounded right turn, a
-long lower return parallel to the loop travel axis, and a rounded left turn into
-the lap seam.
+This late geometry-only pass leaves every point through loop two unchanged, adds
+a short straight runout after the second ring, then routes the rest of DOUBLE
+ORBIT around a stadium-like U: a rounded right turn, a long lower return parallel
+to the loop travel axis, and a rounded left turn into the lap seam.
 
 The authored vertical profile and banking are retained on that return, so the
 existing bridge, banked feature and final jump remain functional and the DOUBLE
@@ -50,7 +50,7 @@ const DOUBLE_ORBIT_RING_R=LOOP_R*1.38,DOUBLE_ORBIT_SPLIT=RACE3D_TRACK.halfWidth*
 const doubleOrbitLineAt=t=>{const q=(t-loopCenters[0])/doubleOrbitSpan;return{x:doubleOrbitA.x+(doubleOrbitB.x-doubleOrbitA.x)*q,y:doubleOrbitA.y+(doubleOrbitB.y-doubleOrbitA.y)*q,z:doubleOrbitA.z+(doubleOrbitB.z-doubleOrbitA.z)*q};};
 const doubleOrbitDX=doubleOrbitB.x-doubleOrbitA.x,doubleOrbitDY=doubleOrbitB.y-doubleOrbitA.y,doubleOrbitDZ=doubleOrbitB.z-doubleOrbitA.z,doubleOrbitDL=Math.hypot(doubleOrbitDX,doubleOrbitDY,doubleOrbitDZ)||1,doubleOrbitAxis={x:doubleOrbitDX/doubleOrbitDL,y:doubleOrbitDY/doubleOrbitDL,z:doubleOrbitDZ/doubleOrbitDL},doubleOrbitRight0={x:-doubleOrbitAxis.z,y:0,z:doubleOrbitAxis.x},doubleOrbitRightL=Math.hypot(doubleOrbitRight0.x,doubleOrbitRight0.z)||1,doubleOrbitRight={x:doubleOrbitRight0.x/doubleOrbitRightL,y:0,z:doubleOrbitRight0.z/doubleOrbitRightL};
 const doubleOrbitLaneAt=t=>{const a0=loopCenters[0]-LOOP_HALF_T,a1=loopCenters[0]+LOOP_HALF_T,b0=loopCenters[1]-LOOP_HALF_T,b1=loopCenters[1]+LOOP_HALF_T;if(t<=a0)return 0;if(t<a1)return DOUBLE_ORBIT_SPLIT*doubleOrbitSmooth((t-a0)/(a1-a0));if(t<=b0)return DOUBLE_ORBIT_SPLIT;if(t<b1)return DOUBLE_ORBIT_SPLIT*(1-doubleOrbitSmooth((t-b0)/(b1-b0)));return 0;};
-const doubleOrbitReturnT0=loopCenters[1]+LOOP_HALF_T,doubleOrbitReturnT1=2.28,doubleOrbitReturnT2=5.02,DOUBLE_ORBIT_RETURN_DEPTH=RACE3D_TRACK.halfWidth*2.85;
+const doubleOrbitReturnT0=loopCenters[1]+.30,doubleOrbitReturnT1=2.28,doubleOrbitReturnT2=5.02,DOUBLE_ORBIT_RETURN_DEPTH=RACE3D_TRACK.halfWidth*2.85;
 const doubleOrbitReturnTop=doubleOrbit?doubleOrbitLineAt(doubleOrbitReturnT0):{x:0,y:0,z:0},doubleOrbitStart=doubleOrbit?baseAt(0):{x:0,y:0,z:0},doubleOrbitStartBefore=doubleOrbit?baseAt(-.002):{x:-1,y:0,z:0},doubleOrbitStartAfter=doubleOrbit?baseAt(.002):{x:1,y:0,z:0},doubleOrbitStartForward=norm(sub(doubleOrbitStartAfter,doubleOrbitStartBefore)),doubleOrbitReturnBottomRight=add(doubleOrbitReturnTop,mul(doubleOrbitRight,-DOUBLE_ORBIT_RETURN_DEPTH)),doubleOrbitReturnBottomLeft=add(doubleOrbitStart,mul(doubleOrbitRight,-DOUBLE_ORBIT_RETURN_DEPTH));
 const doubleOrbitHermite=(p0,t0,p1,t1,s0,s1,q)=>{const q2=q*q,q3=q2*q,h00=2*q3-3*q2+1,h10=q3-2*q2+q,h01=-2*q3+3*q2,h11=q3-q2;return{x:p0.x*h00+t0.x*s0*h10+p1.x*h01+t1.x*s1*h11,y:p0.y*h00+t0.y*s0*h10+p1.y*h01+t1.y*s1*h11,z:p0.z*h00+t0.z*s0*h10+p1.z*h01+t1.z*s1*h11};};
 const doubleOrbitReturnAt=t=>{let p;if(t<doubleOrbitReturnT1){const q=clamp((t-doubleOrbitReturnT0)/(doubleOrbitReturnT1-doubleOrbitReturnT0),0,1),s=DOUBLE_ORBIT_RETURN_DEPTH*.86;p=doubleOrbitHermite(doubleOrbitReturnTop,doubleOrbitAxis,doubleOrbitReturnBottomRight,mul(doubleOrbitAxis,-1),s,s,q);}else if(t<doubleOrbitReturnT2){const q=clamp((t-doubleOrbitReturnT1)/(doubleOrbitReturnT2-doubleOrbitReturnT1),0,1),d=len(sub(doubleOrbitReturnBottomLeft,doubleOrbitReturnBottomRight));p=doubleOrbitHermite(doubleOrbitReturnBottomRight,mul(doubleOrbitAxis,-1),doubleOrbitReturnBottomLeft,mul(doubleOrbitAxis,-1),d*.92,d*.92,q);}else{const q=clamp((t-doubleOrbitReturnT2)/(TAU-doubleOrbitReturnT2),0,1),s=DOUBLE_ORBIT_RETURN_DEPTH*.86;p=doubleOrbitHermite(doubleOrbitReturnBottomLeft,mul(doubleOrbitAxis,-1),doubleOrbitStart,doubleOrbitStartForward,s,s,q);}return p;};
