@@ -8,10 +8,10 @@ routes the rest of DOUBLE ORBIT around a stadium-like U: a rounded right turn, a
 long lower return parallel to the loop travel axis, and a rounded left turn into
 the lap seam.
 
-The authored vertical profile is retained on that return, so the existing bridge
-and final jump remain functional and the DOUBLE ORBIT physics/test contract does
-not lose features. No other course, loop geometry, controls, progress, or physics
-helpers are changed.
+The authored vertical profile and banking are retained on that return, so the
+existing bridge, banked feature and final jump remain functional and the DOUBLE
+ORBIT physics/test contract does not lose features. No other course, loop
+geometry, controls, progress, or physics helpers are changed.
 """
 from pathlib import Path
 
@@ -59,7 +59,7 @@ const doubleOrbitCourseRoadAt=t=>{
  if(t<=doubleOrbitBlendIn0)return base;
  if(t<doubleOrbitBlendIn1){const w=doubleOrbitSmooth((t-doubleOrbitBlendIn0)/(doubleOrbitBlendIn1-doubleOrbitBlendIn0)),line=doubleOrbitLineAt(t),lane=doubleOrbitLaneAt(t);return{...base,x:base.x+(line.x+doubleOrbitRight.x*lane-base.x)*w,y:base.y+(line.y+doubleOrbitRight.y*lane-base.y)*w,z:base.z+(line.z+doubleOrbitRight.z*lane-base.z)*w,bank:(base.bank||0)*(1-w)};}
  if(t<=doubleOrbitReturnT0){const line=doubleOrbitLineAt(t),lane=doubleOrbitLaneAt(t);return{...base,x:line.x+doubleOrbitRight.x*lane,y:line.y+doubleOrbitRight.y*lane,z:line.z+doubleOrbitRight.z*lane,bank:0};}
- const p=doubleOrbitReturnAt(t);return{...base,x:p.x,y:p.y+base.y,z:p.z,bank:(base.bank||0)*.16};
+ const p=doubleOrbitReturnAt(t);return{...base,x:p.x,y:p.y+base.y,z:p.z,bank:(base.bank||0)};
 };
 """
 
