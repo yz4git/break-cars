@@ -31,4 +31,16 @@ expect('highlight telemetry', game.includes('window.__breakCarsHighlightReplay='
 expect('highlight overlay CSS', css.includes('#mayhem-replay-overlay'));
 expect('Director HUD CSS', css.includes('#mayhem-director'));
 
+// v8 product-level presentation and dramaturgy.
+expect('nine-event Director pressure curve', game.includes('MAYHEM_PRESSURE_CURVE=[.28,.34,.41,.48,.55,.62,.70,.78,.87]'));
+expect('four-act Tour structure', ['ACT I · IGNITION','ACT II · VENDETTA','ACT III · REDLINE','FINAL ACT · DOUBLE ORBIT'].every(x=>game.includes(x)));
+expect('Director transition stingers', game.includes('function mayhemDirectorStinger(') && css.includes('#mayhem-director-stinger'));
+expect('screen-space RIVAL marker', game.includes('function mayhemRivalMarkerUpdate()') && css.includes('#mayhem-rival-marker'));
+expect('RIVAL intermission status', game.includes('function mayhemIntermissionPolish(') && css.includes('.tour-rival-status'));
+expect('cinematic replay camera', game.includes('function mayhemReplayCinematicCamera('));
+expect('cinematic replay shot grammar', ['CHASE','RIVAL TWO-SHOT','IMPACT CLOSE'].every(x=>game.includes(x)));
+expect('HUD-free replay mode', game.includes("document.body.classList.add('mayhem-replay-active')") && css.includes('body.mayhem-replay-active #hud'));
+expect('cinematic letterbox', game.includes("lb.id='mayhem-letterbox'") && css.includes('#mayhem-letterbox'));
+expect('v8 Director telemetry', game.includes('eventPressure:mayhemTourPressure()') && game.includes('act:mayhemActMeta().short'));
+
 console.log('MAYHEM TOUR roadmap regression test passed.');
