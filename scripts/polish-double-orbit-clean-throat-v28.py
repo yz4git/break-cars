@@ -1,12 +1,14 @@
-"""DOUBLE ORBIT v28: clear the twin-loop sightline.
+"""DOUBLE ORBIT v28: clear the twin-loop sightline after the v29 outer return.
 
 DOUBLE ORBIT puts its twin rings near the circuit's central over/under crossing.
 Generic start-gate posts, bridge support columns and distant floodlight towers can
 therefore read as poles driven through the ring openings. The toy-track reference
-keeps those throats visually open. Suppress those decorative/support visuals only
-for DOUBLE ORBIT; road meshes, physics, timing and progress remain untouched.
+keeps those throats visually open. First apply the v29 broad U-shaped outer return,
+then suppress those decorative/support visuals only for DOUBLE ORBIT. Other course
+geometry, controls, progress and physics helpers remain untouched.
 """
 from pathlib import Path
+import importlib.util
 
 
 def one(text: str, old: str, new: str, label: str) -> str:
@@ -16,7 +18,19 @@ def one(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
+def apply_u_return(target: Path) -> None:
+    module_path = Path(__file__).with_name('polish-double-orbit-u-return-v29.py')
+    spec = importlib.util.spec_from_file_location('break_cars_double_orbit_u_return_v29', module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.apply_double_orbit_u_return_v29(target)
+
+
 def apply_double_orbit_clean_throat_v28(target: Path) -> None:
+    # v25 invokes this pass after v27, so this is the final safe point to replace
+    # only the road after loop two while preserving the proven twin-loop geometry.
+    apply_u_return(target)
+
     path = target / 'track-view.js'
     s = path.read_text()
 
