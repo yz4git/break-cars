@@ -9,6 +9,12 @@ on:
       - 'scripts/apply-mayhem-tour-v1.py'
       - 'scripts/finalize-mayhem-tour-v1.py'
       - 'scripts/polish-mayhem-tour-v2.py'
+      - 'scripts/polish-mayhem-tour-v3.py'
+      - 'scripts/polish-mayhem-tour-v4.py'
+      - 'scripts/apply-mayhem-rival-director-v5.py'
+      - 'scripts/expand-mayhem-nine-course-v6.py'
+      - 'scripts/add-mayhem-highlight-replay-v7.py'
+      - 'scripts/test-mayhem-roadmap.mjs'
       - 'scripts/prepare-pages.py'
   workflow_dispatch:
 
@@ -32,6 +38,7 @@ jobs:
         run: |
           node --check _site/game.js
           node --check _site/physics.js
+          node scripts/test-mayhem-roadmap.mjs
       - name: Install Playwright Chromium
         run: |
           npm install --no-save --package-lock=false playwright@1.55.0
@@ -42,7 +49,7 @@ jobs:
           for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
           cat /tmp/break-cars-tour-http.log
           exit 1
-      - name: Drive full MAYHEM TOUR flow
+      - name: Drive complete nine-course MAYHEM TOUR
         env:
           BREAK_CARS_AUDIT_URL: http://127.0.0.1:4173/
         run: node .github/mayhem-tour-audit.mjs
