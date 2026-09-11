@@ -1,0 +1,55 @@
+name: MAYHEM TOUR visual flow audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/mayhem-tour-audit.mjs'
+      - '.github/workflows/mayhem-tour-audit.yml'
+      - 'scripts/apply-mayhem-tour-v1.py'
+      - 'scripts/finalize-mayhem-tour-v1.py'
+      - 'scripts/prepare-pages.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tour:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+      - name: Prepare exact game build
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: python3 scripts/prepare-pages.py
+      - name: Check generated Tour JavaScript
+        run: |
+          node --check _site/game.js
+          node --check _site/physics.js
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Serve generated game
+        run: |
+          python3 -m http.server 4173 --directory _site >/tmp/break-cars-tour-http.log 2>&1 &
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/break-cars-tour-http.log
+          exit 1
+      - name: Drive full MAYHEM TOUR flow
+        env:
+          BREAK_CARS_AUDIT_URL: http://127.0.0.1:4173/
+        run: node .github/mayhem-tour-audit.mjs
+      - name: Upload MAYHEM TOUR screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: break-cars-mayhem-tour-${{ github.sha }}
+          path: artifacts/mayhem-tour-audit
+          if-no-files-found: error
+          retention-days: 7
