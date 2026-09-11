@@ -4,6 +4,12 @@ import path from 'node:path';
 
 const base=(process.env.BREAK_CARS_AUDIT_URL||'http://127.0.0.1:4173/').replace(/\/?$/,'/');
 const out=path.resolve('artifacts/mayhem-tour-audit');
+const courses=[
+  'classic','crater-crown','maelstrom-pit',
+  'hunt-classic','cross-fire','tidal-foundry',
+  'rampage-3d','sky-forge','double-orbit'
+];
+const upgrades=['power','armor','handling','repair','power','armor','handling','repair'];
 await fs.rm(out,{recursive:true,force:true});
 await fs.mkdir(out,{recursive:true});
 
@@ -21,128 +27,126 @@ const page=await context.newPage();
 const errors=[];
 page.on('console',m=>{if(m.type()==='error')errors.push(`console: ${m.text()}`);});
 page.on('pageerror',e=>errors.push(`page: ${String(e)}`));
-const text=async sel=>{
-  for(let i=0;i<5;i++){
-    try{const value=(await page.locator(sel).innerText({timeout:1200})).trim();if(value)return value;}catch{}
-    await page.waitForTimeout(180);
-  }
-  return '';
-};
+const text=async sel=>{try{return (await page.locator(sel).innerText({timeout:2500})).trim();}catch{return'';}};
 const snap=async name=>page.screenshot({path:path.join(out,name),fullPage:false});
 const tour=async()=>page.evaluate(()=>window.__breakCarsMayhemTour?.()??null);
+const director=async()=>page.evaluate(()=>window.__breakCarsMayhemDirector??null);
+const replay=async()=>page.evaluate(()=>window.__breakCarsHighlightReplay??null);
 const renderer=async()=>page.evaluate(()=>{const c=document.querySelector('canvas');if(!c)return'none';try{return c.getContext('webgl2')?'webgl2':c.getContext('webgl')?'webgl':'canvas';}catch{return'canvas';}});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
-const eventUrl=i=>`${base}?course=${['crater-crown','hunt-classic','double-orbit'][i]}&tour=1&event=${i}&tourAudit=1`;
+const firstUrl=`${base}?course=${courses[0]}&tour=1&event=0&tourAudit=1`;
 const waitTourReady=async i=>{
   await page.waitForFunction(index=>{
     const state=window.__breakCarsMayhemTour?.();
-    return state?.event===index&&document.querySelector('#mode-tag')?.textContent?.includes('MAYHEM TOUR');
-  },i,{timeout:8000});
+    return state?.event===index&&state?.tourLength===9&&document.querySelector('#mode-tag')?.textContent?.includes('MAYHEM TOUR');
+  },i,{timeout:10000});
   await page.waitForTimeout(180);
 };
 const beginDriving=async()=>{
+  await page.click('#start');
+  await page.waitForTimeout(650);
   await page.waitForFunction(()=>typeof window.__breakCarsMayhemAuditStart==='function',{timeout:5000});
   await page.evaluate(()=>window.__breakCarsMayhemAuditStart());
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(450);
 };
-const assertResultBadgeClear=async label=>assert(await page.locator('#tour-run-badge').count()===0,`${label}: Tour run badge overlaps result/PIT screen`);
-const assertDrivingHudHidden=async label=>assert(!(await page.locator('#driving').isVisible()),`${label}: driving HUD remains visible behind Tour result/PIT screen`);
-const assertTargetNavHidden=async label=>assert(!(await page.locator('#hunt-nav').isVisible()),`${label}: WRECK HUNT target navigator remains visible behind Tour result/PIT screen`);
+const finishEvent=async()=>{
+  await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());
+  await page.waitForTimeout(420);
+};
+const assertCleanResult=async label=>{
+  assert(await page.locator('#tour-run-badge').count()===0,`${label}: Tour badge overlaps result`);
+  assert(!(await page.locator('#driving').isVisible()),`${label}: driving HUD visible behind result`);
+  assert(!(await page.locator('#hunt-nav').isVisible()),`${label}: target nav visible behind result`);
+};
 
 const report={menu:null,events:[],errors};
 try{
-  // Ordinary menu must expose Tour without removing the existing single-event modes.
   await page.goto(`${base}?course=classic`,{waitUntil:'networkidle',timeout:30000});
-  await page.waitForTimeout(700);
-  report.menu={
-    tourVisible:await page.locator('#mayhem-tour-entry').isVisible(),
-    modes:await page.locator('[data-mode]').count(),
-    label:await text('#mayhem-tour-entry')
-  };
-  assert(report.menu.tourVisible,'MAYHEM TOUR entry is not visible on the normal menu');
+  await page.waitForTimeout(500);
+  report.menu={tourVisible:await page.locator('#mayhem-tour-entry').isVisible(),label:await text('#mayhem-tour-entry'),modes:await page.locator('[data-mode]').count()};
+  assert(report.menu.tourVisible,'MAYHEM TOUR entry missing');
+  assert(/9 COURSE RUN/.test(report.menu.label),'9-course menu label missing');
   assert(report.menu.modes===3,`expected 3 ordinary modes, got ${report.menu.modes}`);
-  await snap('00-normal-menu-tour-entry.png');
+  await snap('00-normal-menu.png');
 
-  // Enter event 1 directly, then seed a deterministic persisted car/HULL state.
-  await page.goto(eventUrl(0),{waitUntil:'networkidle',timeout:30000});
-  await page.evaluate(()=>{const k='break-cars-mayhem-tour-v1',s=JSON.parse(sessionStorage.getItem(k));s.car=1;s.hull=.63;sessionStorage.setItem(k,JSON.stringify(s));});
+  await page.goto(firstUrl,{waitUntil:'networkidle',timeout:30000});
+  await page.evaluate(()=>{
+    const k='break-cars-mayhem-tour-v2';
+    const s=JSON.parse(sessionStorage.getItem(k));
+    s.car=1;s.hull=.71;s.rivalHull=.82;
+    sessionStorage.setItem(k,JSON.stringify(s));
+  });
   await page.reload({waitUntil:'networkidle'});
-  await waitTourReady(0);
-  let state=await tour();
-  assert(state?.event===0,'event 1 state missing');
-  assert(state?.eventDef?.course==='crater-crown','event 1 course mismatch');
-  assert(state?.worldMode==='colosseum','event 1 mode mismatch');
-  const e1Start={state,tag:await text('#mode-tag'),lead:await text('#mode-lead'),renderer:await renderer()};
-  assert(/MAYHEM TOUR/.test(e1Start.tag),'event 1 Tour heading missing');
-  assert(e1Start.renderer!=='none','event 1 renderer missing');
-  assert(Math.abs(state.hp/state.maxHP-.63)<.035,`event 1 seeded hull mismatch: ${state.hp}/${state.maxHP}`);
-  await snap('10-event1-crater-menu.png');
-  await page.click('#start');await page.waitForTimeout(700);await beginDriving();
-  await page.keyboard.down('ArrowUp');await page.waitForTimeout(1000);await snap('11-event1-crater-play.png');await page.keyboard.up('ArrowUp');
-  await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());await page.waitForTimeout(450);
-  assert(await page.locator('[data-tour-up="power"]').isVisible(),'event 1 pit POWER choice missing');
-  await assertResultBadgeClear('event 1');
-  await assertDrivingHudHidden('event 1');
-  await assertTargetNavHidden('event 1');
-  await snap('12-event1-pit.png');
-  const beforePower=await tour();
-  await page.click('[data-tour-up="power"]');
-  await page.waitForURL(/event=1/,{timeout:10000});
-  await page.goto(eventUrl(1),{waitUntil:'networkidle',timeout:30000});
-  await waitTourReady(1);
-  state=await tour();
-  const e2Start={state,tag:await text('#mode-tag'),lead:await text('#mode-lead'),renderer:await renderer()};
-  assert(state?.event===1&&state?.eventDef?.course==='hunt-classic','event 2 route/state mismatch');
-  assert(state?.worldMode==='wreck-hunt','event 2 mode mismatch');
-  assert(state?.car===1,'selected car did not persist into event 2');
-  assert(state?.power===1,'POWER upgrade did not persist into event 2');
-  assert(Math.abs(state.hp/state.maxHP-beforePower.hull)<.04,'HULL did not carry into event 2');
-  assert(e2Start.renderer!=='none','event 2 renderer missing');
-  await snap('20-event2-hunt-menu.png');
-  await page.click('#start');await page.waitForTimeout(700);await beginDriving();
-  await page.keyboard.down('ArrowUp');await page.waitForTimeout(1000);await snap('21-event2-hunt-play.png');await page.keyboard.up('ArrowUp');
-  await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());await page.waitForTimeout(450);
-  assert(await page.locator('[data-tour-up="armor"]').isVisible(),'event 2 pit ARMOR choice missing');
-  await assertResultBadgeClear('event 2');
-  await assertDrivingHudHidden('event 2');
-  await assertTargetNavHidden('event 2');
-  await snap('22-event2-pit.png');
-  const beforeArmor=await tour();
-  await page.click('[data-tour-up="armor"]');
-  await page.waitForURL(/event=2/,{timeout:10000});
-  await page.goto(eventUrl(2),{waitUntil:'networkidle',timeout:30000});
-  await waitTourReady(2);
-  state=await tour();
-  const e3Start={state,tag:await text('#mode-tag'),lead:await text('#mode-lead'),renderer:await renderer()};
-  assert(state?.event===2&&state?.eventDef?.course==='double-orbit','event 3 route/state mismatch');
-  assert(state?.worldMode==='racing','event 3 mode mismatch');
-  assert(state?.car===1&&state?.power===1&&state?.armor===1,'car/upgrades did not persist into event 3');
-  assert(Math.abs(state.hp/state.maxHP-beforeArmor.hull)<.04,'HULL did not carry into event 3');
-  assert(e3Start.renderer!=='none','event 3 renderer missing');
-  await snap('30-event3-double-orbit-menu.png');
-  await page.click('#start');await page.waitForTimeout(700);await beginDriving();
-  await page.keyboard.down('ArrowUp');await page.waitForTimeout(3000);await snap('31-event3-double-orbit-play.png');await page.keyboard.up('ArrowUp');
-  await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());await page.waitForTimeout(500);
-  const finalVisible=await page.locator('.tour-final').isVisible();
-  const finalText=await text('.tour-final');
-  assert(finalVisible,'Tour final panel missing');
-  assert(/MAYHEM TOUR COMPLETE/.test(finalText),'Tour completion copy missing');
-  await assertResultBadgeClear('final');
-  await assertDrivingHudHidden('final');
-  await assertTargetNavHidden('final');
-  await snap('32-tour-complete.png');
-  const finalState=await tour();
-  assert(finalState?.results?.length>=3,'three Tour results were not recorded');
 
-  report.events=[e1Start,e2Start,e3Start];
-  report.final={state:finalState,text:finalText,visible:finalVisible,badgeClear:true,drivingHudHidden:true,targetNavHidden:true};
-  report.renderer=await renderer();
+  let persistentRival=null;
+  for(let i=0;i<courses.length;i++){
+    await waitTourReady(i);
+    const before=await tour();
+    assert(before?.eventDef?.course===courses[i],`event ${i+1}: course mismatch ${before?.eventDef?.course}`);
+    assert(before?.tourLength===9,`event ${i+1}: tour length is not 9`);
+    if(i===0){
+      assert(Math.abs(before.hp/before.maxHP-.71)<.04,`event 1: player HULL seed mismatch`);
+      assert(Math.abs((before.rival?.hp||0)/(before.rival?.maxHP||1)-.82)<.05,`event 1: RIVAL HULL seed mismatch`);
+      persistentRival=before.rival?.id;
+    }else{
+      assert(before.rival?.id===persistentRival,`event ${i+1}: persistent RIVAL changed`);
+    }
+    assert(await renderer()!=='none',`event ${i+1}: renderer missing`);
+    await snap(`${String(i+1).padStart(2,'0')}-menu-${courses[i]}.png`);
+
+    await beginDriving();
+    await page.keyboard.down('ArrowUp');
+    await page.waitForTimeout(i===0?1600:520);
+    await page.keyboard.up('ArrowUp');
+    const liveDirector=await director();
+    assert(liveDirector&&['BUILD','PRESSURE','RIVAL RUSH','RELIEF','FINALE'].includes(liveDirector.state),`event ${i+1}: Director telemetry missing`);
+    assert(liveDirector.rivalId===persistentRival,`event ${i+1}: Director RIVAL mismatch`);
+    if(i===0)await snap('01-live-director.png');
+
+    await finishEvent();
+    await assertCleanResult(`event ${i+1}`);
+    const after=await tour();
+    assert(after?.results?.[i]?.course===courses[i],`event ${i+1}: result not recorded`);
+    assert(after?.results?.[i]?.director,`event ${i+1}: Director result not recorded`);
+
+    if(i===0){
+      const replayButton=page.locator('[data-tour-replay]');
+      assert(await replayButton.isVisible(),'event 1: HIGHLIGHT REPLAY button missing');
+      const replayState=await replay();
+      assert((replayState?.frames||0)>=2,'event 1: highlight frames were not captured');
+      await replayButton.click();
+      await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===true,{timeout:3000});
+      await snap('02-highlight-replay.png');
+      await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===false,{timeout:12000});
+      assert(await page.locator('#modal').isVisible(),'event 1: result modal did not return after replay');
+    }
+
+    report.events.push({index:i,course:courses[i],before,after,director:liveDirector});
+    if(i===courses.length-1){
+      assert(await page.locator('.tour-final').isVisible(),'final Tour panel missing');
+      assert(/MAYHEM TOUR COMPLETE/.test(await text('.tour-final')),'completion copy missing');
+      await snap('99-tour-complete.png');
+      break;
+    }
+
+    const up=upgrades[i];
+    const button=page.locator(`[data-tour-up="${up}"]`);
+    assert(await button.isVisible(),`event ${i+1}: PIT ${up} missing`);
+    assert(!(await button.isDisabled()),`event ${i+1}: PIT ${up} unexpectedly disabled`);
+    await button.click();
+    await page.waitForURL(new RegExp(`event=${i+1}`),{timeout:10000});
+  }
+
+  const finalState=await tour();
+  assert(finalState?.results?.length>=9,'nine Tour results were not recorded');
+  assert(finalState?.rival?.id===persistentRival,'RIVAL changed before Tour completion');
+  report.final={state:finalState,replay:await replay(),renderer:await renderer()};
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
   await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify(report,null,2));
-  console.log(`MAYHEM TOUR audit PASS: car=${finalState.car} hull=${Math.round(finalState.hull*100)}% power=${finalState.power} armor=${finalState.armor} handling=${finalState.handling} total=${finalState.total} errors=${errors.length} hud=clean`);
+  console.log(`MAYHEM TOUR 9-course audit PASS: results=${finalState.results.length} rival=${persistentRival} hull=${Math.round(finalState.hull*100)}% total=${finalState.total} errors=${errors.length}`);
 }catch(err){
   report.failure=String(err?.stack||err);
-  try{await snap('99-failure.png');}catch{}
+  try{await snap('98-failure.png');}catch{}
   await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify(report,null,2));
   console.error(report.failure);
   process.exitCode=1;
