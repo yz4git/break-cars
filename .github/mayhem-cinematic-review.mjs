@@ -17,7 +17,8 @@ const snap=name=>page.screenshot({path:path.join(out,name),fullPage:false});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
 const url=(course,event)=>`${base}?course=${course}&tour=1&event=${event}&tourAudit=1`;
 const waitReady=async(event,act)=>{await page.waitForFunction(({event,act})=>{const s=window.__breakCarsMayhemTour?.(),tag=document.querySelector('#mode-tag')?.textContent||'';return s?.event===event&&s?.tourLength===9&&tag.includes(act)&&document.body.classList.contains('mayhem-tour');},{event,act},{timeout:10000});await page.waitForTimeout(220);};
-const startDriving=async()=>{await page.click('#start');await page.waitForTimeout(600);await page.waitForFunction(()=>typeof window.__breakCarsMayhemAuditStart==='function',null,{timeout:5000});await page.evaluate(()=>window.__breakCarsMayhemAuditStart());await page.waitForTimeout(350);};
+const auditStart=async()=>{await page.waitForFunction(()=>typeof window.__breakCarsMayhemAuditStart==='function',null,{timeout:5000});await page.evaluate(()=>window.__breakCarsMayhemAuditStart());await page.waitForTimeout(350);};
+const startDriving=async()=>{await page.click('#start');await page.waitForTimeout(600);await auditStart();};
 
 try{
   // ACT I + live Director/RIVAL composition.
@@ -57,17 +58,60 @@ try{
   assert(d7?.act?.includes('ACT III'),'ACT III Director telemetry missing');
   await snap('08-act3-live.png');
 
-  // FINAL ACT composition and final pressure read.
+  // FINAL ACT menu -> face-off -> live FINAL DUEL.
   await page.goto(url('double-orbit',8),{waitUntil:'networkidle',timeout:30000});await waitReady(8,'FINAL ACT');
-  await snap('09-final-menu.png');await startDriving();await page.waitForTimeout(900);
+  await snap('09-final-menu.png');
+  await page.click('#start');
+  await page.waitForFunction(()=>window.__breakCarsMayhemShowdown?.stage==='FACE OFF'&&document.body.classList.contains('mayhem-showdown-intro'),null,{timeout:4000});
+  assert(await page.locator('#mayhem-showdown-intro').isVisible(),'FINAL SHOWDOWN face-off overlay missing');
+  assert((await page.locator('#mayhem-showdown-intro').innerText()).includes('FINAL SHOWDOWN'),'FINAL SHOWDOWN face-off copy missing');
+  assert(!(await page.locator('#driving').isVisible()),'driving HUD visible during FINAL SHOWDOWN face-off');
+  await snap('10-final-face-off.png');
+  await auditStart();
+  await page.waitForTimeout(1900);
   const d9=await page.evaluate(()=>window.__breakCarsMayhemDirector);
+  const duel=await page.evaluate(()=>window.__breakCarsMayhemFinalDuel);
   assert(d9?.act?.includes('FINAL'),'FINAL ACT Director telemetry missing');
   assert((d9?.eventPressure||0)>=.85,'FINAL ACT pressure too low');
-  await snap('10-final-live.png');
+  assert(duel?.active===true&&duel.phase>=1,'FINAL DUEL telemetry missing');
+  await snap('11-final-live.png');
+
+  // Record enough decisive footage, finish, then manually run the audit-safe showdown replay.
+  await page.keyboard.down('ArrowUp');
+  await page.waitForFunction(()=>{const r=window.__breakCarsHighlightReplay;return (r?.frames||0)>=18;},null,{timeout:30000,polling:250});
+  await page.keyboard.up('ArrowUp');
+  await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());
+  await page.waitForTimeout(500);
+  const finalReplay=page.locator('[data-tour-replay]');
+  assert(await finalReplay.isVisible(),'FINAL SHOWDOWN replay button missing');
+  const finalReplayText=await finalReplay.innerText();
+  assert(finalReplayText.includes('FINAL SHOWDOWN REPLAY'),'final replay button did not switch to showdown copy');
+  const frozen=await page.evaluate(()=>window.__breakCarsHighlightReplay);
+  assert((frozen?.frames||0)>=28&&frozen?.finishCut===true,'finish-focused FINAL SHOWDOWN replay was not frozen');
+  await snap('12-final-result.png');
+
+  await finalReplay.click();
+  await page.waitForFunction(()=>window.__breakCarsMayhemShowdown?.stage==='FINISH REPLAY'&&window.__breakCarsHighlightReplay?.playing===true,null,{timeout:5000});
+  const showdownOverlay=page.locator('#mayhem-replay-overlay[data-showdown="1"]');
+  assert(await showdownOverlay.isVisible(),'FINAL SHOWDOWN replay overlay missing');
+  const showdownText=await showdownOverlay.innerText();
+  assert(showdownText.includes('FINAL SHOWDOWN REPLAY')&&showdownText.includes('SLOW MOTION'),'showdown replay title/slow-motion copy missing');
+  assert(!(await page.locator('#hud').isVisible()),'HUD visible in FINAL SHOWDOWN replay');
+  assert(!(await page.locator('#driving').isVisible()),'controls visible in FINAL SHOWDOWN replay');
+  await snap('13-final-showdown-replay.png');
+
+  await page.waitForFunction(()=>window.__breakCarsMayhemShowdown?.stage==='ENDING',null,{timeout:12000});
+  const ending=page.locator('#mayhem-showdown-ending');
+  assert(await ending.count()===1,'FINAL SHOWDOWN ending card missing');
+  assert(await ending.evaluate(el=>el.classList.contains('show')),'FINAL SHOWDOWN ending card did not animate in');
+  const endingText=await ending.innerText();
+  assert(endingText.includes('MAYHEM TOUR CHAMPION')||endingText.includes('RIVAL OWNS THE NIGHT'),'FINAL SHOWDOWN ending verdict missing');
+  await snap('14-final-ending.png');
+  const showdown=await page.evaluate(()=>window.__breakCarsMayhemShowdown);
 
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
-  await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({directorAct1:d,directorAct3:d7,directorFinal:d9,errors},null,2));
-  console.log(`MAYHEM cinematic review PASS: act1=${d.state} act3=${d7.state} final=${d9.state}`);
+  await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({directorAct1:d,directorAct3:d7,directorFinal:d9,finalDuel:duel,finalReplayFrozen:frozen,showdown,errors},null,2));
+  console.log(`MAYHEM cinematic review PASS: act1=${d.state} act3=${d7.state} final=${d9.state} showdown=${showdown?.stage}`);
 }catch(err){
   try{await snap('98-failure.png');}catch{}
   await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({failure:String(err?.stack||err),errors},null,2));
