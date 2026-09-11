@@ -81,4 +81,20 @@ expect('v8.7 final replay button', game.includes('FINAL SHOWDOWN REPLAY') && gam
 expect('v8.7 showdown telemetry', game.includes('window.__breakCarsMayhemShowdown='));
 expect('v8.7.1 live replay caption preserves slow motion', game.includes('FINISH CUT · ${mayhemRivalName()} · SLOW MOTION · ${mayhemReplayShot}'));
 
+// v8.8 FINAL SHOWDOWN replay safety.
+expect('v8.8 high-side showdown camera', game.includes('function mayhemShowdownReplayCameraV88(') && game.includes("camera:'HIGH-SIDE'"));
+expect('v8.8 three showdown replay shots', ['SHOWDOWN CHASE','SHOWDOWN TWO-SHOT','FINISH IMPACT'].every(x=>game.includes(x)));
+expect('v8.8 face-off HUD cleanup', css.includes('body.mayhem-showdown-intro #hud'));
+expect('v8.8 telemetry marker', game.includes('window.__breakCarsMayhemV88=true'));
+
+// v8.9 complete nine-event TOUR RECAP.
+expect('v8.9 recap final result panel', game.includes('function mayhemRecapAttach(') && css.includes('.tour-recap-panel'));
+expect('v8.9 real nine-event result source', game.includes('function mayhemRecapResults()') && game.includes('MAYHEM_EVENTS.map((event,index)'));
+expect('v8.9 recap statistics', game.includes('function mayhemRecapStats()') && game.includes('best,toughest'));
+expect('v8.9 highlight film sequence', ['function mayhemRecapOpening()','function mayhemRecapEvent(index)','function mayhemRecapFinale()'].every(x=>game.includes(x)));
+expect('v8.9 recap telemetry', game.includes('window.__breakCarsMayhemRecap=') && game.includes("mayhemRecapTelemetry('FINAL'"));
+expect('v8.9 recap CTA', game.includes('PLAY TOUR RECAP') && game.includes('9 EVENT HIGHLIGHT FILM'));
+expect('v8.9 recap overlay styling', css.includes('#mayhem-tour-recap') && css.includes('body.mayhem-recap-active #hud'));
+expect('v8.9 telemetry marker', game.includes('window.__breakCarsMayhemV89=true'));
+
 console.log('MAYHEM TOUR roadmap regression test passed.');
