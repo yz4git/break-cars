@@ -8,6 +8,7 @@ on:
       - '.github/workflows/mayhem-tour-audit.yml'
       - 'scripts/apply-mayhem-tour-v1.py'
       - 'scripts/finalize-mayhem-tour-v1.py'
+      - 'scripts/polish-mayhem-tour-v2.py'
       - 'scripts/prepare-pages.py'
   workflow_dispatch:
 
