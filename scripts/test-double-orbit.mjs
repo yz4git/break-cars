@@ -9,18 +9,24 @@ const spec=race3DFeatureSpec();
 assert.equal(spec.loops.length,2);
 assert(spec.bridge.y>14);
 assert(spec.bankMax>.6);
+assert(spec.loops.every(l=>l.radius>=11),`DOUBLE ORBIT rings must stay enlarged; radii=${spec.loops.map(l=>l.radius.toFixed(2))}`);
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const horizontal=v=>{const l=Math.hypot(v.x,v.z);return{x:v.x/l,z:v.z/l};};
 const joinAngleDeg=(a,b)=>Math.acos(clamp(a.x*b.x+a.z*b.z,-1,1))*180/Math.PI;
 const joinMetrics=[];
+const roadWidth=spec.halfWidth*2;
 for(let i=0;i<spec.loops.length;i++){
   const loop=spec.loops[i],before=racePointAt(loop.startS-2.5),after=racePointAt(loop.endS+2.5);
   assert.notEqual(before.kind,'loop',`loop ${i+1} approach must be ordinary road`);
   assert.notEqual(after.kind,'loop',`loop ${i+1} exit must be ordinary road`);
   const angle=joinAngleDeg(horizontal(before.forward),horizontal(after.forward));
-  joinMetrics.push({loop:i+1,angleDeg:+angle.toFixed(2),beforeS:+(loop.startS-2.5).toFixed(2),afterS:+(loop.endS+2.5).toFixed(2)});
+  const delta={x:after.cx-before.cx,y:after.cy-before.cy,z:after.cz-before.cz};
+  const lateral=Math.abs(delta.x*before.right.x+delta.y*before.right.y+delta.z*before.right.z);
+  const deckGap=lateral-roadWidth;
+  joinMetrics.push({loop:i+1,angleDeg:+angle.toFixed(2),offset:+lateral.toFixed(2),deckGap:+deckGap.toFixed(2),beforeS:+(loop.startS-2.5).toFixed(2),afterS:+(loop.endS+2.5).toFixed(2)});
   assert(angle<=12,`loop ${i+1} approach/exit roads must stay near-parallel; got ${angle.toFixed(2)} deg`);
+  assert(lateral>=roadWidth+.5,`loop ${i+1} return road must clear the incoming road by at least one full road width; offset=${lateral.toFixed(2)}m roadWidth=${roadWidth.toFixed(2)}m`);
 }
 
 const bodyUpY=b=>1-2*(b.qx*b.qx+b.qz*b.qz);
@@ -61,6 +67,6 @@ for(let i=0;i<3600&&!pack.done;i++){
   impacts+=pack.events.filter(e=>e.type==='impact').length;
 }
 const clear=pack.cars.filter(c=>c.raceDistance>spec.loops[1].endS+8).length;
-console.log(`DOUBLE ORBIT: joins=${joinMetrics.map(j=>`L${j.loop}:${j.angleDeg}deg`).join(', ')}, natural lap ${(frames/60).toFixed(1)}s, inverted loops=${inverted.size}, air=${air.toFixed(2)}s, cleared both loops=${clear}/12, impacts=${impacts}`);
+console.log(`DOUBLE ORBIT: joins=${joinMetrics.map(j=>`L${j.loop}:${j.angleDeg}deg/${j.offset}m gap=${j.deckGap}m`).join(', ')}, radius=${spec.loops[0].radius.toFixed(2)}m, natural lap ${(frames/60).toFixed(1)}s, inverted loops=${inverted.size}, air=${air.toFixed(2)}s, cleared both loops=${clear}/12, impacts=${impacts}`);
 assert(clear>=7,'pack must flow through both loops');
 assert(impacts>10);
