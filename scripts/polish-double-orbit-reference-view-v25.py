@@ -1,10 +1,10 @@
 """DOUBLE ORBIT v25: match the reference sightline around both open loops.
 
 The reference has clean open throats with no billboard hanging across the lower
-arc.  Hide the generic WRECK LOOP board only when the generated course exposes
-two loops.  Also place the active-loop camera on the side of that ring opposite
-the other ring, so loop two is never viewed through loop one.  No vehicle,
-physics, controls, progress, or RAMPAGE camera behavior changes here.
+arc. Hide the generic WRECK LOOP and BOOST LOOP boards only when the generated
+course exposes two loops. Also place the active-loop camera on the side of that
+ring opposite the other ring, so loop two is never viewed through loop one. No
+vehicle, physics, controls, progress, or RAMPAGE camera behavior changes here.
 """
 from pathlib import Path
 
@@ -22,6 +22,9 @@ def apply_double_orbit_reference_view_v25(target: Path) -> None:
     board = "const loopP=trackPoint(spec.loop.startS-7,TRACK.halfWidth+4.2),loopBoard=sign('WRECK LOOP',10.5,1.25);loopBoard.position.set(loopP.x,loopP.y+3.4,loopP.z);loopBoard.rotation.y=loopP.heading+Math.PI/2;group.add(loopBoard);"
     clean_board = "if((spec.loops||[]).length<2){const loopP=trackPoint(spec.loop.startS-7,TRACK.halfWidth+4.2),loopBoard=sign('WRECK LOOP',10.5,1.25);loopBoard.position.set(loopP.x,loopP.y+3.4,loopP.z);loopBoard.rotation.y=loopP.heading+Math.PI/2;group.add(loopBoard);}"
     s = one(s, board, clean_board, 'remove DOUBLE ORBIT loop billboard')
+    boost = "const boostSignP=trackPoint(spec.loop.startS-28,0),boostSign=sign('BOOST LOOP',16,2);boostSign.position.set(boostSignP.x,boostSignP.y+3.1,boostSignP.z);boostSign.rotation.y=boostSignP.heading+Math.PI/2;group.add(boostSign);"
+    clean_boost = "if((spec.loops||[]).length<2){const boostSignP=trackPoint(spec.loop.startS-28,0),boostSign=sign('BOOST LOOP',16,2);boostSign.position.set(boostSignP.x,boostSignP.y+3.1,boostSignP.z);boostSign.rotation.y=boostSignP.heading+Math.PI/2;group.add(boostSign);}"
+    s = one(s, boost, clean_boost, 'remove DOUBLE ORBIT boost billboard')
     track.write_text(s)
 
     game = target / 'game.js'
