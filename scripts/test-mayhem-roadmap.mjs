@@ -43,4 +43,12 @@ expect('HUD-free replay mode', game.includes("document.body.classList.add('mayhe
 expect('cinematic letterbox', game.includes("lb.id='mayhem-letterbox'") && css.includes('#mayhem-letterbox'));
 expect('v8 Director telemetry', game.includes('eventPressure:mayhemTourPressure()') && game.includes('act:mayhemActMeta().short'));
 
+// v8.2 actual-screen review fixes.
+expect('v8.2 peak-centered replay', game.includes('mayhemReplayV82FrozenPeak') && game.includes('peakProgress:'));
+expect('v8.2 pre and post roll', game.includes('mayhemReplayV82PostFrames=18') && game.includes('peak-14') && game.includes('peak+17'));
+expect('v8.2 adaptive framing', game.includes('separation=Math.max(.1,mayhemReplaySide.length())') && game.includes('mayhemReplayV82LastShot!==nextShot'));
+expect('v8.2 immediate final pressure', game.includes("if(eventIndex===MAYHEM_EVENTS.length-1){next='FINALE';intensity=.97;}"));
+expect('v8.2 short-menu cleanup', css.includes('body.mayhem-tour:not(.playing) .course-hint{display:none!important}'));
+expect('v8.2 telemetry marker', game.includes('window.__breakCarsMayhemV82=true'));
+
 console.log('MAYHEM TOUR roadmap regression test passed.');
