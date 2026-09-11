@@ -5,8 +5,12 @@ entire layer and the WRECK HUNT target navigator only while the Tour result/PIT
 is open, then restore them when the next event starts. This removes speedometer,
 controls, radar, recover UI and target callouts from behind the result panel
 without affecting normal single-event result screens.
+
+The v5 persistent RIVAL + LIVE MAYHEM DIRECTOR layer is intentionally chained
+here so the existing Pages build order remains stable.
 """
 from pathlib import Path
+import importlib.util
 
 
 def one(text: str, old: str, new: str, label: str) -> str:
@@ -14,6 +18,14 @@ def one(text: str, old: str, new: str, label: str) -> str:
     if n != 1:
         raise RuntimeError(f'MAYHEM TOUR v4 {label}: expected 1 match, found {n}')
     return text.replace(old, new, 1)
+
+
+def apply_rival_director(target: Path) -> None:
+    module_path = Path(__file__).with_name('apply-mayhem-rival-director-v5.py')
+    spec = importlib.util.spec_from_file_location('break_cars_mayhem_rival_director_v5', module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.apply_mayhem_rival_director_v5(target)
 
 
 def apply_mayhem_tour_v4(target: Path) -> None:
@@ -33,6 +45,8 @@ def apply_mayhem_tour_v4(target: Path) -> None:
     c = css.read_text()
     c += "\nbody.mayhem-tour-result #driving,body.mayhem-tour-result #hunt-nav{display:none!important}\n"
     css.write_text(c)
+
+    apply_rival_director(target)
 
 
 if __name__ == '__main__':
