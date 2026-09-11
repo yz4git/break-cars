@@ -3,10 +3,12 @@
 The reference has clean open throats with no billboard hanging across the lower
 arc. Hide the generic WRECK LOOP and BOOST LOOP boards only when the generated
 course exposes two loops. Also place the active-loop camera on the side of that
-ring opposite the other ring, so loop two is never viewed through loop one. No
-vehicle, physics, controls, progress, or RAMPAGE camera behavior changes here.
+ring opposite the other ring, so loop two is never viewed through loop one.
+After that final authored composition, chain the global Camera 2.0 visibility
+resolver. Vehicle physics, controls and progress remain unchanged.
 """
 from pathlib import Path
+import importlib.util
 
 
 def one(text: str, old: str, new: str, label: str) -> str:
@@ -14,6 +16,14 @@ def one(text: str, old: str, new: str, label: str) -> str:
     if n != 1:
         raise RuntimeError(f'DOUBLE ORBIT reference view v25 {label}: expected 1 match, found {n}')
     return text.replace(old, new, 1)
+
+
+def apply_camera2(target: Path) -> None:
+    module_path = Path(__file__).with_name('polish-camera2-v1.py')
+    spec = importlib.util.spec_from_file_location('break_cars_camera2_v1', module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.apply_camera2_v1(target)
 
 
 def apply_double_orbit_reference_view_v25(target: Path) -> None:
@@ -35,6 +45,7 @@ def apply_double_orbit_reference_view_v25(target: Path) -> None:
     new = "side=(view===1?3.05:2.75)*doubleOrbitLoop.radius*outward,back=(view===1?1.62:1.38)*doubleOrbitLoop.radius,stageLift=view===1?2.8:2.1,pair=fullPhysicsSpec.race?.loops||[],loopIndex=pair.indexOf(doubleOrbitLoop),other=pair.length>1?pair[loopIndex===0?1:0]:null,otherP=other?trackPoint((other.startS+other.endS)*.5,0):null,away=otherP&&((otherP.x-mx)*fx+(otherP.z-mz)*fz)>0?-1:1,loopFocusY=my+doubleOrbitLoop.radius-1.35,playerFocus=.30;camTarget.set(mx+rx*side+fx*back*away,my+doubleOrbitLoop.radius+stageLift,mz+rz*side+fz*back*away);"
     s = one(s, old, new, 'camera away from sibling ring')
     game.write_text(s)
+    apply_camera2(target)
 
 
 if __name__ == '__main__':
