@@ -47,6 +47,7 @@ const beginDriving=async()=>{
 };
 const assertResultBadgeClear=async label=>assert(await page.locator('#tour-run-badge').count()===0,`${label}: Tour run badge overlaps result/PIT screen`);
 const assertDrivingHudHidden=async label=>assert(!(await page.locator('#driving').isVisible()),`${label}: driving HUD remains visible behind Tour result/PIT screen`);
+const assertTargetNavHidden=async label=>assert(!(await page.locator('#hunt-nav').isVisible()),`${label}: WRECK HUNT target navigator remains visible behind Tour result/PIT screen`);
 
 const report={menu:null,events:[],errors};
 try{
@@ -82,6 +83,7 @@ try{
   assert(await page.locator('[data-tour-up="power"]').isVisible(),'event 1 pit POWER choice missing');
   await assertResultBadgeClear('event 1');
   await assertDrivingHudHidden('event 1');
+  await assertTargetNavHidden('event 1');
   await snap('12-event1-pit.png');
   const beforePower=await tour();
   await page.click('[data-tour-up="power"]');
@@ -103,6 +105,7 @@ try{
   assert(await page.locator('[data-tour-up="armor"]').isVisible(),'event 2 pit ARMOR choice missing');
   await assertResultBadgeClear('event 2');
   await assertDrivingHudHidden('event 2');
+  await assertTargetNavHidden('event 2');
   await snap('22-event2-pit.png');
   const beforeArmor=await tour();
   await page.click('[data-tour-up="armor"]');
@@ -126,12 +129,13 @@ try{
   assert(/MAYHEM TOUR COMPLETE/.test(finalText),'Tour completion copy missing');
   await assertResultBadgeClear('final');
   await assertDrivingHudHidden('final');
+  await assertTargetNavHidden('final');
   await snap('32-tour-complete.png');
   const finalState=await tour();
   assert(finalState?.results?.length>=3,'three Tour results were not recorded');
 
   report.events=[e1Start,e2Start,e3Start];
-  report.final={state:finalState,text:finalText,visible:finalVisible,badgeClear:true,drivingHudHidden:true};
+  report.final={state:finalState,text:finalText,visible:finalVisible,badgeClear:true,drivingHudHidden:true,targetNavHidden:true};
   report.renderer=await renderer();
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
   await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify(report,null,2));
