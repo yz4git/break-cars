@@ -8,7 +8,8 @@ case the peak is the final source frame and the centered trim can collapse to
 Keep the real recorded peak and all available real frames. Expand the trim back
 toward the source edges first, then add only a brief frozen post-impact hold when
 a very short event has no recorded post-roll. Gameplay/physics and replay timing
-step remain untouched.
+step remain untouched. The cinematic workflow watches this pass directly so
+future editorial changes cannot bypass the real-browser replay review.
 """
 from pathlib import Path
 
