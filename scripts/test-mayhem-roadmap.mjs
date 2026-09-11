@@ -103,4 +103,9 @@ expect('v8.10 isolated ending verdict', game.includes("document.body.classList.a
 expect('v8.10 compact final replay CTA', game.includes('<b>SHOWDOWN REPLAY</b><small>FINAL CUT · SLOW MOTION</small>') && css.includes('.tour-final .tour-replay-button b'));
 expect('v8.10 telemetry marker', game.includes('window.__breakCarsMayhemV810=true'));
 
+// v8.11 Tour-owned result presentation.
+expect('v8.11 suppresses duplicated base result', ['#result-title','#result-detail','#result-stats','#race-results'].every(x=>css.includes(`body.mayhem-tour-result ${x}`)));
+expect('v8.11 keeps Tour intermission flush', css.includes('body.mayhem-tour-result #tour-intermission{margin-top:0!important}'));
+expect('v8.11 telemetry marker', game.includes('window.__breakCarsMayhemV811=true'));
+
 console.log('MAYHEM TOUR roadmap regression test passed.');
