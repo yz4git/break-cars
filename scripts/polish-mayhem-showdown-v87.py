@@ -55,8 +55,8 @@ function mayhemShowdownScheduleEndingReplay(){
     start_hook_new = "if(mayhemActive()){mayhemReplayReset();mayhemShowdownOnStart();document.body.classList.remove('mayhem-tour-result');"
     s = one(s, start_hook, start_hook_new, 'final face-off start')
 
-    render_hook = "if(mayhemReplayPlaying)mayhemReplayApply(dt);else if(mode==='race'&&mayhemActive())mayhemReplayCapture(dt);renderer.render(scene,camera);"
-    render_hook_new = "if(mayhemReplayPlaying)mayhemReplayApply(dt);else if(mode==='race'&&mayhemActive())mayhemReplayCapture(dt);mayhemShowdownFrameTick(dt);renderer.render(scene,camera);"
+    render_hook = "if(mayhemReplayPlaying)mayhemReplayApply(dt);else if(mode==='race'&&mayhemActive())mayhemReplayCapture(dt);if(mode==='race'&&mayhemActive()&&!mayhemReplayPlaying)mayhemRivalMarkerUpdate();else mayhemRivalMarkerHide();renderer.render(scene,camera);"
+    render_hook_new = "if(mayhemReplayPlaying)mayhemReplayApply(dt);else if(mode==='race'&&mayhemActive())mayhemReplayCapture(dt);if(mode==='race'&&mayhemActive()&&!mayhemReplayPlaying)mayhemRivalMarkerUpdate();else mayhemRivalMarkerHide();mayhemShowdownFrameTick(dt);renderer.render(scene,camera);"
     s = one(s, render_hook, render_hook_new, 'showdown frame cinematics')
 
     freeze_hook = "mayhemReplayFreeze();document.body.classList.add('mayhem-tour-result');"
