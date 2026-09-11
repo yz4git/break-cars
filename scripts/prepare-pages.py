@@ -54,6 +54,7 @@ apply_mayhem_tour_v1 = load_function('apply-mayhem-tour-v1.py', 'break_cars_mayh
 apply_mayhem_tour_finalize_v1 = load_function('finalize-mayhem-tour-v1.py', 'break_cars_mayhem_tour_finalize_v1', 'apply_mayhem_tour_finalize_v1')
 apply_mayhem_tour_v2 = load_function('polish-mayhem-tour-v2.py', 'break_cars_mayhem_tour_v2', 'apply_mayhem_tour_v2')
 apply_mayhem_tour_v3 = load_function('polish-mayhem-tour-v3.py', 'break_cars_mayhem_tour_v3', 'apply_mayhem_tour_v3')
+apply_mayhem_tour_v4 = load_function('polish-mayhem-tour-v4.py', 'break_cars_mayhem_tour_v4', 'apply_mayhem_tour_v4')
 
 source = Path('dist')
 target = Path('_site')
@@ -123,6 +124,7 @@ apply_mayhem_tour_v1(target)
 apply_mayhem_tour_finalize_v1(target)
 apply_mayhem_tour_v2(target)
 apply_mayhem_tour_v3(target)
+apply_mayhem_tour_v4(target)
 
 # Keep final public visual verification tied to the exact deploy SHA, including
 # late RAMPAGE dressing/visibility changes that do not alter vehicle physics.
