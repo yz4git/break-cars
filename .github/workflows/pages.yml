@@ -45,6 +45,8 @@ jobs:
         run: node scripts/test-racing3d.mjs
       - name: Test natural loop connection
         run: node scripts/test-natural-loop-connection.mjs
+      - name: Test DOUBLE ORBIT
+        run: node scripts/test-double-orbit.mjs
       - name: Test RAMPAGE raceability
         id: rampage_raceability
         continue-on-error: true
