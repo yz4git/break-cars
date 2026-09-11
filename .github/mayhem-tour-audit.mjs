@@ -18,6 +18,7 @@ const snap=async name=>page.screenshot({path:path.join(out,name),fullPage:false}
 const tour=async()=>page.evaluate(()=>window.__breakCarsMayhemTour?.()??null);
 const director=async()=>page.evaluate(()=>window.__breakCarsMayhemDirector??null);
 const replay=async()=>page.evaluate(()=>window.__breakCarsHighlightReplay??null);
+const recap=async()=>page.evaluate(()=>window.__breakCarsMayhemRecap??null);
 const renderer=async()=>page.evaluate(()=>{const c=document.querySelector('canvas');if(!c)return'none';try{return c.getContext('webgl2')?'webgl2':c.getContext('webgl')?'webgl':'canvas';}catch{return'canvas';}});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
 const eventUrl=i=>`${base}?course=${courses[i]}&tour=1&event=${i}&tourAudit=1`;
@@ -63,9 +64,14 @@ try{
     }
 
     report.events.push({index:i,course:courses[i],act:acts[i],before,after,director:liveDirector});
-    if(i===courses.length-1){assert(await page.locator('.tour-final').isVisible(),'final Tour panel missing');assert(/MAYHEM TOUR COMPLETE/.test(await text('.tour-final')),'completion copy missing');await snap('99-tour-complete.png');break;}
+    if(i===courses.length-1){
+      assert(await page.locator('.tour-final').isVisible(),'final Tour panel missing');assert(/MAYHEM TOUR COMPLETE/.test(await text('.tour-final')),'completion copy missing');
+      assert(await page.locator('.tour-recap-panel').isVisible(),'v8.9 final TOUR RECAP panel missing');assert(await page.locator('.tour-recap-timeline i').count()===9,'v8.9 final timeline does not contain nine events');
+      const recapState=await recap();assert(recapState?.stage==='READY',`v8.9 recap not READY (${recapState?.stage})`);assert(recapState?.stats?.events===9,`v8.9 recap expected 9 results, got ${recapState?.stats?.events}`);assert(await page.locator('[data-tour-recap-film]').isVisible(),'v8.9 PLAY TOUR RECAP button missing');
+      await snap('99-tour-complete.png');break;
+    }
     const up=upgrades[i],button=page.locator(`[data-tour-up="${up}"]`);assert(await button.isVisible(),`event ${i+1}: PIT ${up} missing`);assert(!(await button.isDisabled()),`event ${i+1}: PIT ${up} unexpectedly disabled`);await button.click();await page.waitForURL(new RegExp(`event=${i+1}`),{timeout:10000});await page.goto(eventUrl(i+1),{waitUntil:'networkidle',timeout:30000});
   }
 
-  const finalState=await tour();assert(finalState?.results?.length>=9,'nine Tour results were not recorded');assert(finalState?.rival?.id===persistentRival,'RIVAL changed before Tour completion');report.final={state:finalState,replay:await replay(),renderer:await renderer()};assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify(report,null,2));console.log(`MAYHEM TOUR v8.1 visual audit PASS: results=${finalState.results.length} rival=${persistentRival} hull=${Math.round(finalState.hull*100)}% total=${finalState.total} errors=${errors.length}`);
+  const finalState=await tour(),finalRecap=await recap();assert(finalState?.results?.length>=9,'nine Tour results were not recorded');assert(finalState?.rival?.id===persistentRival,'RIVAL changed before Tour completion');assert(finalRecap?.stats?.events===9,'recap telemetry lost completed Tour results');report.final={state:finalState,replay:await replay(),recap:finalRecap,renderer:await renderer()};assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify(report,null,2));console.log(`MAYHEM TOUR v8.9 visual audit PASS: results=${finalState.results.length} recap=${finalRecap.stats.events} rival=${persistentRival} hull=${Math.round(finalState.hull*100)}% total=${finalState.total} errors=${errors.length}`);
 }catch(err){report.failure=String(err?.stack||err);try{await snap('98-failure.png');}catch{}await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify(report,null,2));console.error(report.failure);process.exitCode=1;}finally{await context.close();await browser.close();}
