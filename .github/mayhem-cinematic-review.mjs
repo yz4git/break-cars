@@ -58,8 +58,17 @@ try{
   assert(d7?.act?.includes('ACT III'),'ACT III Director telemetry missing');
   await snap('08-act3-live.png');
 
-  // FINAL ACT menu -> face-off -> live FINAL DUEL.
+  // FINAL ACT menu -> seed the eight authentic prior result slots for recap coverage -> face-off -> live FINAL DUEL.
   await page.goto(url('double-orbit',8),{waitUntil:'networkidle',timeout:30000});await waitReady(8,'FINAL ACT');
+  await page.evaluate(()=>{
+    const k='break-cars-mayhem-tour-v2',s=JSON.parse(sessionStorage.getItem(k));
+    const courses=['classic','crater-crown','maelstrom-pit','hunt-classic','cross-fire','tidal-foundry','rampage-3d','sky-forge'];
+    const scores=[1680,2140,1920,2860,2330,2510,3180,2940],hulls=[.91,.78,.84,.62,.73,.68,.55,.64],directors=['PRESSURE','RIVAL RUSH','FINALE','PRESSURE','RIVAL RUSH','FINALE','RIVAL RUSH','FINALE'];
+    s.results=courses.map((course,i)=>({course,score:scores[i],hull:hulls[i],rivalHull:Math.max(.24,.88-i*.07),director:directors[i],rivalResult:i%2===0?'PLAYER':'RIVAL',series:{player:Math.ceil((i+1)/2),rival:Math.floor((i+1)/2)}}));
+    s.rivalryPlayer=4;s.rivalryRival=4;s.total=scores.reduce((a,b)=>a+b,0);s.hull=.64;s.rivalHull=.52;s.rivalHeat=5;s.event=8;
+    sessionStorage.setItem(k,JSON.stringify(s));
+  });
+  await page.reload({waitUntil:'networkidle'});await waitReady(8,'FINAL ACT');
   await snap('09-final-menu.png');
   await page.click('#start');
   await page.waitForFunction(()=>window.__breakCarsMayhemShowdown?.stage==='FACE OFF'&&document.body.classList.contains('mayhem-showdown-intro'),null,{timeout:4000});
@@ -88,6 +97,11 @@ try{
   assert(finalReplayText.includes('FINAL SHOWDOWN REPLAY'),'final replay button did not switch to showdown copy');
   const frozen=await page.evaluate(()=>window.__breakCarsHighlightReplay);
   assert((frozen?.frames||0)>=28&&frozen?.finishCut===true,'finish-focused FINAL SHOWDOWN replay was not frozen');
+  const recapPanel=page.locator('.tour-recap-panel');
+  assert(await recapPanel.isVisible(),'v8.9 TOUR RECAP result panel missing');
+  assert(await page.locator('.tour-recap-timeline i').count()===9,'v8.9 nine-event timeline missing');
+  const recapReady=await page.evaluate(()=>window.__breakCarsMayhemRecap);
+  assert(recapReady?.stage==='READY'&&recapReady?.stats?.events===9,'v8.9 recap did not collect nine event results');
   await snap('12-final-result.png');
 
   await finalReplay.click();
@@ -109,9 +123,31 @@ try{
   await snap('14-final-ending.png');
   const showdown=await page.evaluate(()=>window.__breakCarsMayhemShowdown);
 
+  // v8.9: play the complete results-driven nine-event highlight film at iPhone landscape size.
+  const recapButton=page.locator('[data-tour-recap-film]');
+  assert(await recapButton.isVisible(),'PLAY TOUR RECAP button missing');
+  assert((await recapButton.innerText()).includes('PLAY TOUR RECAP'),'TOUR RECAP CTA copy missing');
+  await recapButton.click();
+  await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='OPENING'&&window.__breakCarsMayhemRecap?.active===true,null,{timeout:4000});
+  assert(await page.locator('#mayhem-tour-recap').isVisible(),'TOUR RECAP film overlay missing');
+  assert(!(await page.locator('#hud').isVisible()),'HUD visible during TOUR RECAP film');
+  assert(!(await page.locator('#driving').isVisible()),'controls visible during TOUR RECAP film');
+  await snap('15-tour-recap-opening.png');
+  await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='EVENT'&&window.__breakCarsMayhemRecap?.index>=3,null,{timeout:7000});
+  assert(await page.locator('.mayhem-recap-track i').count()===9,'TOUR RECAP film timeline missing');
+  await snap('16-tour-recap-event.png');
+  await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='FINAL',null,{timeout:10000});
+  const recapFinalText=await page.locator('.mayhem-recap-stage').innerText();
+  assert(recapFinalText.includes('MAYHEM TOUR CHAMPION')||recapFinalText.includes('RIVAL WINS THE TOUR'),'TOUR RECAP final verdict missing');
+  await snap('17-tour-recap-final.png');
+  await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='COMPLETE'&&window.__breakCarsMayhemRecap?.completed===true&&window.__breakCarsMayhemRecap?.active===false,null,{timeout:5000});
+  assert(await page.locator('#mayhem-tour-recap').count()===0,'TOUR RECAP overlay did not close after completion');
+  assert(await page.locator('#modal').isVisible(),'result modal did not return after TOUR RECAP');
+  const recap=await page.evaluate(()=>window.__breakCarsMayhemRecap);
+
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
-  await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({directorAct1:d,directorAct3:d7,directorFinal:d9,finalDuel:duel,finalReplayFrozen:frozen,showdown,errors},null,2));
-  console.log(`MAYHEM cinematic review PASS: act1=${d.state} act3=${d7.state} final=${d9.state} showdown=${showdown?.stage}`);
+  await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({directorAct1:d,directorAct3:d7,directorFinal:d9,finalDuel:duel,finalReplayFrozen:frozen,showdown,recapReady,recap,errors},null,2));
+  console.log(`MAYHEM cinematic review PASS: act1=${d.state} act3=${d7.state} final=${d9.state} showdown=${showdown?.stage} recap=${recap?.stage}`);
 }catch(err){
   try{await snap('98-failure.png');}catch{}
   await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({failure:String(err?.stack||err),errors},null,2));
