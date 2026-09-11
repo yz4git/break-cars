@@ -101,7 +101,10 @@ try{
 
     await beginDriving();
     await page.keyboard.down('ArrowUp');
-    await page.waitForTimeout(i===0?1600:520);
+    // Event 1 runs long enough to retain a multi-second highlight so every
+    // cinematic camera phase can be reviewed. Later events stay short to keep
+    // the complete nine-course audit fast.
+    await page.waitForTimeout(i===0?4800:520);
     await page.keyboard.up('ArrowUp');
     const liveDirector=await director();
     assert(liveDirector&&['BUILD','PRESSURE','RIVAL RUSH','RELIEF','FINALE'].includes(liveDirector.state),`event ${i+1}: Director telemetry missing`);
@@ -125,17 +128,18 @@ try{
       const replayButton=page.locator('[data-tour-replay]');
       assert(await replayButton.isVisible(),'event 1: HIGHLIGHT REPLAY button missing');
       const replayState=await replay();
-      assert((replayState?.frames||0)>=2,'event 1: highlight frames were not captured');
+      assert((replayState?.frames||0)>=40,'event 1: highlight window is too short for cinematic review');
       await replayButton.click();
       await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===true,null,{timeout:3000});
-      await page.waitForFunction(()=>document.body.classList.contains('mayhem-replay-active')&&document.querySelector('#mayhem-letterbox')&&window.__breakCarsHighlightReplay?.shot,null,{timeout:3000});
-      const cinematic=await replay();
-      assert(['CHASE','RIVAL TWO-SHOT','IMPACT CLOSE'].includes(cinematic?.shot),`event 1: cinematic shot telemetry missing: ${cinematic?.shot}`);
+      await page.waitForFunction(()=>document.body.classList.contains('mayhem-replay-active')&&document.querySelector('#mayhem-letterbox')&&window.__breakCarsHighlightReplay?.shot==='CHASE',null,{timeout:3000});
       assert(await page.locator('#mayhem-letterbox').isVisible(),'event 1: cinematic letterbox missing');
       assert(!(await page.locator('#hud').isVisible()),'event 1: ordinary HUD visible during replay');
       assert(!(await page.locator('#driving').isVisible()),'event 1: driving controls visible during replay');
-      await page.waitForTimeout(420);
-      await snap('02-highlight-replay.png');
+      await snap('02a-highlight-chase.png');
+      await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.shot==='RIVAL TWO-SHOT',null,{timeout:5000});
+      await snap('02b-highlight-rival-two-shot.png');
+      await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.shot==='IMPACT CLOSE',null,{timeout:5000});
+      await snap('02c-highlight-impact-close.png');
       await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===false,null,{timeout:12000});
       assert(await page.locator('#modal').isVisible(),'event 1: result modal did not return after replay');
       assert(!(await page.locator('body').evaluate(el=>el.classList.contains('mayhem-replay-active'))),'event 1: replay body class leaked after playback');
@@ -166,7 +170,7 @@ try{
   report.final={state:finalState,replay:await replay(),renderer:await renderer()};
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
   await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify(report,null,2));
-  console.log(`MAYHEM TOUR v8 visual audit PASS: results=${finalState.results.length} rival=${persistentRival} hull=${Math.round(finalState.hull*100)}% total=${finalState.total} errors=${errors.length}`);
+  console.log(`MAYHEM TOUR v8.1 visual audit PASS: results=${finalState.results.length} rival=${persistentRival} hull=${Math.round(finalState.hull*100)}% total=${finalState.total} errors=${errors.length}`);
 }catch(err){
   report.failure=String(err?.stack||err);
   try{await snap('98-failure.png');}catch{}
