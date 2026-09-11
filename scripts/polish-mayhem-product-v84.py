@@ -4,7 +4,8 @@ The final real-browser review of v8.3 showed the three-shot grammar working, but
 an unusually wide player/rival separation can push the player to the lower edge
 of IMPACT CLOSE. Keep the tight crash framing for close impacts while adapting
 camera distance and FOV to live separation when the duel has opened up.
-Gameplay, replay selection/timing, and physics are unchanged.
+Gameplay, replay selection/timing, and physics are unchanged. Both Tour and
+cinematic browser audits watch this pass directly.
 """
 from pathlib import Path
 
