@@ -11,8 +11,9 @@ v7 transform-based HIGHLIGHT REPLAY, v8 product presentation polish, v8.1
 visual-review composition fixes, v8.2 peak-centered replay polish, v8.3 minimum
 cinematic replay window, v8.4 impact framing, v8.5 nine-event rivalry series,
 v8.6 DOUBLE ORBIT FINAL DUEL, v8.7 FINAL SHOWDOWN cinematics, v8.7.1 replay
-caption polish, v8.8 showdown replay camera safety and v8.9 nine-event TOUR
-RECAP are chained here so Pages build order stays stable.
+caption polish, v8.8 showdown replay camera safety, v8.9 nine-event TOUR RECAP
+and v8.10 final presentation cleanup are chained here so Pages build order stays
+stable.
 """
 from pathlib import Path
 import importlib.util
@@ -133,6 +134,12 @@ def apply_mayhem_tour_v4(target: Path) -> None:
         'polish-mayhem-recap-v89.py',
         'break_cars_mayhem_recap_v89',
         'apply_mayhem_recap_v89',
+        target,
+    )
+    load_and_apply(
+        'polish-mayhem-showdown-v810.py',
+        'break_cars_mayhem_showdown_v810',
+        'apply_mayhem_showdown_v810',
         target,
     )
 
