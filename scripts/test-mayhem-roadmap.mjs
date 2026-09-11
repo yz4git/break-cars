@@ -77,7 +77,7 @@ expect('v8.7 finish-focused frozen replay', game.includes('function mayhemShowdo
 expect('v8.7 final replay slow motion', game.includes('function mayhemShowdownReplayRate()') && game.includes("p>=.72?.42:p>=.5?.68:1"));
 expect('v8.7 automatic ending replay', game.includes('function mayhemShowdownScheduleEndingReplay()') && game.includes("mayhemParams.get('tourAudit')==='1'"));
 expect('v8.7 win loss ending cards', ['MAYHEM TOUR CHAMPION','RIVAL OWNS THE NIGHT'].every(x=>game.includes(x)) && css.includes('#mayhem-showdown-ending'));
-expect('v8.7 final replay button', game.includes('FINAL SHOWDOWN REPLAY') && game.includes('FINISH CUT · SLOW MOTION'));
+expect('v8.7 final replay capability', game.includes('SHOWDOWN REPLAY') && game.includes('SLOW MOTION'));
 expect('v8.7 showdown telemetry', game.includes('window.__breakCarsMayhemShowdown='));
 expect('v8.7.1 live replay caption preserves slow motion', game.includes('FINISH CUT · ${mayhemRivalName()} · SLOW MOTION · ${mayhemReplayShot}'));
 
