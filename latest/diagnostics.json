@@ -1,0 +1,835 @@
+{
+  "url": "https://yz4git.github.io/break-cars/?course=rampage-3d&visualAudit=1789092617903",
+  "renderer": "webgl",
+  "viewport": {
+    "width": 852,
+    "height": 393,
+    "dpr": 2
+  },
+  "ui": {
+    "camera": {
+      "text": "視点",
+      "width": 54,
+      "height": 38,
+      "clientWidth": 52,
+      "clientHeight": 36,
+      "scrollWidth": 52,
+      "scrollHeight": 36,
+      "whiteSpace": "nowrap",
+      "writingMode": "horizontal-tb"
+    },
+    "radar": {
+      "width": 86,
+      "height": 86,
+      "opacity": 0.94,
+      "backgroundColor": "rgba(16, 27, 40, 0.65)"
+    }
+  },
+  "traversal": {
+    "telemetrySamples": 30,
+    "loopSamples": 23,
+    "visualCaptureFrames": [
+      1,
+      3,
+      5,
+      7,
+      9,
+      12,
+      16,
+      22,
+      30
+    ],
+    "inverted": true,
+    "maxLoopStallSamples": 0,
+    "maxLoopStallSeconds": 0,
+    "raceProgress": 168.58,
+    "minLoopSpeedMps": 20.8,
+    "maxLoopSpeedMps": 30.19,
+    "maxHudSpeedErrorKmh": 38.38,
+    "maxLoopHudSpeedErrorKmh": 6.33
+  },
+  "samples": [
+    {
+      "frame": 1,
+      "elapsed": 0.35,
+      "speed": "65",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 38.90597877142142,
+        "raceDistance": 38.90597877142142,
+        "roadKind": "track",
+        "loopT": null,
+        "speedMps": 28.7172515947315,
+        "forwardSpeed": 28.249166020107644,
+        "upY": 0.9999996026413737,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 31.5,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": -9.027467081870494,
+          "y": 0.9051034139442073,
+          "z": 32.291034154030775
+        }
+      }
+    },
+    {
+      "frame": 2,
+      "elapsed": 0.7,
+      "speed": "141",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 44.6085642624484,
+        "raceDistance": 44.6085642624484,
+        "roadKind": "track",
+        "loopT": null,
+        "speedMps": 30.28025629597518,
+        "forwardSpeed": 28.10356223086862,
+        "upY": 0.9999825319018676,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 31.5,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": -9.658385636238636,
+          "y": 0.9068111686593361,
+          "z": 41.62022424206188
+        }
+      }
+    },
+    {
+      "frame": 3,
+      "elapsed": 1.05,
+      "speed": "111",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 48.83913260711512,
+        "raceDistance": 48.83913260711512,
+        "roadKind": "track",
+        "loopT": null,
+        "speedMps": 30.54926937357171,
+        "forwardSpeed": 29.88184154681034,
+        "upY": 0.999977819480109,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 31.5,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": -5.123773402355854,
+          "y": 0.9067840553771179,
+          "z": 42.39136085148533
+        }
+      }
+    },
+    {
+      "frame": 4,
+      "elapsed": 1.4,
+      "speed": "108",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 59.65627191867287,
+        "raceDistance": 59.65627191867287,
+        "roadKind": "track",
+        "loopT": null,
+        "speedMps": 29.993311935769167,
+        "forwardSpeed": 29.981980734963052,
+        "upY": 0.9999792352833216,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 31.5,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 5.242902077346915,
+          "y": 0.9067789813798637,
+          "z": 46.10537924285291
+        }
+      }
+    },
+    {
+      "frame": 5,
+      "elapsed": 1.75,
+      "speed": "108",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 64.31507708052271,
+        "raceDistance": 64.31507708052271,
+        "roadKind": "loop",
+        "loopT": 0,
+        "speedMps": 30.190749491434616,
+        "forwardSpeed": 30.030549658512935,
+        "upY": 0.9999805050734866,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 31.5,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 9.213933315632678,
+          "y": 0.9067829897163727,
+          "z": 48.24746748662501
+        }
+      }
+    },
+    {
+      "frame": 6,
+      "elapsed": 2.1,
+      "speed": "97",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 70.87447142476964,
+        "raceDistance": 70.87447142476964,
+        "roadKind": "loop",
+        "loopT": 0.03567926976703303,
+        "speedMps": 25.185693504296243,
+        "forwardSpeed": 25.175627458589005,
+        "upY": 0.9976166536124781,
+        "groundedWheels": 3,
+        "rampageBoost": true,
+        "boostTarget": 31,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 19.146110127030976,
+          "y": 1.1765057835249737,
+          "z": 48.15755755433168
+        }
+      }
+    },
+    {
+      "frame": 7,
+      "elapsed": 2.45,
+      "speed": "81",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 79.65035256455081,
+        "raceDistance": 79.65035256455077,
+        "roadKind": "loop",
+        "loopT": 0.10547487966002582,
+        "speedMps": 22.52726073381563,
+        "forwardSpeed": 20.83140929117586,
+        "upY": 0.9927679131521104,
+        "groundedWheels": 1,
+        "rampageBoost": true,
+        "boostTarget": 31,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 21.83443703938593,
+          "y": 3.559148325342492,
+          "z": 44.95752368645348
+        }
+      }
+    },
+    {
+      "frame": 8,
+      "elapsed": 2.8,
+      "speed": "105",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 90.21599436219554,
+        "raceDistance": 90.2159943621955,
+        "roadKind": "loop",
+        "loopT": 0.18950466555066497,
+        "speedMps": 29.423229676863937,
+        "forwardSpeed": 29.37205822614835,
+        "upY": 0.572392422507148,
+        "groundedWheels": 1,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 28.565497727820492,
+          "y": 9.968484584840503,
+          "z": 47.79508014980392
+        }
+      }
+    },
+    {
+      "frame": 9,
+      "elapsed": 3.15,
+      "speed": "101",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 94.52881660378506,
+        "raceDistance": 94.52881660378502,
+        "roadKind": "loop",
+        "loopT": 0.2238050456398272,
+        "speedMps": 26.31005984409103,
+        "forwardSpeed": 26.293835745955363,
+        "upY": 0.3474750982936108,
+        "groundedWheels": 3,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 30.11381363353104,
+          "y": 13.701191714741716,
+          "z": 48.5397335041987
+        }
+      }
+    },
+    {
+      "frame": 10,
+      "elapsed": 3.5,
+      "speed": "92",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 104.4672295142762,
+        "raceDistance": 104.46722951427616,
+        "roadKind": "loop",
+        "loopT": 0.30284640677583485,
+        "speedMps": 25.57435531972615,
+        "forwardSpeed": 25.573885294437094,
+        "upY": -0.16459864080953523,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 30.22697219382629,
+          "y": 23.019153746094343,
+          "z": 48.83394021278808
+        }
+      }
+    },
+    {
+      "frame": 11,
+      "elapsed": 3.85,
+      "speed": "93",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 109.81715927406316,
+        "raceDistance": 109.81715927406312,
+        "roadKind": "loop",
+        "loopT": 0.34539502434727953,
+        "speedMps": 25.707934227483435,
+        "forwardSpeed": 25.706288431897843,
+        "upY": -0.44095899616455614,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 28.474714988337738,
+          "y": 27.7451196313688,
+          "z": 48.00468251888122
+        }
+      }
+    },
+    {
+      "frame": 12,
+      "elapsed": 4.2,
+      "speed": "94",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 114.77993488269209,
+        "raceDistance": 114.77993488269205,
+        "roadKind": "loop",
+        "loopT": 0.3848645596394316,
+        "speedMps": 25.80003183013543,
+        "forwardSpeed": 25.79846768112811,
+        "upY": -0.6622346487426107,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 25.841484371308674,
+          "y": 31.460758559144903,
+          "z": 46.74944222539127
+        }
+      }
+    },
+    {
+      "frame": 13,
+      "elapsed": 4.55,
+      "speed": "91",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 125.66705308473371,
+        "raceDistance": 125.66705308473367,
+        "roadKind": "loop",
+        "loopT": 0.4714510850020056,
+        "speedMps": 24.796696004701207,
+        "forwardSpeed": 24.796086744843205,
+        "upY": -0.9658028578625892,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 17.6453378134662,
+          "y": 36.18565932050057,
+          "z": 42.94222631347915
+        }
+      }
+    },
+    {
+      "frame": 14,
+      "elapsed": 4.9,
+      "speed": "89",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 130.86019681040938,
+        "raceDistance": 130.86019681040932,
+        "roadKind": "loop",
+        "loopT": 0.5127527648928684,
+        "speedMps": 24.971863561034034,
+        "forwardSpeed": 24.970860787461206,
+        "upY": -0.9997810812842494,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 13.159067054721156,
+          "y": 36.4457558402948,
+          "z": 40.87058959421587
+        }
+      }
+    },
+    {
+      "frame": 15,
+      "elapsed": 5.25,
+      "speed": "91",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 136.00934893848222,
+        "raceDistance": 136.00934893848216,
+        "roadKind": "loop",
+        "loopT": 0.5537045744589226,
+        "speedMps": 25.322526100423318,
+        "forwardSpeed": 25.321285497675355,
+        "upY": -0.9538067620079203,
+        "groundedWheels": 3,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 8.74012953106118,
+          "y": 35.316538985595926,
+          "z": 38.8236827735229
+        }
+      }
+    },
+    {
+      "frame": 16,
+      "elapsed": 5.6,
+      "speed": "92",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 140.14493151733717,
+        "raceDistance": 140.1449315173371,
+        "roadKind": "loop",
+        "loopT": 0.5865953467650314,
+        "speedMps": 25.423660864470836,
+        "forwardSpeed": 25.422032100803037,
+        "upY": -0.8680201260576657,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 5.675047122395116,
+          "y": 33.57870445676909,
+          "z": 37.39536633986849
+        }
+      }
+    },
+    {
+      "frame": 17,
+      "elapsed": 5.95,
+      "speed": "91",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 150.79663508061589,
+        "raceDistance": 150.79663508061583,
+        "roadKind": "loop",
+        "loopT": 0.6713095919510071,
+        "speedMps": 25.016339664317574,
+        "forwardSpeed": 25.015307615750835,
+        "upY": -0.4673157730027493,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": -0.20195947523842334,
+          "y": 25.95403524366986,
+          "z": 34.64777819088331
+        }
+      }
+    },
+    {
+      "frame": 18,
+      "elapsed": 6.3,
+      "speed": "89",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 154.7021091785187,
+        "raceDistance": 154.70210917851864,
+        "roadKind": "loop",
+        "loopT": 0.7023702845746551,
+        "speedMps": 24.68187880423427,
+        "forwardSpeed": 24.681018189076134,
+        "upY": -0.2771841630334988,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 30.2,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": -1.252755789288446,
+          "y": 22.421746169150868,
+          "z": 34.162555681983406
+        }
+      }
+    },
+    {
+      "frame": 19,
+      "elapsed": 6.65,
+      "speed": "88",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 159.88570311736072,
+        "raceDistance": 159.88570311736066,
+        "roadKind": "loop",
+        "loopT": 0.7435960138930584,
+        "speedMps": 25.445272821958245,
+        "forwardSpeed": 25.444954563640263,
+        "upY": -0.00023625295078155695,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 29.89653360402886,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": -1.5582199403425994,
+          "y": 17.493550528484562,
+          "z": 34.01829260971858
+        }
+      }
+    },
+    {
+      "frame": 20,
+      "elapsed": 7,
+      "speed": "92",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 163.89461474662056,
+        "raceDistance": 163.8946147466205,
+        "roadKind": "loop",
+        "loopT": 0.7754793573106151,
+        "speedMps": 25.206046113372764,
+        "forwardSpeed": 25.204994311175735,
+        "upY": 0.21645363615062563,
+        "groundedWheels": 3,
+        "rampageBoost": true,
+        "boostTarget": 29.41799198931492,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": -0.9381454474525861,
+          "y": 13.733970330454481,
+          "z": 34.261017544150846
+        }
+      }
+    },
+    {
+      "frame": 21,
+      "elapsed": 7.35,
+      "speed": "90",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 167.4061370256831,
+        "raceDistance": 167.40613702568305,
+        "roadKind": "loop",
+        "loopT": 0.8034069050082489,
+        "speedMps": 24.84000180692483,
+        "forwardSpeed": 24.838079802887435,
+        "upY": 0.39513548782505936,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 29.01183199164718,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 0.18424964955348694,
+          "y": 10.643409992065868,
+          "z": 34.74295883352372
+        }
+      }
+    },
+    {
+      "frame": 22,
+      "elapsed": 7.7,
+      "speed": "88",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 171.23887728040273,
+        "raceDistance": 171.23887728040268,
+        "roadKind": "loop",
+        "loopT": 0.8338891368638014,
+        "speedMps": 24.152151851091556,
+        "forwardSpeed": 24.1505428535757,
+        "upY": 0.573305341809203,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 28.55150706771356,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 1.9890174578073638,
+          "y": 7.580053344625794,
+          "z": 35.53645437731053
+        }
+      }
+    },
+    {
+      "frame": 23,
+      "elapsed": 8.05,
+      "speed": "80",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 181.11518871897675,
+        "raceDistance": 181.1151887189767,
+        "roadKind": "loop",
+        "loopT": 0.9124365977248771,
+        "speedMps": 21.9293429668913,
+        "forwardSpeed": 21.883453240410184,
+        "upY": 0.9048497650307383,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 27.356639676523926,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 9.068654536522475,
+          "y": 2.0078300166907783,
+          "z": 38.378735181218865
+        }
+      }
+    },
+    {
+      "frame": 24,
+      "elapsed": 8.4,
+      "speed": "81",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 183.19301195618613,
+        "raceDistance": 183.19301195618607,
+        "roadKind": "loop",
+        "loopT": 0.9289617691328478,
+        "speedMps": 22.730422624527264,
+        "forwardSpeed": 22.1583984465058,
+        "upY": 0.9281584821251275,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 27.106046718169537,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 12.247754596151752,
+          "y": 0.9136761465273844,
+          "z": 38.3127647340748
+        }
+      }
+    },
+    {
+      "frame": 25,
+      "elapsed": 8.75,
+      "speed": "81",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 185.5556718818478,
+        "raceDistance": 185.55567188184773,
+        "roadKind": "loop",
+        "loopT": 0.9477522800632864,
+        "speedMps": 20.79535801844425,
+        "forwardSpeed": 20.75795454763127,
+        "upY": 0.9509887045795613,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 26.82511669227812,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 14.94838212979568,
+          "y": 0.4151504544886601,
+          "z": 36.573154055301195
+        }
+      }
+    },
+    {
+      "frame": 26,
+      "elapsed": 9.1,
+      "speed": "74",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 189.14136030306776,
+        "raceDistance": 189.1413603030677,
+        "roadKind": "loop",
+        "loopT": 0.9762696797704035,
+        "speedMps": 21.777901552560838,
+        "forwardSpeed": 21.58252505111025,
+        "upY": 0.9818758788794982,
+        "groundedWheels": 1,
+        "rampageBoost": true,
+        "boostTarget": 26.39901453733516,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 17.2451334338078,
+          "y": 0.9853950240531217,
+          "z": 34.42820617437894
+        }
+      }
+    },
+    {
+      "frame": 27,
+      "elapsed": 9.45,
+      "speed": "83",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 194.62739668664477,
+        "raceDistance": 194.62739668664472,
+        "roadKind": "loop",
+        "loopT": 1,
+        "speedMps": 23.508819260710332,
+        "forwardSpeed": 23.367984346635215,
+        "upY": 0.9997475068774898,
+        "groundedWheels": 3,
+        "rampageBoost": true,
+        "boostTarget": 26,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 20.56743394455409,
+          "y": 0.8864629448103287,
+          "z": 34.3196674707397
+        }
+      }
+    },
+    {
+      "frame": 28,
+      "elapsed": 9.8,
+      "speed": "83",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 198.48183114373984,
+        "raceDistance": 198.48183114373978,
+        "roadKind": "track",
+        "loopT": null,
+        "speedMps": 28.99719357589009,
+        "forwardSpeed": 28.964940521224598,
+        "upY": 0.9999552821212164,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 31.5,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 24.068454079491982,
+          "y": 0.9001948139249641,
+          "z": 35.93209298494585
+        }
+      }
+    },
+    {
+      "frame": 29,
+      "elapsed": 10.15,
+      "speed": "107",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 202.95892310209973,
+        "raceDistance": 202.95892310209967,
+        "roadKind": "track",
+        "loopT": null,
+        "speedMps": 30.32537931195977,
+        "forwardSpeed": 30.151253722287684,
+        "upY": 0.9999806115809976,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 31.5,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 27.997999142285988,
+          "y": 0.9064647888958505,
+          "z": 38.10662179905822
+        }
+      }
+    },
+    {
+      "frame": 30,
+      "elapsed": 10.5,
+      "speed": "110",
+      "raceState": "衝突＋周回＋完走順位で勝負",
+      "telemetry": {
+        "mode": "race",
+        "trackS": 207.48453864449363,
+        "raceDistance": 207.48453864449357,
+        "roadKind": "track",
+        "loopT": null,
+        "speedMps": 30.579594337083122,
+        "forwardSpeed": 30.161668028260014,
+        "upY": 0.999982377775502,
+        "groundedWheels": 4,
+        "rampageBoost": true,
+        "boostTarget": 31.5,
+        "dead": false,
+        "finished": false,
+        "position": {
+          "x": 31.857589140888674,
+          "y": 0.9067792844982401,
+          "z": 40.55242838749894
+        }
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": []
+}
