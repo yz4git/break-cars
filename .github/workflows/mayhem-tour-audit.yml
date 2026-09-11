@@ -16,6 +16,7 @@ on:
       - 'scripts/add-mayhem-highlight-replay-v7.py'
       - 'scripts/polish-mayhem-product-v8.py'
       - 'scripts/polish-mayhem-product-v81.py'
+      - 'scripts/polish-mayhem-product-v82.py'
       - 'scripts/test-mayhem-roadmap.mjs'
       - 'scripts/prepare-pages.py'
   workflow_dispatch:
