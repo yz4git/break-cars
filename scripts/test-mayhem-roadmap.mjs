@@ -69,4 +69,15 @@ expect('v8.6 final event CTA', game.includes('SETTLE THE RIVALRY'));
 expect('v8.6 final result verdict', game.includes('FINAL DUEL ${last===\'PLAYER\'?\'WON\':\'LOST\'}'));
 expect('v8.6 final duel styling', css.includes('#mayhem-director[data-final-duel="1"]') && css.includes('.tour-rival-status[data-final-duel="1"]'));
 
+// v8.7 FINAL SHOWDOWN CINEMATICS.
+expect('v8.7 confrontation intro camera', game.includes('function mayhemShowdownIntroTick(dt)') && game.includes("mode==='countdown'"));
+expect('v8.7 showdown intro copy', game.includes('FINAL SHOWDOWN') && css.includes('#mayhem-showdown-intro'));
+expect('v8.7 last orbit escalation', game.includes('LAST ORBIT') && game.includes('progress>=.86') && css.includes('mayhem-showdown-last-stand'));
+expect('v8.7 finish-focused frozen replay', game.includes('function mayhemShowdownFreezeFinish()') && game.includes('src.length-34') && game.includes('finishCut:true'));
+expect('v8.7 final replay slow motion', game.includes('function mayhemShowdownReplayRate()') && game.includes("p>=.72?.42:p>=.5?.68:1"));
+expect('v8.7 automatic ending replay', game.includes('function mayhemShowdownScheduleEndingReplay()') && game.includes("mayhemParams.get('tourAudit')==='1'"));
+expect('v8.7 win loss ending cards', ['MAYHEM TOUR CHAMPION','RIVAL OWNS THE NIGHT'].every(x=>game.includes(x)) && css.includes('#mayhem-showdown-ending'));
+expect('v8.7 final replay button', game.includes('FINAL SHOWDOWN REPLAY') && game.includes('FINISH CUT · SLOW MOTION'));
+expect('v8.7 showdown telemetry', game.includes('window.__breakCarsMayhemShowdown='));
+
 console.log('MAYHEM TOUR roadmap regression test passed.');
