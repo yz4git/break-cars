@@ -51,4 +51,13 @@ expect('v8.2 immediate final pressure', game.includes("if(eventIndex===MAYHEM_EV
 expect('v8.2 short-menu cleanup', css.includes('body.mayhem-tour:not(.playing) .course-hint{display:none!important}'));
 expect('v8.2 telemetry marker', game.includes('window.__breakCarsMayhemV82=true'));
 
+// v8.3-v8.5 editorial and rivalry continuity.
+expect('v8.3 complete replay window', game.includes('const minFrames=24') && game.includes('v83:true'));
+expect('v8.4 adaptive IMPACT CLOSE framing', game.includes('6.1+separation*.58') && game.includes('46+separation*.38'));
+expect('v8.5 rivalry score state', game.includes('rivalryPlayer:0') && game.includes('rivalryRival:0'));
+expect('v8.5 rivalry outcome', game.includes('function mayhemRivalryOutcome(') && game.includes('rivalResult:rivalryWinner'));
+expect('v8.5 series telemetry', game.includes('series:mayhemRivalryScore()'));
+expect('v8.5 final rivalry verdict', game.includes("'RIVAL DEFEATED':'RIVAL WINS'"));
+expect('v8.5 series card styling', css.includes('.tour-rival-status[data-series="player"]'));
+
 console.log('MAYHEM TOUR roadmap regression test passed.');
