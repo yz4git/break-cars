@@ -1,9 +1,10 @@
 """MAYHEM TOUR v4: make PIT/final result screens visually clean.
 
 During a Tour result modal the ordinary driving HUD remains mounted. Hide that
-entire layer only while the Tour result/PIT is open, then restore it when the
-next event starts. This removes speedometer, controls, radar and recover UI from
-behind the result panel without affecting normal single-event result screens.
+entire layer and the WRECK HUNT target navigator only while the Tour result/PIT
+is open, then restore them when the next event starts. This removes speedometer,
+controls, radar, recover UI and target callouts from behind the result panel
+without affecting normal single-event result screens.
 """
 from pathlib import Path
 
@@ -30,7 +31,7 @@ def apply_mayhem_tour_v4(target: Path) -> None:
 
     css = target / 'mayhem-tour.css'
     c = css.read_text()
-    c += "\nbody.mayhem-tour-result #driving{display:none!important}\n"
+    c += "\nbody.mayhem-tour-result #driving,body.mayhem-tour-result #hunt-nav{display:none!important}\n"
     css.write_text(c)
 
 
