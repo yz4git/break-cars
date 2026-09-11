@@ -34,7 +34,8 @@ const director=async()=>page.evaluate(()=>window.__breakCarsMayhemDirector??null
 const replay=async()=>page.evaluate(()=>window.__breakCarsHighlightReplay??null);
 const renderer=async()=>page.evaluate(()=>{const c=document.querySelector('canvas');if(!c)return'none';try{return c.getContext('webgl2')?'webgl2':c.getContext('webgl')?'webgl':'canvas';}catch{return'canvas';}});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
-const firstUrl=`${base}?course=${courses[0]}&tour=1&event=0&tourAudit=1`;
+const eventUrl=i=>`${base}?course=${courses[i]}&tour=1&event=${i}&tourAudit=1`;
+const firstUrl=eventUrl(0);
 const waitTourReady=async i=>{
   await page.waitForFunction(index=>{
     const state=window.__breakCarsMayhemTour?.();
@@ -45,7 +46,7 @@ const waitTourReady=async i=>{
 const beginDriving=async()=>{
   await page.click('#start');
   await page.waitForTimeout(650);
-  await page.waitForFunction(()=>typeof window.__breakCarsMayhemAuditStart==='function',{timeout:5000});
+  await page.waitForFunction(()=>typeof window.__breakCarsMayhemAuditStart==='function',null,{timeout:5000});
   await page.evaluate(()=>window.__breakCarsMayhemAuditStart());
   await page.waitForTimeout(450);
 };
@@ -91,7 +92,7 @@ try{
     }else{
       assert(before.rival?.id===persistentRival,`event ${i+1}: persistent RIVAL changed`);
     }
-    assert(await renderer()!=='none',`event ${i+1}: renderer missing`);
+    assert((await renderer())!=='none',`event ${i+1}: renderer missing`);
     await snap(`${String(i+1).padStart(2,'0')}-menu-${courses[i]}.png`);
 
     await beginDriving();
@@ -115,9 +116,9 @@ try{
       const replayState=await replay();
       assert((replayState?.frames||0)>=2,'event 1: highlight frames were not captured');
       await replayButton.click();
-      await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===true,{timeout:3000});
+      await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===true,null,{timeout:3000});
       await snap('02-highlight-replay.png');
-      await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===false,{timeout:12000});
+      await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===false,null,{timeout:12000});
       assert(await page.locator('#modal').isVisible(),'event 1: result modal did not return after replay');
     }
 
@@ -135,6 +136,10 @@ try{
     assert(!(await button.isDisabled()),`event ${i+1}: PIT ${up} unexpectedly disabled`);
     await button.click();
     await page.waitForURL(new RegExp(`event=${i+1}`),{timeout:10000});
+    // The production route intentionally drops test-only query parameters. Re-open
+    // the same persisted Tour event with tourAudit=1 so countdown skip helpers remain
+    // available for the browser audit without changing real gameplay routing.
+    await page.goto(eventUrl(i+1),{waitUntil:'networkidle',timeout:30000});
   }
 
   const finalState=await tour();
