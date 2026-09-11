@@ -99,6 +99,9 @@ try{
   assert(await page.locator('.tour-recap-timeline i').count()===9,'v8.9 nine-event timeline missing');
   const recapReady=await page.evaluate(()=>window.__breakCarsMayhemRecap);
   assert(recapReady?.stage==='READY'&&recapReady?.stats?.events===9,'v8.9 recap did not collect nine event results');
+  for(const id of ['#result-title','#result-detail','#result-stats','#race-results'])assert(!(await page.locator(id).isVisible()),`v8.11 duplicated base result still visible: ${id}`);
+  const finalCardBox=await page.locator('.tour-final').boundingBox();
+  assert(finalCardBox&&finalCardBox.y>=0&&finalCardBox.y+finalCardBox.height<=394,'v8.11 Tour final card does not fit iPhone landscape viewport');
   await snap('12-final-result.png');
 
   await finalReplay.click();
@@ -115,13 +118,13 @@ try{
   const ending=page.locator('#mayhem-showdown-ending');
   await ending.waitFor({state:'visible',timeout:12000});
   await page.waitForFunction(()=>document.querySelector('#mayhem-showdown-ending')?.classList.contains('show'),null,{timeout:12000});
+  await snap('14-final-ending.png');
   assert(await ending.count()===1,'FINAL SHOWDOWN ending card missing');
   const endingText=await ending.innerText();
   assert(endingText.includes('MAYHEM TOUR CHAMPION')||endingText.includes('RIVAL OWNS THE NIGHT'),'FINAL SHOWDOWN ending verdict missing');
   assert(await page.locator('body').evaluate(el=>el.classList.contains('mayhem-showdown-ending-active')),'v8.10 isolated ending state missing');
   const endingModalOpacity=await page.locator('#modal').evaluate(el=>Number(getComputedStyle(el).opacity));
   assert(endingModalOpacity<.05,'v8.10 final results remain visible behind ending verdict');
-  await snap('14-final-ending.png');
   const showdown=await page.evaluate(()=>window.__breakCarsMayhemShowdown);
   await page.waitForFunction(()=>!document.body.classList.contains('mayhem-showdown-ending-active'),null,{timeout:5000});
 
@@ -147,7 +150,7 @@ try{
   const recap=await page.evaluate(()=>window.__breakCarsMayhemRecap);
 
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
-  await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({directorAct1:d,directorAct3:d7,directorFinal:d9,finalDuel:duel,finalReplayFrozen:frozen,finalReplayLayout,showdown,endingModalOpacity,recapReady,recap,errors},null,2));
+  await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({directorAct1:d,directorAct3:d7,directorFinal:d9,finalDuel:duel,finalReplayFrozen:frozen,finalReplayLayout,finalCardBox,showdown,endingModalOpacity,recapReady,recap,errors},null,2));
   console.log(`MAYHEM cinematic review PASS: act1=${d.state} act3=${d7.state} final=${d9.state} showdown=${showdown?.stage} recap=${recap?.stage}`);
 }catch(err){
   try{await snap('98-failure.png');}catch{}
