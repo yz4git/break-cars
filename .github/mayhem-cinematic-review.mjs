@@ -89,7 +89,9 @@ try{
   const finalReplay=page.locator('[data-tour-replay]');
   assert(await finalReplay.isVisible(),'SHOWDOWN replay button missing');
   const finalReplayText=await finalReplay.innerText();
-  assert(finalReplayText.includes('SHOWDOWN REPLAY')&&finalReplayText.includes('SLOW MOTION'),'final replay button did not switch to compact v8.10 showdown copy');
+  assert(finalReplayText.includes('SHOWDOWN REPLAY')&&finalReplayText.includes('FINAL CUT')&&finalReplayText.includes('SLOW MOTION'),'final replay button did not switch to compact v8.10 showdown copy');
+  const finalReplayLayout=await finalReplay.evaluate(el=>{const b=el.querySelector('b'),s=el.querySelector('small');return{bFits:!!b&&b.scrollWidth<=b.clientWidth+1,sFits:!!s&&s.scrollWidth<=s.clientWidth+1,bWidth:b?.clientWidth||0,bScroll:b?.scrollWidth||0,sWidth:s?.clientWidth||0,sScroll:s?.scrollWidth||0};});
+  assert(finalReplayLayout.bFits&&finalReplayLayout.sFits,'v8.10 final replay CTA wraps in iPhone landscape');
   const frozen=await page.evaluate(()=>window.__breakCarsHighlightReplay);
   assert((frozen?.frames||0)>=28&&frozen?.finishCut===true,'finish-focused FINAL SHOWDOWN replay was not frozen');
   const recapPanel=page.locator('.tour-recap-panel');
@@ -101,6 +103,7 @@ try{
 
   await finalReplay.click();
   await page.waitForFunction(()=>window.__breakCarsMayhemShowdown?.stage==='FINISH REPLAY'&&window.__breakCarsHighlightReplay?.playing===true,null,{timeout:5000});
+  await page.waitForFunction(()=>window.__breakCarsMayhemShowdown?.camera==='CLEAN-HIGH'&&window.__breakCarsMayhemShowdown?.shot==='SHOWDOWN CHASE',null,{timeout:5000});
   const showdownOverlay=page.locator('#mayhem-replay-overlay[data-showdown="1"]');
   assert(await showdownOverlay.isVisible(),'FINAL SHOWDOWN replay overlay missing');
   const showdownText=await showdownOverlay.innerText();
@@ -116,6 +119,8 @@ try{
   const endingText=await ending.innerText();
   assert(endingText.includes('MAYHEM TOUR CHAMPION')||endingText.includes('RIVAL OWNS THE NIGHT'),'FINAL SHOWDOWN ending verdict missing');
   assert(await page.locator('body').evaluate(el=>el.classList.contains('mayhem-showdown-ending-active')),'v8.10 isolated ending state missing');
+  const endingModalOpacity=await page.locator('#modal').evaluate(el=>Number(getComputedStyle(el).opacity));
+  assert(endingModalOpacity<.05,'v8.10 final results remain visible behind ending verdict');
   await snap('14-final-ending.png');
   const showdown=await page.evaluate(()=>window.__breakCarsMayhemShowdown);
   await page.waitForFunction(()=>!document.body.classList.contains('mayhem-showdown-ending-active'),null,{timeout:5000});
@@ -142,7 +147,7 @@ try{
   const recap=await page.evaluate(()=>window.__breakCarsMayhemRecap);
 
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
-  await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({directorAct1:d,directorAct3:d7,directorFinal:d9,finalDuel:duel,finalReplayFrozen:frozen,showdown,recapReady,recap,errors},null,2));
+  await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({directorAct1:d,directorAct3:d7,directorFinal:d9,finalDuel:duel,finalReplayFrozen:frozen,finalReplayLayout,showdown,endingModalOpacity,recapReady,recap,errors},null,2));
   console.log(`MAYHEM cinematic review PASS: act1=${d.state} act3=${d7.state} final=${d9.state} showdown=${showdown?.stage} recap=${recap?.stage}`);
 }catch(err){
   try{await snap('98-failure.png');}catch{}
