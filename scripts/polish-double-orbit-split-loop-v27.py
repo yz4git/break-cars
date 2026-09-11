@@ -1,15 +1,17 @@
 """DOUBLE ORBIT v27: split each loop's entry/exit roads by one road width.
 
 A vertical loop that comes back down onto the same centreline visually lays its
-returning ribbon over the incoming road.  Keep the approach and exit tangents
-parallel, but move the exit centreline sideways by one full road width.  Loop 1
+returning ribbon over the incoming road. Keep the approach and exit tangents
+parallel, but move the exit centreline sideways by one full road width. Loop 1
 moves onto the offset line and loop 2 moves back, so the course does not drift
 sideways overall.
 
 The lateral transfer is distributed with a zero-slope quintic through the full
-loop instead of being hidden in a sharp S-bend at the throat.  The rings are
-also larger and farther apart, and each loop gets a wider gate span so its two
-lower legs have enough longitudinal room to stay visibly separate.
+loop instead of being hidden in a sharp S-bend at the throat. The rings are
+also larger and farther apart. After loop two, a dedicated Hermite merge joins
+the straight stunt corridor back to the authored course using both endpoint
+tangents; this avoids the high-curvature bow produced by blending two moving
+curves.
 """
 from pathlib import Path
 
@@ -34,7 +36,7 @@ def apply_double_orbit_split_loop_v27(target: Path) -> None:
     )
 
     # v26 made the local base road straight, so a wider gate no longer rotates
-    # the approach/exit headings.  Doubling this span gives both lower legs a
+    # the approach/exit headings. Doubling this span gives both lower legs a
     # visibly longer run before they meet the circular section.
     s = one(
         s,
@@ -53,17 +55,20 @@ const doubleOrbitCourseRoadAt=t=>{
  const line=doubleOrbitLineAt(t);return{...base,x:base.x+(line.x-base.x)*w,y:base.y+(line.y-base.y)*w,z:base.z+(line.z-base.z)*w,bank:(base.bank||0)*(1-w)};
 };
 """
-    new_corridor = """const doubleOrbitA=baseAt(loopCenters[0]),doubleOrbitB=baseAt(loopCenters[1]),doubleOrbitSpan=Math.max(.001,loopCenters[1]-loopCenters[0]),doubleOrbitBlendIn0=loopCenters[0]-.30,doubleOrbitBlendIn1=loopCenters[0]-.18,doubleOrbitBlendOut0=loopCenters[1]+.30,doubleOrbitBlendOut1=loopCenters[1]+.76;
+    new_corridor = """const doubleOrbitA=baseAt(loopCenters[0]),doubleOrbitB=baseAt(loopCenters[1]),doubleOrbitSpan=Math.max(.001,loopCenters[1]-loopCenters[0]),doubleOrbitBlendIn0=loopCenters[0]-.30,doubleOrbitBlendIn1=loopCenters[0]-.18,doubleOrbitMergeT0=loopCenters[1]+.30,doubleOrbitMergeT1=1.70;
 const doubleOrbitSmooth=q=>{q=clamp(q,0,1);return q*q*q*(10+q*(-15+6*q));};
 const DOUBLE_ORBIT_RING_R=LOOP_R*1.38,DOUBLE_ORBIT_SPLIT=RACE3D_TRACK.halfWidth*2+.8;
 const doubleOrbitLineAt=t=>{const q=(t-loopCenters[0])/doubleOrbitSpan;return{x:doubleOrbitA.x+(doubleOrbitB.x-doubleOrbitA.x)*q,y:doubleOrbitA.y+(doubleOrbitB.y-doubleOrbitA.y)*q,z:doubleOrbitA.z+(doubleOrbitB.z-doubleOrbitA.z)*q};};
-const doubleOrbitDX=doubleOrbitB.x-doubleOrbitA.x,doubleOrbitDZ=doubleOrbitB.z-doubleOrbitA.z,doubleOrbitDL=Math.hypot(doubleOrbitDX,doubleOrbitDZ)||1,doubleOrbitAxis={x:doubleOrbitDX/doubleOrbitDL,y:0,z:doubleOrbitDZ/doubleOrbitDL},doubleOrbitRight={x:-doubleOrbitAxis.z,y:0,z:doubleOrbitAxis.x};
+const doubleOrbitDX=doubleOrbitB.x-doubleOrbitA.x,doubleOrbitDY=doubleOrbitB.y-doubleOrbitA.y,doubleOrbitDZ=doubleOrbitB.z-doubleOrbitA.z,doubleOrbitDL=Math.hypot(doubleOrbitDX,doubleOrbitDY,doubleOrbitDZ)||1,doubleOrbitAxis={x:doubleOrbitDX/doubleOrbitDL,y:doubleOrbitDY/doubleOrbitDL,z:doubleOrbitDZ/doubleOrbitDL},doubleOrbitRight0={x:-doubleOrbitAxis.z,y:0,z:doubleOrbitAxis.x},doubleOrbitRightL=Math.hypot(doubleOrbitRight0.x,doubleOrbitRight0.z)||1,doubleOrbitRight={x:doubleOrbitRight0.x/doubleOrbitRightL,y:0,z:doubleOrbitRight0.z/doubleOrbitRightL};
 const doubleOrbitLaneAt=t=>{const a0=loopCenters[0]-LOOP_HALF_T,a1=loopCenters[0]+LOOP_HALF_T,b0=loopCenters[1]-LOOP_HALF_T,b1=loopCenters[1]+LOOP_HALF_T;if(t<=a0)return 0;if(t<a1)return DOUBLE_ORBIT_SPLIT*doubleOrbitSmooth((t-a0)/(a1-a0));if(t<=b0)return DOUBLE_ORBIT_SPLIT;if(t<b1)return DOUBLE_ORBIT_SPLIT*(1-doubleOrbitSmooth((t-b0)/(b1-b0)));return 0;};
+const doubleOrbitMergeStart=doubleOrbit?doubleOrbitLineAt(doubleOrbitMergeT0):{x:0,y:0,z:0},doubleOrbitMergeEnd=doubleOrbit?rampageCourseRoadAt(doubleOrbitMergeT1):{x:0,y:0,z:0},doubleOrbitMergeBefore=doubleOrbit?rampageCourseRoadAt(doubleOrbitMergeT1-.002):{x:0,y:0,z:0},doubleOrbitMergeAfter=doubleOrbit?rampageCourseRoadAt(doubleOrbitMergeT1+.002):{x:1,y:0,z:0},doubleOrbitEndDX=doubleOrbitMergeAfter.x-doubleOrbitMergeBefore.x,doubleOrbitEndDY=doubleOrbitMergeAfter.y-doubleOrbitMergeBefore.y,doubleOrbitEndDZ=doubleOrbitMergeAfter.z-doubleOrbitMergeBefore.z,doubleOrbitEndDL=Math.hypot(doubleOrbitEndDX,doubleOrbitEndDY,doubleOrbitEndDZ)||1,doubleOrbitEndForward={x:doubleOrbitEndDX/doubleOrbitEndDL,y:doubleOrbitEndDY/doubleOrbitEndDL,z:doubleOrbitEndDZ/doubleOrbitEndDL},doubleOrbitMergeChord=Math.hypot(doubleOrbitMergeEnd.x-doubleOrbitMergeStart.x,doubleOrbitMergeEnd.y-doubleOrbitMergeStart.y,doubleOrbitMergeEnd.z-doubleOrbitMergeStart.z)||1,doubleOrbitMergeScale=doubleOrbitMergeChord*.92;
+const doubleOrbitMergeAt=t=>{const q=clamp((t-doubleOrbitMergeT0)/(doubleOrbitMergeT1-doubleOrbitMergeT0),0,1),q2=q*q,q3=q2*q,h00=2*q3-3*q2+1,h10=q3-2*q2+q,h01=-2*q3+3*q2,h11=q3-q2;return{x:doubleOrbitMergeStart.x*h00+doubleOrbitAxis.x*doubleOrbitMergeScale*h10+doubleOrbitMergeEnd.x*h01+doubleOrbitEndForward.x*doubleOrbitMergeScale*h11,y:doubleOrbitMergeStart.y*h00+doubleOrbitAxis.y*doubleOrbitMergeScale*h10+doubleOrbitMergeEnd.y*h01+doubleOrbitEndForward.y*doubleOrbitMergeScale*h11,z:doubleOrbitMergeStart.z*h00+doubleOrbitAxis.z*doubleOrbitMergeScale*h10+doubleOrbitMergeEnd.z*h01+doubleOrbitEndForward.z*doubleOrbitMergeScale*h11};};
 const doubleOrbitCourseRoadAt=t=>{
  const base=rampageCourseRoadAt(t);if(!doubleOrbit)return base;
- if(t<=doubleOrbitBlendIn0||t>=doubleOrbitBlendOut1)return base;
- let w=1;if(t<doubleOrbitBlendIn1)w=doubleOrbitSmooth((t-doubleOrbitBlendIn0)/(doubleOrbitBlendIn1-doubleOrbitBlendIn0));else if(t>doubleOrbitBlendOut0)w=1-doubleOrbitSmooth((t-doubleOrbitBlendOut0)/(doubleOrbitBlendOut1-doubleOrbitBlendOut0));
- const line=doubleOrbitLineAt(t),lane=doubleOrbitLaneAt(t),cx=base.x+(line.x-base.x)*w,cy=base.y+(line.y-base.y)*w,cz=base.z+(line.z-base.z)*w;return{...base,x:cx+doubleOrbitRight.x*lane,y:cy+doubleOrbitRight.y*lane,z:cz+doubleOrbitRight.z*lane,bank:(base.bank||0)*(1-w)};
+ if(t<=doubleOrbitBlendIn0||t>=doubleOrbitMergeT1)return base;
+ if(t<doubleOrbitBlendIn1){const w=doubleOrbitSmooth((t-doubleOrbitBlendIn0)/(doubleOrbitBlendIn1-doubleOrbitBlendIn0)),line=doubleOrbitLineAt(t),lane=doubleOrbitLaneAt(t);return{...base,x:base.x+(line.x+doubleOrbitRight.x*lane-base.x)*w,y:base.y+(line.y+doubleOrbitRight.y*lane-base.y)*w,z:base.z+(line.z+doubleOrbitRight.z*lane-base.z)*w,bank:(base.bank||0)*(1-w)};}
+ if(t<=doubleOrbitMergeT0){const line=doubleOrbitLineAt(t),lane=doubleOrbitLaneAt(t);return{...base,x:line.x+doubleOrbitRight.x*lane,y:line.y+doubleOrbitRight.y*lane,z:line.z+doubleOrbitRight.z*lane,bank:0};}
+ const p=doubleOrbitMergeAt(t),q=clamp((t-doubleOrbitMergeT0)/(doubleOrbitMergeT1-doubleOrbitMergeT0),0,1);return{...base,x:p.x,y:p.y,z:p.z,bank:(base.bank||0)*doubleOrbitSmooth(q)};
 };
 """
     s = one(s, old_corridor, new_corridor, 'split corridor')
