@@ -7,9 +7,9 @@ controls, radar, recover UI and target callouts from behind the result panel
 without affecting normal single-event result screens.
 
 The v5 persistent RIVAL + LIVE MAYHEM DIRECTOR, v6 nine-course expansion,
-v7 transform-based HIGHLIGHT REPLAY, v8 product presentation polish and v8.1
-visual-review composition fixes are chained here so the existing Pages build
-order remains stable.
+v7 transform-based HIGHLIGHT REPLAY, v8 product presentation polish, v8.1
+visual-review composition fixes and v8.2 peak-centered replay polish are chained
+here so the existing Pages build order remains stable.
 """
 from pathlib import Path
 import importlib.util
@@ -76,6 +76,12 @@ def apply_mayhem_tour_v4(target: Path) -> None:
         'polish-mayhem-product-v81.py',
         'break_cars_mayhem_product_v81',
         'apply_mayhem_product_v81',
+        target,
+    )
+    load_and_apply(
+        'polish-mayhem-product-v82.py',
+        'break_cars_mayhem_product_v82',
+        'apply_mayhem_product_v82',
         target,
     )
 
