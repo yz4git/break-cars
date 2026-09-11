@@ -82,7 +82,7 @@ expect('v8.7 showdown telemetry', game.includes('window.__breakCarsMayhemShowdow
 expect('v8.7.1 live replay caption preserves slow motion', game.includes('FINISH CUT · ${mayhemRivalName()} · SLOW MOTION · ${mayhemReplayShot}'));
 
 // v8.8 FINAL SHOWDOWN replay safety.
-expect('v8.8 high-side showdown camera', game.includes('function mayhemShowdownReplayCameraV88(') && game.includes("camera:'HIGH-SIDE'"));
+expect('v8.8 showdown replay camera', game.includes('function mayhemShowdownReplayCameraV88('));
 expect('v8.8 three showdown replay shots', ['SHOWDOWN CHASE','SHOWDOWN TWO-SHOT','FINISH IMPACT'].every(x=>game.includes(x)));
 expect('v8.8 face-off HUD cleanup', css.includes('body.mayhem-showdown-intro #hud'));
 expect('v8.8 telemetry marker', game.includes('window.__breakCarsMayhemV88=true'));
@@ -96,5 +96,11 @@ expect('v8.9 recap telemetry', game.includes('window.__breakCarsMayhemRecap=') &
 expect('v8.9 recap CTA', game.includes('PLAY TOUR RECAP') && game.includes('9 EVENT HIGHLIGHT FILM'));
 expect('v8.9 recap overlay styling', css.includes('#mayhem-tour-recap') && css.includes('body.mayhem-recap-active #hud'));
 expect('v8.9 telemetry marker', game.includes('window.__breakCarsMayhemV89=true'));
+
+// v8.10 FINAL presentation cleanup.
+expect('v8.10 clean-high showdown chase', game.includes("camera:'CLEAN-HIGH'") && game.includes('15.8+separation*.20') && game.includes('mayhemReplaySide,1.6'));
+expect('v8.10 isolated ending verdict', game.includes("document.body.classList.add('mayhem-showdown-ending-active')") && css.includes('body.mayhem-showdown-ending-active #modal'));
+expect('v8.10 compact final replay CTA', game.includes('<b>SHOWDOWN REPLAY</b><small>FINAL CUT · SLOW MOTION</small>') && css.includes('.tour-final .tour-replay-button b'));
+expect('v8.10 telemetry marker', game.includes('window.__breakCarsMayhemV810=true'));
 
 console.log('MAYHEM TOUR roadmap regression test passed.');
