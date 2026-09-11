@@ -21,7 +21,6 @@ const auditStart=async()=>{await page.waitForFunction(()=>typeof window.__breakC
 const startDriving=async()=>{await page.click('#start');await page.waitForTimeout(600);await auditStart();};
 
 try{
-  // ACT I + live Director/RIVAL composition.
   await page.goto(url('classic',0),{waitUntil:'networkidle',timeout:30000});
   await waitReady(0,'ACT I');
   await page.evaluate(()=>{const k='break-cars-mayhem-tour-v2',s=JSON.parse(sessionStorage.getItem(k));s.car=1;s.hull=.71;s.rivalHull=.82;s.rivalHeat=2;sessionStorage.setItem(k,JSON.stringify(s));});
@@ -36,7 +35,6 @@ try{
   assert(await page.locator('#mayhem-rival-marker').count()===1,'RIVAL marker missing');
   await snap('01-act1-live.png');
 
-  // Finish event and review all editorial replay cameras.
   await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());await page.waitForTimeout(400);
   const replayButton=page.locator('[data-tour-replay]');
   assert(await replayButton.isVisible(),'HIGHLIGHT REPLAY button missing');
@@ -51,14 +49,12 @@ try{
   await snap('02c-replay-impact-close.png');
   await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===false,null,{timeout:12000});
 
-  // ACT III REDLINE composition.
   await page.goto(url('rampage-3d',6),{waitUntil:'networkidle',timeout:30000});await waitReady(6,'ACT III');
   await snap('07-act3-menu.png');await startDriving();await page.waitForTimeout(900);
   const d7=await page.evaluate(()=>window.__breakCarsMayhemDirector);
   assert(d7?.act?.includes('ACT III'),'ACT III Director telemetry missing');
   await snap('08-act3-live.png');
 
-  // FINAL ACT menu -> seed the eight authentic prior result slots for recap coverage -> face-off -> live FINAL DUEL.
   await page.goto(url('double-orbit',8),{waitUntil:'networkidle',timeout:30000});await waitReady(8,'FINAL ACT');
   await page.evaluate(()=>{
     const k='break-cars-mayhem-tour-v2',s=JSON.parse(sessionStorage.getItem(k));
@@ -85,7 +81,6 @@ try{
   assert(duel?.active===true&&duel.phase>=1,'FINAL DUEL telemetry missing');
   await snap('11-final-live.png');
 
-  // Record enough decisive footage, finish, then manually run the audit-safe showdown replay.
   await page.keyboard.down('ArrowUp');
   await page.waitForFunction(()=>{const r=window.__breakCarsHighlightReplay;return (r?.frames||0)>=18;},null,{timeout:30000,polling:250});
   await page.keyboard.up('ArrowUp');
@@ -114,21 +109,17 @@ try{
   assert(!(await page.locator('#driving').isVisible()),'controls visible in FINAL SHOWDOWN replay');
   await snap('13-final-showdown-replay.png');
 
-  // The visible verdict card is the visual-review source of truth. Static roadmap
-  // regression separately guards the internal showdown telemetry implementation.
   const ending=page.locator('#mayhem-showdown-ending');
   await ending.waitFor({state:'visible',timeout:12000});
   await page.waitForFunction(()=>document.querySelector('#mayhem-showdown-ending')?.classList.contains('show'),null,{timeout:12000});
   assert(await ending.count()===1,'FINAL SHOWDOWN ending card missing');
   const endingText=await ending.innerText();
   assert(endingText.includes('MAYHEM TOUR CHAMPION')||endingText.includes('RIVAL OWNS THE NIGHT'),'FINAL SHOWDOWN ending verdict missing');
-  assert(document!==null,'ending DOM unavailable');
   assert(await page.locator('body').evaluate(el=>el.classList.contains('mayhem-showdown-ending-active')),'v8.10 isolated ending state missing');
   await snap('14-final-ending.png');
   const showdown=await page.evaluate(()=>window.__breakCarsMayhemShowdown);
   await page.waitForFunction(()=>!document.body.classList.contains('mayhem-showdown-ending-active'),null,{timeout:5000});
 
-  // v8.9: play the complete results-driven nine-event highlight film at iPhone landscape size.
   const recapButton=page.locator('[data-tour-recap-film]');
   assert(await recapButton.isVisible(),'PLAY TOUR RECAP button missing');
   assert((await recapButton.innerText()).includes('PLAY TOUR RECAP'),'TOUR RECAP CTA copy missing');
