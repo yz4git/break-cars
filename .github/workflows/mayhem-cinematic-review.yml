@@ -8,6 +8,7 @@ on:
       - '.github/workflows/mayhem-cinematic-review.yml'
       - 'scripts/polish-mayhem-product-v8.py'
       - 'scripts/polish-mayhem-product-v81.py'
+      - 'scripts/polish-mayhem-product-v82.py'
       - 'scripts/add-mayhem-highlight-replay-v7.py'
       - 'scripts/apply-mayhem-rival-director-v5.py'
       - 'scripts/expand-mayhem-nine-course-v6.py'
