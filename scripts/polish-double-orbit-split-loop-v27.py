@@ -53,7 +53,7 @@ const doubleOrbitCourseRoadAt=t=>{
  const line=doubleOrbitLineAt(t);return{...base,x:base.x+(line.x-base.x)*w,y:base.y+(line.y-base.y)*w,z:base.z+(line.z-base.z)*w,bank:(base.bank||0)*(1-w)};
 };
 """
-    new_corridor = """const doubleOrbitA=baseAt(loopCenters[0]),doubleOrbitB=baseAt(loopCenters[1]),doubleOrbitSpan=Math.max(.001,loopCenters[1]-loopCenters[0]),doubleOrbitBlendIn0=loopCenters[0]-.30,doubleOrbitBlendIn1=loopCenters[0]-.18,doubleOrbitBlendOut0=loopCenters[1]+.18,doubleOrbitBlendOut1=loopCenters[1]+.30;
+    new_corridor = """const doubleOrbitA=baseAt(loopCenters[0]),doubleOrbitB=baseAt(loopCenters[1]),doubleOrbitSpan=Math.max(.001,loopCenters[1]-loopCenters[0]),doubleOrbitBlendIn0=loopCenters[0]-.30,doubleOrbitBlendIn1=loopCenters[0]-.18,doubleOrbitBlendOut0=loopCenters[1]+.30,doubleOrbitBlendOut1=loopCenters[1]+.76;
 const doubleOrbitSmooth=q=>{q=clamp(q,0,1);return q*q*q*(10+q*(-15+6*q));};
 const DOUBLE_ORBIT_RING_R=LOOP_R*1.38,DOUBLE_ORBIT_SPLIT=RACE3D_TRACK.halfWidth*2+.8;
 const doubleOrbitLineAt=t=>{const q=(t-loopCenters[0])/doubleOrbitSpan;return{x:doubleOrbitA.x+(doubleOrbitB.x-doubleOrbitA.x)*q,y:doubleOrbitA.y+(doubleOrbitB.y-doubleOrbitA.y)*q,z:doubleOrbitA.z+(doubleOrbitB.z-doubleOrbitA.z)*q};};
