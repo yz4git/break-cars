@@ -25,7 +25,7 @@ def apply_mayhem_showdown_v810(target: Path) -> None:
     s = game.read_text()
 
     chase = "nextShot='SHOWDOWN CHASE';const back=clamp(12.8+separation*.18,13,17);mayhemReplayDesired.copy(mayhemReplayP).addScaledVector(mayhemReplayForward,-back).addScaledVector(mayhemReplaySide,5.2);mayhemReplayDesired.y=Math.max(mayhemReplayDesired.y+8.2,mayhemReplayMid.y+8.6);mayhemReplayTarget.copy(mayhemReplayP).addScaledVector(mayhemReplayForward,4.8);mayhemReplayTarget.y+=1.0;fov=62;"
-    chase_new = "nextShot='SHOWDOWN CHASE';const back=clamp(15.8+separation*.20,16.2,20.5);mayhemReplayDesired.copy(mayhemReplayP).addScaledVector(mayhemReplayForward,-back).addScaledVector(mayhemReplaySide,1.6);mayhemReplayDesired.y=Math.max(mayhemReplayDesired.y+12.8,mayhemReplayMid.y+13.6);mayhemReplayTarget.copy(mayhemReplayP).addScaledVector(mayhemReplayForward,5.2);mayhemReplayTarget.y+=1.05;fov=63;"
+    chase_new = "nextShot='SHOWDOWN CHASE';const back=clamp(17.5+separation*.18,18,22);mayhemReplayDesired.copy(mayhemReplayMid).addScaledVector(mayhemReplayForward,-back).addScaledVector(mayhemReplaySide,.6);mayhemReplayDesired.y=Math.max(mayhemReplayDesired.y+16.5,mayhemReplayMid.y+17.4);mayhemReplayTarget.copy(mayhemReplayMid).addScaledVector(mayhemReplayForward,1.8);mayhemReplayTarget.y+=.7;fov=64;"
     s = one(s, chase, chase_new, 'clean high showdown chase')
 
     telemetry = "camera:'HIGH-SIDE',shot:mayhemReplayShot"
@@ -33,7 +33,7 @@ def apply_mayhem_showdown_v810(target: Path) -> None:
     s = one(s, telemetry, telemetry_new, 'clean high replay telemetry')
 
     ending_anim = "el.classList.remove('show');void el.offsetWidth;el.classList.add('show');setTimeout(()=>el?.classList.remove('show'),2300);window.__breakCarsMayhemShowdown="
-    ending_anim_new = "document.body.classList.add('mayhem-showdown-ending-active');el.classList.remove('show');void el.offsetWidth;el.classList.add('show');setTimeout(()=>{el?.classList.remove('show');document.body.classList.remove('mayhem-showdown-ending-active');},2300);window.__breakCarsMayhemShowdown="
+    ending_anim_new = "document.body.classList.add('mayhem-showdown-ending-active');el.classList.remove('show');void el.offsetWidth;el.classList.add('show');setTimeout(()=>{el?.classList.remove('show');document.body.classList.remove('mayhem-showdown-ending-active');},3600);window.__breakCarsMayhemShowdown="
     s = one(s, ending_anim, ending_anim_new, 'isolated ending verdict')
 
     final_button = "button.innerHTML=mayhemFinalDuelActive()?'<b>FINAL SHOWDOWN REPLAY</b><small>FINISH CUT · SLOW MOTION</small>':'<b>HIGHLIGHT REPLAY</b><small>DIRECTOR CUT</small>';"
