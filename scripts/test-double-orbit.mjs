@@ -10,6 +10,19 @@ assert.equal(spec.loops.length,2);
 assert(spec.bridge.y>14);
 assert(spec.bankMax>.6);
 
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const horizontal=v=>{const l=Math.hypot(v.x,v.z);return{x:v.x/l,z:v.z/l};};
+const joinAngleDeg=(a,b)=>Math.acos(clamp(a.x*b.x+a.z*b.z,-1,1))*180/Math.PI;
+const joinMetrics=[];
+for(let i=0;i<spec.loops.length;i++){
+  const loop=spec.loops[i],before=racePointAt(loop.startS-2.5),after=racePointAt(loop.endS+2.5);
+  assert.notEqual(before.kind,'loop',`loop ${i+1} approach must be ordinary road`);
+  assert.notEqual(after.kind,'loop',`loop ${i+1} exit must be ordinary road`);
+  const angle=joinAngleDeg(horizontal(before.forward),horizontal(after.forward));
+  joinMetrics.push({loop:i+1,angleDeg:+angle.toFixed(2),beforeS:+(loop.startS-2.5).toFixed(2),afterS:+(loop.endS+2.5).toFixed(2)});
+  assert(angle<=12,`loop ${i+1} approach/exit roads must stay near-parallel; got ${angle.toFixed(2)} deg`);
+}
+
 const bodyUpY=b=>1-2*(b.qx*b.qx+b.qz*b.qz);
 const w=makeWorld(0,2468,'racing');
 w.endAt=999;
@@ -48,6 +61,6 @@ for(let i=0;i<3600&&!pack.done;i++){
   impacts+=pack.events.filter(e=>e.type==='impact').length;
 }
 const clear=pack.cars.filter(c=>c.raceDistance>spec.loops[1].endS+8).length;
-console.log(`DOUBLE ORBIT: natural lap ${(frames/60).toFixed(1)}s, inverted loops=${inverted.size}, air=${air.toFixed(2)}s, cleared both loops=${clear}/12, impacts=${impacts}`);
+console.log(`DOUBLE ORBIT: joins=${joinMetrics.map(j=>`L${j.loop}:${j.angleDeg}deg`).join(', ')}, natural lap ${(frames/60).toFixed(1)}s, inverted loops=${inverted.size}, air=${air.toFixed(2)}s, cleared both loops=${clear}/12, impacts=${impacts}`);
 assert(clear>=7,'pack must flow through both loops');
 assert(impacts>10);
