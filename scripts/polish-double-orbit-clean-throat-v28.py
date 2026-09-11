@@ -1,12 +1,13 @@
-"""DOUBLE ORBIT v28: clear the twin-loop sightline after the v29-v31 road passes.
+"""DOUBLE ORBIT v28: clear the twin-loop sightline after the v29-v32 road passes.
 
 DOUBLE ORBIT puts its twin rings near the circuit's central over/under crossing.
 Generic start-gate posts, bridge support columns and distant floodlight towers can
 therefore read as poles driven through the ring openings. The toy-track reference
 keeps those throats visually open. First apply the v29 broad U-shaped outer return,
-v30 lowers the visible roll through its first U turn, and v31 compacts the tall
-bridge footprint before this pass removes decorative/support obstructions only
-for DOUBLE ORBIT. Other course geometry, controls and progress remain untouched.
+v30 lowers the visible roll through its first U turn, v31 compacts the tall bridge
+footprint, and v32 moves that compact bridge crest away from the twin-ring camera
+before this pass removes decorative/support obstructions only for DOUBLE ORBIT.
+Other course geometry, controls and progress remain untouched.
 """
 from pathlib import Path
 import importlib.util
@@ -43,12 +44,21 @@ def apply_compact_bridge(target: Path) -> None:
     module.apply_double_orbit_compact_bridge_v31(target)
 
 
+def apply_shift_bridge(target: Path) -> None:
+    module_path = Path(__file__).with_name('polish-double-orbit-shift-bridge-v32.py')
+    spec = importlib.util.spec_from_file_location('break_cars_double_orbit_shift_bridge_v32', module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.apply_double_orbit_shift_bridge_v32(target)
+
+
 def apply_double_orbit_clean_throat_v28(target: Path) -> None:
     # v25 invokes this pass after v27, so this is the final safe point to replace
     # only the road after loop two while preserving the proven twin-loop geometry.
     apply_u_return(target)
     apply_low_return_bank(target)
     apply_compact_bridge(target)
+    apply_shift_bridge(target)
 
     path = target / 'track-view.js'
     s = path.read_text()
