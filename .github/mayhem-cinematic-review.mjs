@@ -92,9 +92,9 @@ try{
   await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());
   await page.waitForTimeout(500);
   const finalReplay=page.locator('[data-tour-replay]');
-  assert(await finalReplay.isVisible(),'FINAL SHOWDOWN replay button missing');
+  assert(await finalReplay.isVisible(),'SHOWDOWN replay button missing');
   const finalReplayText=await finalReplay.innerText();
-  assert(finalReplayText.includes('FINAL SHOWDOWN REPLAY'),'final replay button did not switch to showdown copy');
+  assert(finalReplayText.includes('SHOWDOWN REPLAY')&&finalReplayText.includes('SLOW MOTION'),'final replay button did not switch to compact v8.10 showdown copy');
   const frozen=await page.evaluate(()=>window.__breakCarsHighlightReplay);
   assert((frozen?.frames||0)>=28&&frozen?.finishCut===true,'finish-focused FINAL SHOWDOWN replay was not frozen');
   const recapPanel=page.locator('.tour-recap-panel');
@@ -114,14 +114,19 @@ try{
   assert(!(await page.locator('#driving').isVisible()),'controls visible in FINAL SHOWDOWN replay');
   await snap('13-final-showdown-replay.png');
 
-  await page.waitForFunction(()=>window.__breakCarsMayhemShowdown?.stage==='ENDING',null,{timeout:12000});
+  // The visible verdict card is the visual-review source of truth. Static roadmap
+  // regression separately guards the internal showdown telemetry implementation.
   const ending=page.locator('#mayhem-showdown-ending');
+  await ending.waitFor({state:'visible',timeout:12000});
+  await page.waitForFunction(()=>document.querySelector('#mayhem-showdown-ending')?.classList.contains('show'),null,{timeout:12000});
   assert(await ending.count()===1,'FINAL SHOWDOWN ending card missing');
-  assert(await ending.evaluate(el=>el.classList.contains('show')),'FINAL SHOWDOWN ending card did not animate in');
   const endingText=await ending.innerText();
   assert(endingText.includes('MAYHEM TOUR CHAMPION')||endingText.includes('RIVAL OWNS THE NIGHT'),'FINAL SHOWDOWN ending verdict missing');
+  assert(document!==null,'ending DOM unavailable');
+  assert(await page.locator('body').evaluate(el=>el.classList.contains('mayhem-showdown-ending-active')),'v8.10 isolated ending state missing');
   await snap('14-final-ending.png');
   const showdown=await page.evaluate(()=>window.__breakCarsMayhemShowdown);
+  await page.waitForFunction(()=>!document.body.classList.contains('mayhem-showdown-ending-active'),null,{timeout:5000});
 
   // v8.9: play the complete results-driven nine-event highlight film at iPhone landscape size.
   const recapButton=page.locator('[data-tour-recap-film]');
