@@ -27,6 +27,12 @@ const tour=async()=>page.evaluate(()=>window.__breakCarsMayhemTour?.()??null);
 const renderer=async()=>page.evaluate(()=>{const c=document.querySelector('canvas');if(!c)return'none';try{return c.getContext('webgl2')?'webgl2':c.getContext('webgl')?'webgl':'canvas';}catch{return'canvas';}});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
 const eventUrl=i=>`${base}?course=${['crater-crown','hunt-classic','double-orbit'][i]}&tour=1&event=${i}&tourAudit=1`;
+const beginDriving=async()=>{
+  await page.waitForFunction(()=>typeof window.__breakCarsMayhemAuditStart==='function',{timeout:5000});
+  await page.evaluate(()=>window.__breakCarsMayhemAuditStart());
+  await page.waitForTimeout(900);
+};
+const assertResultBadgeClear=async label=>assert(await page.locator('#tour-run-badge').count()===0,`${label}: Tour run badge overlaps result/PIT screen`);
 
 const report={menu:null,events:[],errors};
 try{
@@ -56,9 +62,11 @@ try{
   assert(e1Start.renderer!=='none','event 1 renderer missing');
   assert(Math.abs(state.hp/state.maxHP-.63)<.035,`event 1 seeded hull mismatch: ${state.hp}/${state.maxHP}`);
   await snap('10-event1-crater-menu.png');
-  await page.click('#start');await page.waitForTimeout(4300);await snap('11-event1-crater-play.png');
+  await page.click('#start');await page.waitForTimeout(700);await beginDriving();
+  await page.keyboard.down('ArrowUp');await page.waitForTimeout(1000);await snap('11-event1-crater-play.png');await page.keyboard.up('ArrowUp');
   await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());await page.waitForTimeout(450);
   assert(await page.locator('[data-tour-up="power"]').isVisible(),'event 1 pit POWER choice missing');
+  await assertResultBadgeClear('event 1');
   await snap('12-event1-pit.png');
   const beforePower=await tour();
   await page.click('[data-tour-up="power"]');
@@ -73,9 +81,11 @@ try{
   assert(Math.abs(state.hp/state.maxHP-beforePower.hull)<.04,'HULL did not carry into event 2');
   assert(e2Start.renderer!=='none','event 2 renderer missing');
   await snap('20-event2-hunt-menu.png');
-  await page.click('#start');await page.waitForTimeout(4300);await snap('21-event2-hunt-play.png');
+  await page.click('#start');await page.waitForTimeout(700);await beginDriving();
+  await page.keyboard.down('ArrowUp');await page.waitForTimeout(1000);await snap('21-event2-hunt-play.png');await page.keyboard.up('ArrowUp');
   await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());await page.waitForTimeout(450);
   assert(await page.locator('[data-tour-up="armor"]').isVisible(),'event 2 pit ARMOR choice missing');
+  await assertResultBadgeClear('event 2');
   await snap('22-event2-pit.png');
   const beforeArmor=await tour();
   await page.click('[data-tour-up="armor"]');
@@ -89,18 +99,20 @@ try{
   assert(Math.abs(state.hp/state.maxHP-beforeArmor.hull)<.04,'HULL did not carry into event 3');
   assert(e3Start.renderer!=='none','event 3 renderer missing');
   await snap('30-event3-double-orbit-menu.png');
-  await page.click('#start');await page.waitForTimeout(5200);await page.keyboard.down('ArrowUp');await page.waitForTimeout(3000);await snap('31-event3-double-orbit-play.png');await page.keyboard.up('ArrowUp');
+  await page.click('#start');await page.waitForTimeout(700);await beginDriving();
+  await page.keyboard.down('ArrowUp');await page.waitForTimeout(3000);await snap('31-event3-double-orbit-play.png');await page.keyboard.up('ArrowUp');
   await page.evaluate(()=>window.__breakCarsMayhemAuditFinish());await page.waitForTimeout(500);
   const finalVisible=await page.locator('.tour-final').isVisible();
   const finalText=await text('.tour-final');
   assert(finalVisible,'Tour final panel missing');
   assert(/MAYHEM TOUR COMPLETE/.test(finalText),'Tour completion copy missing');
+  await assertResultBadgeClear('final');
   await snap('32-tour-complete.png');
   const finalState=await tour();
   assert(finalState?.results?.length>=3,'three Tour results were not recorded');
 
   report.events=[e1Start,e2Start,e3Start];
-  report.final={state:finalState,text:finalText,visible:finalVisible};
+  report.final={state:finalState,text:finalText,visible:finalVisible,badgeClear:true};
   report.renderer=await renderer();
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
   await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify(report,null,2));
