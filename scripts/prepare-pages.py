@@ -50,6 +50,8 @@ apply_double_orbit_planar_v24 = load_function('polish-double-orbit-planar-v24.py
 apply_double_orbit_reference_view_v25 = load_function('polish-double-orbit-reference-view-v25.py', 'break_cars_double_orbit_reference_view_v25', 'apply_double_orbit_reference_view_v25')
 apply_double_orbit_parallel_road_v26 = load_function('polish-double-orbit-parallel-road-v26.py', 'break_cars_double_orbit_parallel_road_v26', 'apply_double_orbit_parallel_road_v26')
 apply_double_orbit_split_loop_v27 = load_function('polish-double-orbit-split-loop-v27.py', 'break_cars_double_orbit_split_loop_v27', 'apply_double_orbit_split_loop_v27')
+apply_mayhem_tour_v1 = load_function('apply-mayhem-tour-v1.py', 'break_cars_mayhem_tour_v1', 'apply_mayhem_tour_v1')
+apply_mayhem_tour_finalize_v1 = load_function('finalize-mayhem-tour-v1.py', 'break_cars_mayhem_tour_finalize_v1', 'apply_mayhem_tour_finalize_v1')
 
 source = Path('dist')
 target = Path('_site')
@@ -111,6 +113,12 @@ apply_double_orbit_split_loop_v27(target)
 # Keep both open throats visible and stage each active ring from the side away
 # from its sibling so the other loop never blocks the stunt camera.
 apply_double_orbit_reference_view_v25(target)
+
+# MAYHEM TOUR is a final gameplay layer over the already-polished events. It
+# does not rewrite their course geometry or mode rules; it only carries the car,
+# hull and pit upgrades across CRATER CROWN -> WRECK HUNT -> DOUBLE ORBIT.
+apply_mayhem_tour_v1(target)
+apply_mayhem_tour_finalize_v1(target)
 
 # Keep final public visual verification tied to the exact deploy SHA, including
 # late RAMPAGE dressing/visibility changes that do not alter vehicle physics.
