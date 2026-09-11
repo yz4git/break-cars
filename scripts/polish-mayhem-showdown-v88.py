@@ -43,7 +43,7 @@ function mayhemShowdownReplayCameraV88(a,b,t,progress){
   nextShot='FINISH IMPACT';const d=clamp(11.8+separation*.48,12.5,19);mayhemReplayDesired.copy(mayhemReplayMid).addScaledVector(mayhemReplaySide,-d).addScaledVector(mayhemReplayForward,-4.6);mayhemReplayDesired.y=Math.max(mayhemReplayDesired.y+9.2,mayhemReplayMid.y+9.8);mayhemReplayTarget.copy(mayhemReplayMid);mayhemReplayTarget.y+=.72;fov=clamp(54+separation*.30,54,62);
  }
  const changed=mayhemReplayShot!==nextShot;mayhemReplayShot=nextShot;if(changed)camera.position.copy(mayhemReplayDesired);else camera.position.lerp(mayhemReplayDesired,.34);camera.lookAt(mayhemReplayTarget);if(camera.fov!==undefined){camera.fov+=(fov-camera.fov)*(changed?.62:.28);camera.updateProjectionMatrix?.();}
- window.__breakCarsMayhemShowdown={...(window.__breakCarsMayhemShowdown||{}),stage:'FINISH REPLAY',intro:false,slowMotion:true,ending:false,camera:'HIGH-SIDE',shot:mayhemReplayShot};
+ if(mayhemReplayPlaying&&mayhemShowdownEndingReplay)window.__breakCarsMayhemShowdown={...(window.__breakCarsMayhemShowdown||{}),stage:'FINISH REPLAY',intro:false,slowMotion:true,ending:false,camera:'HIGH-SIDE',shot:mayhemReplayShot};
 }
 window.__breakCarsMayhemV88=true;
 '''
