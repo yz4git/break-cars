@@ -1,13 +1,13 @@
-"""MAYHEM TOUR v8.8: keep FINAL SHOWDOWN replay readable and unobstructed.
+"""MAYHEM TOUR v8.8: keep FINAL SHOWDOWN replay camera unobstructed.
 
 The iPhone-sized v8.7 browser audit proved the showdown pipeline works through
-FACE OFF -> FINAL DUEL -> finish-cut replay, but exposed two presentation bugs:
-- the generic per-frame replay caption overwrote the FINAL SHOWDOWN slow-motion copy;
-- the generic low replay camera could sit under DOUBLE ORBIT geometry and fill
-  most of the frame with the underside of the loop.
+FACE OFF -> FINAL DUEL -> finish-cut replay, but the generic low replay camera
+could sit under DOUBLE ORBIT geometry and fill most of the frame with the
+underside of the loop.
 
-This pass changes only the event-9 ending replay. Generic Tour replay cameras,
-physics, AI and course geometry are left untouched.
+v8.7.1 already preserves the FINISH CUT / SLOW MOTION replay caption. This pass
+therefore changes only event-9 replay camera placement and face-off HUD cleanup.
+Generic Tour replay cameras, physics, AI and course geometry are untouched.
 """
 from pathlib import Path
 
@@ -22,10 +22,6 @@ def one(text: str, old: str, new: str, label: str) -> str:
 def apply_mayhem_showdown_v88(target: Path) -> None:
     game = target / 'game.js'
     s = game.read_text()
-
-    caption = "o.querySelector('span').textContent=`${MAYHEM_EVENTS[mayhemState.event]?.name||'MAYHEM'} · ${mayhemRivalName()} · ${state} · ${mayhemReplayShot}`;"
-    caption_new = "o.querySelector('span').textContent=mayhemShowdownEndingReplay&&mayhemFinalDuelActive()?`FINISH CUT · ${mayhemRivalName()} · ${state} · ${mayhemReplayShot} · SLOW MOTION`:`${MAYHEM_EVENTS[mayhemState.event]?.name||'MAYHEM'} · ${mayhemRivalName()} · ${state} · ${mayhemReplayShot}`;"
-    s = one(s, caption, caption_new, 'persistent showdown replay caption')
 
     camera_head = "function mayhemReplayCinematicCamera(a,b,t,progress){"
     camera_head_new = "function mayhemReplayCinematicCamera(a,b,t,progress){if(mayhemShowdownEndingReplay&&mayhemFinalDuelActive()){mayhemShowdownReplayCameraV88(a,b,t,progress);return;}"
