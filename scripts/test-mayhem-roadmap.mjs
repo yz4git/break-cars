@@ -60,4 +60,13 @@ expect('v8.5 series telemetry', game.includes('series:mayhemRivalryScore()'));
 expect('v8.5 final rivalry verdict', game.includes("'RIVAL DEFEATED':'RIVAL WINS'"));
 expect('v8.5 series card styling', css.includes('.tour-rival-status[data-series="player"]'));
 
+// v8.6 DOUBLE ORBIT FINAL DUEL.
+expect('v8.6 final duel activation', game.includes('function mayhemFinalDuelActive()') && game.includes('MAYHEM_EVENTS.length-1'));
+expect('v8.6 three duel phases', ['PHASE I · LOCK ON','PHASE II · RAM PRESSURE','PHASE III · LAST STAND'].every(x=>game.includes(x)));
+expect('v8.6 bounded rival contact pressure', game.includes('dist<16&&Math.abs(side)<7') && game.includes('dist>10&&dist<42'));
+expect('v8.6 final duel telemetry', game.includes('window.__breakCarsMayhemFinalDuel=') && game.includes('finalDuel:window.__breakCarsMayhemFinalDuel||null'));
+expect('v8.6 final event CTA', game.includes('SETTLE THE RIVALRY'));
+expect('v8.6 final result verdict', game.includes('FINAL DUEL ${last===\'PLAYER\'?\'WON\':\'LOST\'}'));
+expect('v8.6 final duel styling', css.includes('#mayhem-director[data-final-duel="1"]') && css.includes('.tour-rival-status[data-final-duel="1"]'));
+
 console.log('MAYHEM TOUR roadmap regression test passed.');
