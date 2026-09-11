@@ -47,6 +47,7 @@ apply_rampage_parallel_loop_v12 = load_function('polish-rampage-parallel-loop-v1
 apply_rampage_omega_entry_v13 = load_function('tune-rampage-omega-entry-v13.py', 'break_cars_rampage_omega_entry_v13', 'apply_rampage_omega_entry_v13')
 apply_double_orbit_reference_v23 = load_function('polish-double-orbit-reference-v23.py', 'break_cars_double_orbit_reference_v23', 'apply_double_orbit_reference_v23')
 apply_double_orbit_planar_v24 = load_function('polish-double-orbit-planar-v24.py', 'break_cars_double_orbit_planar_v24', 'apply_double_orbit_planar_v24')
+apply_double_orbit_reference_view_v25 = load_function('polish-double-orbit-reference-view-v25.py', 'break_cars_double_orbit_reference_view_v25', 'apply_double_orbit_reference_view_v25')
 
 source = Path('dist')
 target = Path('_site')
@@ -98,6 +99,9 @@ apply_rampage_omega_entry_v13(target)
 # with two parallel circular rings and a force-only traversal guide.
 apply_double_orbit_reference_v23(target)
 apply_double_orbit_planar_v24(target)
+# Keep both open throats visible and stage each active ring from the side away
+# from its sibling so the other loop never blocks the stunt camera.
+apply_double_orbit_reference_view_v25(target)
 
 # Keep final public visual verification tied to the exact deploy SHA, including
 # late RAMPAGE dressing/visibility changes that do not alter vehicle physics.
