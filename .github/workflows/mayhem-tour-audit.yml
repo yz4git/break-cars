@@ -19,6 +19,9 @@ on:
       - 'scripts/polish-mayhem-product-v82.py'
       - 'scripts/polish-mayhem-product-v83.py'
       - 'scripts/polish-mayhem-product-v84.py'
+      - 'scripts/polish-mayhem-rivalry-v85.py'
+      - 'scripts/polish-mayhem-final-duel-v86.py'
+      - 'scripts/polish-mayhem-showdown-v87.py'
       - 'scripts/test-mayhem-roadmap.mjs'
       - 'scripts/prepare-pages.py'
   workflow_dispatch:
