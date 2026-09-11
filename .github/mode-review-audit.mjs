@@ -28,6 +28,7 @@ const browser=await chromium.launch({headless:true,args:[
 
 const report=[];
 const text=async(page,sel)=>{try{return (await page.locator(sel).innerText({timeout:800})).trim();}catch{return '';}};
+const c2=async page=>await page.evaluate(()=>window.__breakCarsCamera2?{...window.__breakCarsCamera2}:null);
 
 for(const item of cases){
   const dir=path.join(out,item.course);await fs.mkdir(dir,{recursive:true});
@@ -50,6 +51,7 @@ for(const item of cases){
   await page.keyboard.down('ArrowUp');
   await page.waitForTimeout(1100);
   await page.screenshot({path:path.join(dir,'10-follow-early.png')});
+  const camera2Early=await c2(page);
 
   if(item.mode==='racing'){
     // visualAudit starts 30 m before the first loop; keep the steering neutral so
@@ -65,6 +67,7 @@ for(const item of cases){
     }
   }
   await page.screenshot({path:path.join(dir,'20-follow-action.png')});
+  const camera2Action=await c2(page);
 
   await page.keyboard.press('KeyC');await page.waitForTimeout(1500);
   await page.screenshot({path:path.join(dir,'30-wide.png')});
@@ -75,6 +78,7 @@ for(const item of cases){
     await page.keyboard.down('ArrowRight');await page.waitForTimeout(950);await page.keyboard.up('ArrowRight');
   }else await page.waitForTimeout(950);
   await page.screenshot({path:path.join(dir,'50-follow-late.png')});
+  const camera2Late=await c2(page);
   await page.keyboard.up('ArrowUp');
 
   const hud={
@@ -90,7 +94,8 @@ for(const item of cases){
     const c=document.querySelector('canvas');if(!c)return 'none';
     try{return c.getContext('webgl2')?'webgl2':c.getContext('webgl')?'webgl':'canvas';}catch{return 'canvas';}
   });
-  const row={...item,url,menu,hud,audit,renderer,errors};report.push(row);
+  const camera2={early:camera2Early,action:camera2Action,late:camera2Late};
+  const row={...item,url,menu,hud,audit,camera2,renderer,errors};report.push(row);
   await fs.writeFile(path.join(dir,'diagnostics.json'),JSON.stringify(row,null,2));
   await context.close();
 }
@@ -98,5 +103,5 @@ await browser.close();
 await fs.writeFile(path.join(out,'summary.json'),JSON.stringify(report,null,2));
 const bad=report.filter(x=>x.errors.length||x.renderer==='none');
 console.log(`MODE REVIEW audit: ${report.length} course/mode variants, errors=${bad.length}`);
-for(const x of report)console.log(`${x.mode.padEnd(10)} ${x.course.padEnd(15)} renderer=${x.renderer} hp=${x.hud.hp||'-'} speed=${x.hud.speed.replace(/\s+/g,' ')||'-'} score=${x.hud.score||'-'} errors=${x.errors.length}`);
+for(const x of report){const esc=Math.max(0,...Object.values(x.camera2).map(v=>v?.escape||0));console.log(`${x.mode.padEnd(10)} ${x.course.padEnd(15)} renderer=${x.renderer} hp=${x.hud.hp||'-'} speed=${x.hud.speed.replace(/\s+/g,' ')||'-'} c2=${esc.toFixed(2)}m errors=${x.errors.length}`);}
 if(bad.length)process.exitCode=1;
