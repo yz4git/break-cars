@@ -9,6 +9,7 @@ const courses=[
   'hunt-classic','cross-fire','tidal-foundry',
   'rampage-3d','sky-forge','double-orbit'
 ];
+const acts=['ACT I','ACT I','ACT I','ACT II','ACT II','ACT II','ACT III','ACT III','FINAL ACT'];
 const upgrades=['power','armor','handling','repair','power','armor','handling','repair'];
 await fs.rm(out,{recursive:true,force:true});
 await fs.mkdir(out,{recursive:true});
@@ -37,10 +38,11 @@ const assert=(ok,msg)=>{if(!ok)throw new Error(msg);};
 const eventUrl=i=>`${base}?course=${courses[i]}&tour=1&event=${i}&tourAudit=1`;
 const firstUrl=eventUrl(0);
 const waitTourReady=async i=>{
-  await page.waitForFunction(index=>{
+  await page.waitForFunction(({index,act})=>{
     const state=window.__breakCarsMayhemTour?.();
-    return state?.event===index&&state?.tourLength===9&&document.querySelector('#mode-tag')?.textContent?.includes('MAYHEM TOUR');
-  },i,{timeout:10000});
+    const tag=document.querySelector('#mode-tag')?.textContent||'';
+    return state?.event===index&&state?.tourLength===9&&document.body.classList.contains('mayhem-tour')&&tag.includes(act);
+  },{index:i,act:acts[i]},{timeout:10000});
   await page.waitForTimeout(180);
 };
 const beginDriving=async()=>{
@@ -83,6 +85,8 @@ try{
   for(let i=0;i<courses.length;i++){
     await waitTourReady(i);
     const before=await tour();
+    const tag=await text('#mode-tag');
+    assert(tag.includes(acts[i]),`event ${i+1}: expected ${acts[i]} in mode tag, got ${tag}`);
     assert(before?.eventDef?.course===courses[i],`event ${i+1}: course mismatch ${before?.eventDef?.course}`);
     assert(before?.tourLength===9,`event ${i+1}: tour length is not 9`);
     if(i===0){
@@ -102,13 +106,20 @@ try{
     const liveDirector=await director();
     assert(liveDirector&&['BUILD','PRESSURE','RIVAL RUSH','RELIEF','FINALE'].includes(liveDirector.state),`event ${i+1}: Director telemetry missing`);
     assert(liveDirector.rivalId===persistentRival,`event ${i+1}: Director RIVAL mismatch`);
+    assert(typeof liveDirector.eventPressure==='number',`event ${i+1}: v8 Director pressure telemetry missing`);
+    assert(String(liveDirector.act||'').includes(acts[i].replace('FINAL ACT','FINAL')),`event ${i+1}: Director act telemetry mismatch ${liveDirector.act}`);
+    assert(await page.locator('#mayhem-director').count()===1,`event ${i+1}: compact Director HUD missing`);
+    assert(await page.locator('#mayhem-rival-marker').count()===1,`event ${i+1}: RIVAL marker was not created`);
     if(i===0)await snap('01-live-director.png');
+    if(i===6)await snap('07-live-redline.png');
+    if(i===8)await snap('09-live-final-act.png');
 
     await finishEvent();
     await assertCleanResult(`event ${i+1}`);
     const after=await tour();
     assert(after?.results?.[i]?.course===courses[i],`event ${i+1}: result not recorded`);
     assert(after?.results?.[i]?.director,`event ${i+1}: Director result not recorded`);
+    assert(await page.locator('.tour-rival-status').count()===1,`event ${i+1}: PIT/final RIVAL status missing`);
 
     if(i===0){
       const replayButton=page.locator('[data-tour-replay]');
@@ -117,12 +128,20 @@ try{
       assert((replayState?.frames||0)>=2,'event 1: highlight frames were not captured');
       await replayButton.click();
       await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===true,null,{timeout:3000});
+      await page.waitForFunction(()=>document.body.classList.contains('mayhem-replay-active')&&document.querySelector('#mayhem-letterbox')&&window.__breakCarsHighlightReplay?.shot,null,{timeout:3000});
+      const cinematic=await replay();
+      assert(['CHASE','RIVAL TWO-SHOT','IMPACT CLOSE'].includes(cinematic?.shot),`event 1: cinematic shot telemetry missing: ${cinematic?.shot}`);
+      assert(await page.locator('#mayhem-letterbox').isVisible(),'event 1: cinematic letterbox missing');
+      assert(!(await page.locator('#hud').isVisible()),'event 1: ordinary HUD visible during replay');
+      assert(!(await page.locator('#driving').isVisible()),'event 1: driving controls visible during replay');
+      await page.waitForTimeout(420);
       await snap('02-highlight-replay.png');
       await page.waitForFunction(()=>window.__breakCarsHighlightReplay?.playing===false,null,{timeout:12000});
       assert(await page.locator('#modal').isVisible(),'event 1: result modal did not return after replay');
+      assert(!(await page.locator('body').evaluate(el=>el.classList.contains('mayhem-replay-active'))),'event 1: replay body class leaked after playback');
     }
 
-    report.events.push({index:i,course:courses[i],before,after,director:liveDirector});
+    report.events.push({index:i,course:courses[i],act:acts[i],before,after,director:liveDirector});
     if(i===courses.length-1){
       assert(await page.locator('.tour-final').isVisible(),'final Tour panel missing');
       assert(/MAYHEM TOUR COMPLETE/.test(await text('.tour-final')),'completion copy missing');
@@ -136,9 +155,8 @@ try{
     assert(!(await button.isDisabled()),`event ${i+1}: PIT ${up} unexpectedly disabled`);
     await button.click();
     await page.waitForURL(new RegExp(`event=${i+1}`),{timeout:10000});
-    // The production route intentionally drops test-only query parameters. Re-open
-    // the same persisted Tour event with tourAudit=1 so countdown skip helpers remain
-    // available for the browser audit without changing real gameplay routing.
+    // Production routing drops test-only parameters. Re-open the same persisted
+    // event with tourAudit=1 so browser-only countdown helpers remain available.
     await page.goto(eventUrl(i+1),{waitUntil:'networkidle',timeout:30000});
   }
 
@@ -148,7 +166,7 @@ try{
   report.final={state:finalState,replay:await replay(),renderer:await renderer()};
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
   await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify(report,null,2));
-  console.log(`MAYHEM TOUR 9-course audit PASS: results=${finalState.results.length} rival=${persistentRival} hull=${Math.round(finalState.hull*100)}% total=${finalState.total} errors=${errors.length}`);
+  console.log(`MAYHEM TOUR v8 visual audit PASS: results=${finalState.results.length} rival=${persistentRival} hull=${Math.round(finalState.hull*100)}% total=${finalState.total} errors=${errors.length}`);
 }catch(err){
   report.failure=String(err?.stack||err);
   try{await snap('98-failure.png');}catch{}
