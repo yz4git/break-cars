@@ -24,12 +24,14 @@ on:
       - 'scripts/polish-mayhem-recap-v813.py'
       - 'scripts/polish-mayhem-recap-v814.py'
       - 'scripts/polish-mayhem-recap-v815.py'
+      - 'scripts/polish-mayhem-recap-v816.py'
       - 'scripts/add-mayhem-highlight-replay-v7.py'
       - 'scripts/apply-mayhem-rival-director-v5.py'
       - 'scripts/expand-mayhem-nine-course-v6.py'
       - 'scripts/test-mayhem-roadmap.mjs'
       - 'scripts/test-mayhem-recap-v814.mjs'
       - 'scripts/test-mayhem-recap-v815.mjs'
+      - 'scripts/test-mayhem-recap-v816.mjs'
       - 'scripts/prepare-pages.py'
   workflow_dispatch:
 
@@ -55,6 +57,7 @@ jobs:
           node scripts/test-mayhem-roadmap.mjs
           node scripts/test-mayhem-recap-v814.mjs
           node scripts/test-mayhem-recap-v815.mjs
+          node scripts/test-mayhem-recap-v816.mjs
       - name: Install Playwright Chromium
         run: |
           npm install --no-save --package-lock=false playwright@1.55.0
