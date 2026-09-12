@@ -13,8 +13,9 @@ cinematic replay window, v8.4 impact framing, v8.5 nine-event rivalry series,
 v8.6 DOUBLE ORBIT FINAL DUEL, v8.7 FINAL SHOWDOWN cinematics, v8.7.1 replay
 caption polish, v8.8 showdown replay camera safety, v8.9 nine-event TOUR RECAP,
 v8.10 final presentation cleanup, v8.11 result consolidation, v8.12 ending HUD
-cleanup, v8.13 recap cinematics, v8.14 recap visual identity and v8.15 finale
-editorial cleanup are chained here so Pages build order stays stable.
+cleanup, v8.13 recap cinematics, v8.14 recap visual identity, v8.15 finale
+editorial cleanup and v8.16 recap chapter stingers are chained here so Pages
+build order stays stable.
 """
 from pathlib import Path
 import importlib.util
@@ -53,126 +54,27 @@ def apply_mayhem_tour_v4(target: Path) -> None:
     c += "\nbody.mayhem-tour-result #driving,body.mayhem-tour-result #hunt-nav{display:none!important}\n"
     css.write_text(c)
 
-    load_and_apply(
-        'apply-mayhem-rival-director-v5.py',
-        'break_cars_mayhem_rival_director_v5',
-        'apply_mayhem_rival_director_v5',
-        target,
-    )
-    load_and_apply(
-        'expand-mayhem-nine-course-v6.py',
-        'break_cars_mayhem_nine_course_v6',
-        'apply_mayhem_nine_course_v6',
-        target,
-    )
-    load_and_apply(
-        'add-mayhem-highlight-replay-v7.py',
-        'break_cars_mayhem_highlight_replay_v7',
-        'apply_mayhem_highlight_replay_v7',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-product-v8.py',
-        'break_cars_mayhem_product_v8',
-        'apply_mayhem_product_v8',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-product-v81.py',
-        'break_cars_mayhem_product_v81',
-        'apply_mayhem_product_v81',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-product-v82.py',
-        'break_cars_mayhem_product_v82',
-        'apply_mayhem_product_v82',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-product-v83.py',
-        'break_cars_mayhem_product_v83',
-        'apply_mayhem_product_v83',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-product-v84.py',
-        'break_cars_mayhem_product_v84',
-        'apply_mayhem_product_v84',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-rivalry-v85.py',
-        'break_cars_mayhem_rivalry_v85',
-        'apply_mayhem_rivalry_v85',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-final-duel-v86.py',
-        'break_cars_mayhem_final_duel_v86',
-        'apply_mayhem_final_duel_v86',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-showdown-v87.py',
-        'break_cars_mayhem_showdown_v87',
-        'apply_mayhem_showdown_v87',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-showdown-v871.py',
-        'break_cars_mayhem_showdown_v871',
-        'apply_mayhem_showdown_v871',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-showdown-v88.py',
-        'break_cars_mayhem_showdown_v88',
-        'apply_mayhem_showdown_v88',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-recap-v89.py',
-        'break_cars_mayhem_recap_v89',
-        'apply_mayhem_recap_v89',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-showdown-v810.py',
-        'break_cars_mayhem_showdown_v810',
-        'apply_mayhem_showdown_v810',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-result-v811.py',
-        'break_cars_mayhem_result_v811',
-        'apply_mayhem_result_v811',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-showdown-v812.py',
-        'break_cars_mayhem_showdown_v812',
-        'apply_mayhem_showdown_v812',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-recap-v813.py',
-        'break_cars_mayhem_recap_v813',
-        'apply_mayhem_recap_v813',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-recap-v814.py',
-        'break_cars_mayhem_recap_v814',
-        'apply_mayhem_recap_v814',
-        target,
-    )
-    load_and_apply(
-        'polish-mayhem-recap-v815.py',
-        'break_cars_mayhem_recap_v815',
-        'apply_mayhem_recap_v815',
-        target,
-    )
+    load_and_apply('apply-mayhem-rival-director-v5.py','break_cars_mayhem_rival_director_v5','apply_mayhem_rival_director_v5',target)
+    load_and_apply('expand-mayhem-nine-course-v6.py','break_cars_mayhem_nine_course_v6','apply_mayhem_nine_course_v6',target)
+    load_and_apply('add-mayhem-highlight-replay-v7.py','break_cars_mayhem_highlight_replay_v7','apply_mayhem_highlight_replay_v7',target)
+    load_and_apply('polish-mayhem-product-v8.py','break_cars_mayhem_product_v8','apply_mayhem_product_v8',target)
+    load_and_apply('polish-mayhem-product-v81.py','break_cars_mayhem_product_v81','apply_mayhem_product_v81',target)
+    load_and_apply('polish-mayhem-product-v82.py','break_cars_mayhem_product_v82','apply_mayhem_product_v82',target)
+    load_and_apply('polish-mayhem-product-v83.py','break_cars_mayhem_product_v83','apply_mayhem_product_v83',target)
+    load_and_apply('polish-mayhem-product-v84.py','break_cars_mayhem_product_v84','apply_mayhem_product_v84',target)
+    load_and_apply('polish-mayhem-rivalry-v85.py','break_cars_mayhem_rivalry_v85','apply_mayhem_rivalry_v85',target)
+    load_and_apply('polish-mayhem-final-duel-v86.py','break_cars_mayhem_final_duel_v86','apply_mayhem_final_duel_v86',target)
+    load_and_apply('polish-mayhem-showdown-v87.py','break_cars_mayhem_showdown_v87','apply_mayhem_showdown_v87',target)
+    load_and_apply('polish-mayhem-showdown-v871.py','break_cars_mayhem_showdown_v871','apply_mayhem_showdown_v871',target)
+    load_and_apply('polish-mayhem-showdown-v88.py','break_cars_mayhem_showdown_v88','apply_mayhem_showdown_v88',target)
+    load_and_apply('polish-mayhem-recap-v89.py','break_cars_mayhem_recap_v89','apply_mayhem_recap_v89',target)
+    load_and_apply('polish-mayhem-showdown-v810.py','break_cars_mayhem_showdown_v810','apply_mayhem_showdown_v810',target)
+    load_and_apply('polish-mayhem-result-v811.py','break_cars_mayhem_result_v811','apply_mayhem_result_v811',target)
+    load_and_apply('polish-mayhem-showdown-v812.py','break_cars_mayhem_showdown_v812','apply_mayhem_showdown_v812',target)
+    load_and_apply('polish-mayhem-recap-v813.py','break_cars_mayhem_recap_v813','apply_mayhem_recap_v813',target)
+    load_and_apply('polish-mayhem-recap-v814.py','break_cars_mayhem_recap_v814','apply_mayhem_recap_v814',target)
+    load_and_apply('polish-mayhem-recap-v815.py','break_cars_mayhem_recap_v815','apply_mayhem_recap_v815',target)
+    load_and_apply('polish-mayhem-recap-v816.py','break_cars_mayhem_recap_v816','apply_mayhem_recap_v816',target)
 
 
 if __name__ == '__main__':
