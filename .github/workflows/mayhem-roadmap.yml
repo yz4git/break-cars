@@ -22,3 +22,4 @@ jobs:
           node scripts/test-mayhem-recap-v814.mjs
           node scripts/test-mayhem-recap-v815.mjs
           node scripts/test-mayhem-recap-v816.mjs
+          node scripts/test-mayhem-rival-v817.mjs
