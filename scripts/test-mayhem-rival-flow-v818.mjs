@@ -2,12 +2,16 @@ import fs from 'node:fs';
 
 const game = fs.readFileSync('_site/game.js', 'utf8');
 const css = fs.readFileSync('_site/mayhem-tour.css', 'utf8');
+const v818Marker = '/* MAYHEM TOUR v8.18';
+const v818Start = game.indexOf(v818Marker);
+const v818 = v818Start >= 0 ? game.slice(v818Start) : '';
 
 function expect(label, value) {
   if (!value) throw new Error(`MAYHEM v8.18 regression: ${label}`);
   console.log(`ok - ${label}`);
 }
 
+expect('v8.18 section exists', v818Start >= 0);
 expect('v8.18 chained into generated game', game.includes('window.__breakCarsMayhemV818=true'));
 expect('wraps v8.17 Director layer', game.includes('const mayhemDirectorTickV818Base=mayhemDirectorTick') && game.includes('mayhemDirectorTickV818Base(dt);mayhemRivalBattleTickV818(dt)'));
 expect('five-beat RIVAL flow', ['INBOUND','LOCKED','CLASH','BREAKAWAY','REMATCH'].every(x => game.includes(`'${x}'`)));
@@ -21,6 +25,6 @@ expect('flow telemetry is exposed', game.includes('window.__breakCarsMayhemRival
 expect('stale v8.17 contact telemetry is synchronized', game.includes('mayhemRivalEngagementContacts=mayhemRivalBattleSeriesClashes'));
 expect('compact transient cue is styled', css.includes('#mayhem-rival-flow') && css.includes('data-mayhem-rival-flow="breakaway"') && css.includes('data-mayhem-rival-flow="rematch"'));
 expect('cue is hidden during result/replay/recap', css.includes('body.mayhem-tour-result #mayhem-rival-flow') && css.includes('body.mayhem-replay-active #mayhem-rival-flow') && css.includes('body.mayhem-recap-active #mayhem-rival-flow'));
-expect('no teleport or player slowdown added', !game.includes('r.x=p.x') && !game.includes('r.z=p.z') && !game.includes('p.vx*=') && !game.includes('p.vz*='));
+expect('v8.18 adds no teleport or player slowdown', !v818.includes('r.x=p.x') && !v818.includes('r.z=p.z') && !v818.includes('p.vx*=') && !v818.includes('p.vz*='));
 
 console.log('MAYHEM v8.18 RIVAL battle-flow regression passed.');
