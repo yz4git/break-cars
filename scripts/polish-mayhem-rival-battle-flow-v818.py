@@ -45,6 +45,7 @@ function mayhemRivalBattleTelemetryV818(p,r,extra={}){
  return payload;
 }
 function mayhemRivalBattleResetV818(eventIndex){
+ if(eventIndex===0&&mayhemRivalBattleEvent!==0)mayhemRivalBattleSeriesClashes=0;
  mayhemRivalBattleEvent=eventIndex;mayhemRivalBattlePhase='SEARCH';mayhemRivalBattlePrevEngagement='SEARCH';mayhemRivalBattleUntil=0;mayhemRivalBattleLastClash=-99;mayhemRivalBattleEventClashes=0;mayhemRivalBattleEncounter=0;document.body.dataset.mayhemRivalFlow='search';const el=$('mayhem-rival-flow');if(el)el.classList.remove('show');
 }
 function mayhemRivalBattleTickV818(dt){
