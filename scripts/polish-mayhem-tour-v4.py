@@ -14,8 +14,9 @@ v8.6 DOUBLE ORBIT FINAL DUEL, v8.7 FINAL SHOWDOWN cinematics, v8.7.1 replay
 caption polish, v8.8 showdown replay camera safety, v8.9 nine-event TOUR RECAP,
 v8.10 final presentation cleanup, v8.11 result consolidation, v8.12 ending HUD
 cleanup, v8.13 recap cinematics, v8.14 recap visual identity, v8.15 finale
-editorial cleanup, v8.16 recap chapter stingers, v8.17 RIVAL engagement and
-v8.18 RIVAL battle flow are chained here so Pages build order stays stable.
+editorial cleanup, v8.16 recap chapter stingers, v8.17 RIVAL engagement,
+v8.18 RIVAL battle flow and v8.19 RIVAL clash history are chained here so
+Pages build order stays stable.
 """
 from pathlib import Path
 import importlib.util
@@ -77,6 +78,7 @@ def apply_mayhem_tour_v4(target: Path) -> None:
     load_and_apply('polish-mayhem-recap-v816.py','break_cars_mayhem_recap_v816','apply_mayhem_recap_v816',target)
     load_and_apply('polish-mayhem-rival-engagement-v817.py','break_cars_mayhem_rival_engagement_v817','apply_mayhem_rival_engagement_v817',target)
     load_and_apply('polish-mayhem-rival-battle-flow-v818.py','break_cars_mayhem_rival_battle_flow_v818','apply_mayhem_rival_battle_flow_v818',target)
+    load_and_apply('polish-mayhem-rival-history-v819.py','break_cars_mayhem_rival_history_v819','apply_mayhem_rival_history_v819',target)
 
 
 if __name__ == '__main__':
