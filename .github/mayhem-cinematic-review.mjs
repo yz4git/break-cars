@@ -133,24 +133,32 @@ try{
   assert((await recapButton.innerText()).includes('PLAY TOUR RECAP'),'TOUR RECAP CTA copy missing');
   await recapButton.click();
   await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='OPENING'&&window.__breakCarsMayhemRecap?.active===true,null,{timeout:4000});
-  assert(await page.locator('#mayhem-tour-recap').isVisible(),'TOUR RECAP film overlay missing');
+  const recapOverlay=page.locator('#mayhem-tour-recap');
+  assert(await recapOverlay.isVisible(),'TOUR RECAP film overlay missing');
   assert(!(await page.locator('#hud').isVisible()),'HUD visible during TOUR RECAP film');
   assert(!(await page.locator('#driving').isVisible()),'controls visible during TOUR RECAP film');
+  const recapOpening=await page.evaluate(()=>({telemetry:window.__breakCarsMayhemRecap,course:document.querySelector('#mayhem-tour-recap')?.dataset.course||'',scene:document.querySelector('#mayhem-tour-recap')?.dataset.scene||'',backdrops:document.querySelectorAll('#mayhem-tour-recap .mayhem-recap-backdrop').length,text:document.querySelector('.mayhem-recap-stage')?.innerText||''}));
+  assert(recapOpening.course==='opening'&&recapOpening.scene==='opening'&&recapOpening.backdrops===1,'v8.13 opening scene identity missing');
+  assert((recapOpening.telemetry?.holdMs||0)>=2000&&recapOpening.text.includes('NINE EVENTS. ONE RIVAL.'),'v8.13 opening card is not independently readable');
   await snap('15-tour-recap-opening.png');
-  await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='EVENT'&&window.__breakCarsMayhemRecap?.index>=3,null,{timeout:7000});
+  await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='EVENT'&&window.__breakCarsMayhemRecap?.index>=3,null,{timeout:8000});
   assert(await page.locator('.mayhem-recap-track i').count()===9,'TOUR RECAP film timeline missing');
+  const recapEvent=await page.evaluate(()=>({telemetry:window.__breakCarsMayhemRecap,course:document.querySelector('#mayhem-tour-recap')?.dataset.course||'',scene:document.querySelector('#mayhem-tour-recap')?.dataset.scene||''}));
+  assert(recapEvent.scene==='event'&&recapEvent.course===recapEvent.telemetry?.course&&(recapEvent.telemetry?.holdMs||0)>=900,'v8.13 event course identity/cadence missing');
   await snap('16-tour-recap-event.png');
-  await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='FINAL',null,{timeout:10000});
+  await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='FINAL',null,{timeout:12000});
   const recapFinalText=await page.locator('.mayhem-recap-stage').innerText();
   assert(recapFinalText.includes('MAYHEM TOUR CHAMPION')||recapFinalText.includes('RIVAL WINS THE TOUR'),'TOUR RECAP final verdict missing');
+  const recapFinal=await page.evaluate(()=>({telemetry:window.__breakCarsMayhemRecap,course:document.querySelector('#mayhem-tour-recap')?.dataset.course||'',scene:document.querySelector('#mayhem-tour-recap')?.dataset.scene||''}));
+  assert(recapFinal.course==='finale'&&recapFinal.scene==='finale'&&(recapFinal.telemetry?.holdMs||0)>=2500,'v8.13 finale scene identity/cadence missing');
   await snap('17-tour-recap-final.png');
-  await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='COMPLETE'&&window.__breakCarsMayhemRecap?.completed===true&&window.__breakCarsMayhemRecap?.active===false,null,{timeout:5000});
+  await page.waitForFunction(()=>window.__breakCarsMayhemRecap?.stage==='COMPLETE'&&window.__breakCarsMayhemRecap?.completed===true&&window.__breakCarsMayhemRecap?.active===false,null,{timeout:6000});
   assert(await page.locator('#mayhem-tour-recap').count()===0,'TOUR RECAP overlay did not close after completion');
   assert(await page.locator('#modal').isVisible(),'result modal did not return after TOUR RECAP');
   const recap=await page.evaluate(()=>window.__breakCarsMayhemRecap);
 
   assert(errors.length===0,`browser errors: ${errors.join(' | ')}`);
-  await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({directorAct1:d,directorAct3:d7,directorFinal:d9,finalDuel:duel,finalReplayFrozen:frozen,finalReplayLayout,finalCardBox,showdown,endingModalOpacity,endingHudHidden:endingFrame.hudHidden,endingDrivingHidden:endingFrame.drivingHidden,recapReady,recap,errors},null,2));
+  await fs.writeFile(path.join(out,'diagnostics.json'),JSON.stringify({directorAct1:d,directorAct3:d7,directorFinal:d9,finalDuel:duel,finalReplayFrozen:frozen,finalReplayLayout,finalCardBox,showdown,endingModalOpacity,endingHudHidden:endingFrame.hudHidden,endingDrivingHidden:endingFrame.drivingHidden,recapReady,recapOpening,recapEvent,recapFinal,recap,errors},null,2));
   console.log(`MAYHEM cinematic review PASS: act1=${d.state} act3=${d7.state} final=${d9.state} showdown=${showdown?.stage} recap=${recap?.stage}`);
 }catch(err){
   try{await snap('98-failure.png');}catch{}
