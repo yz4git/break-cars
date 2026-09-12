@@ -108,4 +108,8 @@ expect('v8.11 suppresses duplicated base result', ['#result-title','#result-deta
 expect('v8.11 keeps Tour intermission flush', css.includes('body.mayhem-tour-result #tour-intermission{margin-top:0!important}'));
 expect('v8.11 telemetry marker', game.includes('window.__breakCarsMayhemV811=true'));
 
+// v8.12 ending owns the whole frame.
+expect('v8.12 ending HUD cleanup', css.includes('body.mayhem-showdown-ending-active #hud') && css.includes('visibility:hidden!important'));
+expect('v8.12 telemetry marker', game.includes('window.__breakCarsMayhemV812=true'));
+
 console.log('MAYHEM TOUR roadmap regression test passed.');
