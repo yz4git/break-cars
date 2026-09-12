@@ -13,8 +13,8 @@ cinematic replay window, v8.4 impact framing, v8.5 nine-event rivalry series,
 v8.6 DOUBLE ORBIT FINAL DUEL, v8.7 FINAL SHOWDOWN cinematics, v8.7.1 replay
 caption polish, v8.8 showdown replay camera safety, v8.9 nine-event TOUR RECAP,
 v8.10 final presentation cleanup, v8.11 result consolidation, v8.12 ending HUD
-cleanup, v8.13 recap cinematics and v8.14 recap visual identity are chained here
-so Pages build order stays stable.
+cleanup, v8.13 recap cinematics, v8.14 recap visual identity and v8.15 finale
+editorial cleanup are chained here so Pages build order stays stable.
 """
 from pathlib import Path
 import importlib.util
@@ -165,6 +165,12 @@ def apply_mayhem_tour_v4(target: Path) -> None:
         'polish-mayhem-recap-v814.py',
         'break_cars_mayhem_recap_v814',
         'apply_mayhem_recap_v814',
+        target,
+    )
+    load_and_apply(
+        'polish-mayhem-recap-v815.py',
+        'break_cars_mayhem_recap_v815',
+        'apply_mayhem_recap_v815',
         target,
     )
 
