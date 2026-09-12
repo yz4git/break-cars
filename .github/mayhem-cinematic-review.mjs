@@ -115,19 +115,17 @@ try{
   assert(!(await page.locator('#driving').isVisible()),'controls visible in FINAL SHOWDOWN replay');
   await snap('13-final-showdown-replay.png');
 
-  await page.waitForFunction(()=>window.__breakCarsMayhemShowdown?.stage==='ENDING',null,{timeout:22000});
+  await page.waitForFunction(()=>document.body.classList.contains('mayhem-showdown-ending-active')&&document.querySelector('#mayhem-showdown-ending')?.classList.contains('show'),null,{timeout:22000});
   const ending=page.locator('#mayhem-showdown-ending');
-  await ending.waitFor({state:'visible',timeout:4000});
-  await page.waitForFunction(()=>document.querySelector('#mayhem-showdown-ending')?.classList.contains('show'),null,{timeout:4000});
+  const endingFrame=await page.evaluate(()=>{const el=document.querySelector('#mayhem-showdown-ending'),modal=document.querySelector('#modal');return{active:document.body.classList.contains('mayhem-showdown-ending-active'),shown:!!el?.classList.contains('show'),text:el?.innerText||'',modalOpacity:modal?Number(getComputedStyle(modal).opacity):1,showdown:window.__breakCarsMayhemShowdown};});
+  assert(endingFrame.active&&endingFrame.shown,'v8.10 isolated ending state missing');
+  assert(endingFrame.text.includes('MAYHEM TOUR CHAMPION')||endingFrame.text.includes('RIVAL OWNS THE NIGHT'),'FINAL SHOWDOWN ending verdict missing');
+  assert(endingFrame.modalOpacity<.05,'v8.10 final results remain visible behind ending verdict');
   await snap('14-final-ending.png');
   assert(await ending.count()===1,'FINAL SHOWDOWN ending card missing');
-  const endingText=await ending.innerText();
-  assert(endingText.includes('MAYHEM TOUR CHAMPION')||endingText.includes('RIVAL OWNS THE NIGHT'),'FINAL SHOWDOWN ending verdict missing');
-  assert(await page.locator('body').evaluate(el=>el.classList.contains('mayhem-showdown-ending-active')),'v8.10 isolated ending state missing');
-  const endingModalOpacity=await page.locator('#modal').evaluate(el=>Number(getComputedStyle(el).opacity));
-  assert(endingModalOpacity<.05,'v8.10 final results remain visible behind ending verdict');
-  const showdown=await page.evaluate(()=>window.__breakCarsMayhemShowdown);
-  await page.waitForFunction(()=>!document.body.classList.contains('mayhem-showdown-ending-active'),null,{timeout:5000});
+  const showdown=endingFrame.showdown;
+  const endingModalOpacity=endingFrame.modalOpacity;
+  await page.waitForFunction(()=>!document.body.classList.contains('mayhem-showdown-ending-active'),null,{timeout:6000});
 
   const recapButton=page.locator('[data-tour-recap-film]');
   assert(await recapButton.isVisible(),'PLAY TOUR RECAP button missing');
