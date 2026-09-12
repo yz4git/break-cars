@@ -17,4 +17,6 @@ jobs:
       - name: Check generated game
         run: node --check _site/game.js
       - name: Test MAYHEM roadmap
-        run: node scripts/test-mayhem-roadmap.mjs
+        run: |
+          node scripts/test-mayhem-roadmap.mjs
+          node scripts/test-mayhem-recap-v814.mjs
