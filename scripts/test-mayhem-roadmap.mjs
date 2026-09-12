@@ -112,4 +112,10 @@ expect('v8.11 telemetry marker', game.includes('window.__breakCarsMayhemV811=tru
 expect('v8.12 ending HUD cleanup', css.includes('body.mayhem-showdown-ending-active #hud') && css.includes('visibility:hidden!important'));
 expect('v8.12 telemetry marker', game.includes('window.__breakCarsMayhemV812=true'));
 
+// v8.13 readable, course-coded recap film.
+expect('v8.13 recap editorial cadence', game.includes('MAYHEM_RECAP_V813_OPENING_MS=2400') && game.includes('MAYHEM_RECAP_V813_EVENT_MS=980') && game.includes('MAYHEM_RECAP_V813_FINAL_MS=2600'));
+expect('v8.13 course-coded recap backdrop', game.includes('function mayhemRecapV813Scene(') && css.includes('.mayhem-recap-backdrop') && courseIds.every(id=>css.includes(`data-course="${id}"`)));
+expect('v8.13 recap telemetry', game.includes("scene:'opening'") && game.includes('course:row.event.course') && game.includes("scene:'finale'"));
+expect('v8.13 telemetry marker', game.includes('window.__breakCarsMayhemV813=true'));
+
 console.log('MAYHEM TOUR roadmap regression test passed.');
