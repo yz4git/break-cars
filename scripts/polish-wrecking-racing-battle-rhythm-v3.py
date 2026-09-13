@@ -1,10 +1,11 @@
 """WRECKING RACING battle rhythm v3.
 
-Turn the tactical contact zones into a readable fight cadence without changing
+Turn tactical contact zones into a readable fight cadence without changing
 vehicle forces or damage. Real car-to-car impacts are timestamped separately
-from wall hits. AI then performs a short BREAKAWAY and crosses back through a
-narrow REMATCH lane before returning to normal CHASE behavior. Jump staging
-always wins over battle rhythm so stunts stay raceable.
+from wall hits. Ordinary contact creates a very short CLASH, then BREAKAWAY and
+REMATCH. Loop exits and jump landings additionally force a distance-based
+BREAKAWAY -> REMATCH beat, so collisions inside a stunt cannot keep the pack
+permanently bunched by continuously resetting a contact timer.
 """
 from pathlib import Path
 
@@ -23,20 +24,23 @@ def apply_wrecking_racing_battle_rhythm_v3(target: Path) -> None:
     zone_end = """ return{type:'neutral',phase:0,width:0,turn};
 }
 """
-    rhythm = zone_end + r'''export function racingBattleRhythm(sinceCarContact,tacticType,id,lap=0){
- const t=Number.isFinite(sinceCarContact)?sinceCarContact:99,n=Math.max(0,Math.floor(lap||0)),side=((id+n)&1)?1:-1;
- if(tacticType==='jump-split'||tacticType==='jump-flight')return{phase:'STAGE',lane:null,strength:0};
- if(t>=0&&t<.22)return{phase:'CLASH',lane:null,strength:0};
- if(t>=.22&&t<1.35)return{phase:'BREAKAWAY',lane:side*4.65,strength:.48};
- if(t>=1.35&&t<3.15)return{phase:'REMATCH',lane:-side*1.65,strength:.26};
- if(tacticType==='landing-merge'||tacticType==='loop-merge')return{phase:'REMATCH',lane:-side*1.65,strength:.20};
- return{phase:'CHASE',lane:null,strength:0};
+    rhythm = zone_end + r'''export function racingBattleRhythm(sinceCarContact,tacticType,id,lap=0,tacticPhase=1){
+ const t=Number.isFinite(sinceCarContact)?sinceCarContact:99,n=Math.max(0,Math.floor(lap||0)),side=((id+n)&1)?1:-1,phase=clamp(Number.isFinite(tacticPhase)?tacticPhase:1,0,1);
+ if(tacticType==='jump-split'||tacticType==='jump-flight')return{phase:'STAGE',lane:null,strength:0,source:'stunt'};
+ if(tacticType==='loop-merge'||tacticType==='landing-merge'){
+  if(phase<.34)return{phase:'BREAKAWAY',lane:side*4.55,strength:.52,source:'feature'};
+  return{phase:'REMATCH',lane:-side*1.65,strength:.30,source:'feature'};
+ }
+ if(t>=0&&t<.05)return{phase:'CLASH',lane:null,strength:0,source:'contact'};
+ if(t>=.05&&t<1.20)return{phase:'BREAKAWAY',lane:side*4.65,strength:.48,source:'contact'};
+ if(t>=1.20&&t<2.90)return{phase:'REMATCH',lane:-side*1.65,strength:.26,source:'contact'};
+ return{phase:'CHASE',lane:null,strength:0,source:'race'};
 }
 '''
     s = one(s, zone_end, rhythm, 'battle rhythm model')
 
     edge = " if(Math.abs(p.lane)>5.9)lane=clamp(lane-p.lane*.44,-4.6,4.6);\n"
-    battle = r''' const sinceCarContact=w.time-(c.raceCarContactAt??-99),rhythm=racingBattleRhythm(sinceCarContact,tactic.type,c.id,tacticalLap);c.raceBattlePhase=rhythm.phase;c.raceBattleSinceContact=sinceCarContact;
+    battle = r''' const sinceCarContact=w.time-(c.raceCarContactAt??-99),rhythm=racingBattleRhythm(sinceCarContact,tactic.type,c.id,tacticalLap,tactic.phase??1);c.raceBattlePhase=rhythm.phase;c.raceBattleSinceContact=sinceCarContact;c.raceBattleSource=rhythm.source;
  if(!stunt&&rhythm.lane!==null){
   const safeGoal=clamp(rhythm.lane,-5.2,5.2);lane=clamp(lane+(safeGoal-lane)*rhythm.strength,-5.6,5.6);
   if(rhythm.phase==='BREAKAWAY'){c.battleTarget=-1;attack=false;pack=false;}
