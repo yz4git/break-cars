@@ -13,6 +13,19 @@ def apply_wrecking_racing_math_v1(target: Path) -> None:
     shutil.copyfile(here / 'wrecking-racing-math-v1.js', target / 'racing3d.js')
     shutil.copyfile(here / 'wrecking-racing-track-view-v1.js', target / 'track-view.js')
 
+    # The legacy full-physics layer already passes c.trackS into surface sampling.
+    # Because this final rebuild replaces racing3d.js after that patch ran, keep
+    # the same branch hint in the generated API or closed loops can make wheels
+    # snap back to the previous loop branch after the gate.
+    course = target / 'racing3d.js'
+    r = course.read_text()
+    old_surface = "export function sampleRaceSurface(x,y,z,up={x:0,y:1,z:0},forChassis=false){const p=projectRacePoint(x,y,z,null,true);"
+    new_surface = "export function sampleRaceSurface(x,y,z,up={x:0,y:1,z:0},forChassis=false,hintS=null){const p=projectRacePoint(x,y,z,hintS,true);"
+    count = r.count(old_surface)
+    if count != 1:
+        raise RuntimeError(f'WRECKING RACING math v1 surface hint: expected 1 match, found {count}')
+    course.write_text(r.replace(old_surface, new_surface, 1))
+
     racing = target / 'racing.js'
     s = racing.read_text()
     if "activeCourse as mathCourseV1" not in s:
