@@ -36,9 +36,11 @@ export function buildRaceTrack({box,sign}){
  for(const s of [spec.jump.startS-2,spec.jump.endS+2])for(const side of [-1,1]){const p=racePointAt(s,side*(W+1.2)),h=Math.max(1.2,p.y+3.0);box(group,p.x,p.y-h/2-.3,p.z,.22,h,.22,0x3d4a51,true);}
  // Elevated sections get sparse supports; they communicate height without hiding collisions.
  for(let i=0;i<24;i++){const p=racePointAt(i/24*RACE3D_LENGTH);if(p.y<4.8||p.kind==='loop')continue;for(const side of [-1,1]){const q=racePointAt(p.s,side*(W-.7)),h=Math.max(1,p.y+2.6);box(group,q.x,q.y-h/2-.45,q.z,.25,h,.25,0x43505a,true);}}
- const start=racePointAt(0);for(const side of [-1,1]){const p=racePointAt(0,side*(W+1.2));box(group,p.x,3.3,p.z,.42,6.6,.42,0x8a938e,true);}const beam=box(group,start.x,start.y+6.2,start.z,W*2+4.6,.46,.50,P.edge,true);beam.rotation.y=start.heading;const banner=sign(spec.name,22,2.0);banner.position.set(start.x,start.y+5.25,start.z);banner.rotation.y=start.heading+Math.PI/2;group.add(banner);
+ // Put the start gantry ahead of the spawn pack instead of directly through the chase camera.
+ // At s=0 the 22m banner sat between the iPhone camera and the player during countdown.
+ const gantryS=12,start=racePointAt(gantryS);for(const side of [-1,1]){const p=racePointAt(gantryS,side*(W+1.2));box(group,p.x,3.3,p.z,.42,6.6,.42,0x8a938e,true);}const beam=box(group,start.x,start.y+6.2,start.z,W*2+4.6,.46,.50,P.edge,true);beam.rotation.y=start.heading;const banner=sign(spec.name,20,1.7);banner.position.set(start.x,start.y+5.55,start.z);banner.rotation.y=start.heading+Math.PI/2;group.add(banner);
  // Outer spectator frame is intentionally low and distant so the whole calculated silhouette reads on iPhone landscape.
  for(const side of [-1,1]){const z=side*(Math.max(Math.abs(minZ),Math.abs(maxZ))+12),b=sign('BREAK CARS / WRECKING RACING',31,2.1);b.position.set(0,8.5,z);b.rotation.y=side>0?Math.PI:0;group.add(b);}
- group.userData.mathCourse={courseId:spec.courseId,designSpeed:spec.designSpeed,maxGrade:spec.maxGrade,bankMax:spec.bankMax,jumpSafety:spec.jump.designRange/Math.max(.1,spec.jump.gapLength)};
+ group.userData.mathCourse={courseId:spec.courseId,designSpeed:spec.designSpeed,maxGrade:spec.maxGrade,bankMax:spec.bankMax,jumpSafety:spec.jump.designRange/Math.max(.1,spec.jump.gapLength),startGantryS:gantryS};
  return group;
 }
