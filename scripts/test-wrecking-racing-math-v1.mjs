@@ -44,10 +44,15 @@ for(let i=0;i<360;i++){
 assert(worstRoundTrip<.45,`${selected}: projection round-trip error ${worstRoundTrip.toFixed(2)}m`);
 
 // Nonadjacent ordinary road must not create accidental same-height branch traps.
+// Collapse inserted loop arc length before measuring graph separation: the road
+// immediately before/after a full 2π loop is topologically adjacent even though
+// raw race S differs by ~60 m.
+const loopSpan=spec.loops.reduce((sum,l)=>sum+(l.endS-l.startS),0),ordinaryLength=RACE3D_LENGTH-loopSpan;
+const ordinaryS=s=>{let q=s;for(const l of spec.loops)if(s>=l.endS)q-=l.endS-l.startS;return q;};
 const ordinary=[];for(let s=0;s<RACE3D_LENGTH;s+=4){const p=racePointAt(s);if(p.kind!=='loop'&&p.kind!=='jump-gap')ordinary.push(p);}
 let min3D=Infinity,minXZ=Infinity,crossPair=null;
 for(let i=0;i<ordinary.length;i++)for(let j=i+1;j<ordinary.length;j++){
- let arc=Math.abs(ordinary[i].s-ordinary[j].s);arc=Math.min(arc,RACE3D_LENGTH-arc);if(arc<42)continue;
+ let arc=Math.abs(ordinaryS(ordinary[i].s)-ordinaryS(ordinary[j].s));arc=Math.min(arc,ordinaryLength-arc);if(arc<42)continue;
  const xz=Math.hypot(ordinary[i].x-ordinary[j].x,ordinary[i].z-ordinary[j].z),d=dist(ordinary[i],ordinary[j]);min3D=Math.min(min3D,d);
  if(xz<minXZ){minXZ=xz;crossPair=[ordinary[i],ordinary[j]];}
 }
