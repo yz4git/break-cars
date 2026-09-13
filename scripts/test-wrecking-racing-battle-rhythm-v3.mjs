@@ -34,8 +34,10 @@ assert.equal(landingAway.phase,'BREAKAWAY','landing runout must first spread the
 assert.equal(racingBattleRhythm(.2,'jump-split',4,2,.8).phase,'STAGE','jump staging must override recent contact');
 
 const physicsSource=await readFile(new URL('../_site/physics.js',import.meta.url),'utf8');
+const physics3dSource=await readFile(new URL('../_site/physics3d.js',import.meta.url),'utf8');
 const racingSource=await readFile(new URL('../_site/racing.js',import.meta.url),'utf8');
-assert.match(physicsSource,/raceCarContactAt=w\.time/,'car-to-car impacts are not timestamped separately');
+assert.match(physicsSource,/raceCarContactAt=w\.time/,'legacy car impacts are not timestamped');
+assert.match(physics3dSource,/raceCarContactAt=w\.time/,'authoritative full-3D car impacts are not timestamped');
 assert.match(racingSource,/tactic\.phase\?\?1/,'feature phase is not wired into battle rhythm');
 
 const {makeWorld,step}=await import(`../_site/physics.js?rhythm=${stamp}`);
@@ -48,7 +50,7 @@ for(let frame=0;frame<720&&!w.done;frame++){
   for(const c of w.cars)assert(Number.isFinite(c.raceDistance+c.trackS+(c.p3?.px??0)+(c.p3?.py??0)+(c.p3?.pz??0)),`${selected}: non-finite race state`);
 }
 assert(impacts>=3,`${selected}: battle rhythm removed too much contact (${impacts})`);
-assert(timestamped>=2,`${selected}: real racing impacts did not stamp both cars`);
+assert(timestamped>=2,`${selected}: full-3D racing impacts did not stamp both cars`);
 const leader=Math.max(...w.cars.map(c=>c.raceDistance));
 assert(leader>55,`${selected}: battle rhythm stalled the race leader at ${leader.toFixed(1)}m`);
 console.log(`${selected}: impacts=${impacts} timestamped=${timestamped} leader=${leader.toFixed(1)}m featureBeat=BREAKAWAY>REMATCH`);
