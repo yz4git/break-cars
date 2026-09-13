@@ -1,0 +1,66 @@
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+
+const selected=process.env.WRECK_MATH_COURSE;
+if(!selected){
+  for(const id of ['rampage-3d','sky-forge','double-orbit']){
+    const r=spawnSync(process.execPath,[import.meta.filename],{env:{...process.env,WRECK_MATH_COURSE:id},encoding:'utf8'});
+    process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');assert.equal(r.status,0,`${id}: mathematical course regression failed`);
+  }
+  console.log('WRECKING RACING math rebuild: all 3 courses passed');
+  process.exit(0);
+}
+
+globalThis.location={search:`?course=${selected}`};
+const mod=await import(`../_site/racing3d.js?math=${selected}-${Date.now()}`);
+const {racePointAt,projectRacePoint,race3DFeatureSpec,RACE3D_LENGTH}=mod,spec=race3DFeatureSpec();
+const expectedLoops=selected==='double-orbit'?2:1;
+assert.equal(spec.courseId,selected);assert.match(spec.id,/wrecking-racing-math/);assert.equal(spec.loops.length,expectedLoops);
+assert(spec.length>380&&spec.length<620,`${selected}: unexpected lap length ${spec.length}`);
+assert(spec.halfWidth>=8&&spec.halfWidth<=9.2);assert(spec.designSpeed>=24&&spec.designSpeed<=27);
+assert.equal(spec.bankModel,'atan(v^2*kappa/g)');assert(spec.bankMax<=spec.designBankMax+.012);assert(spec.bankMax>.42);
+assert(spec.maxGrade<.20,`${selected}: ordinary grade ${(spec.maxGrade*100).toFixed(1)}% exceeds 20%`);
+assert(spec.minRadius>12,`${selected}: ordinary horizontal radius too tight ${spec.minRadius.toFixed(1)}m`);
+assert(spec.jump.gapLength>=7&&spec.jump.gapLength<=11.5,`${selected}: jump gap ${spec.jump.gapLength.toFixed(1)}m`);
+assert(spec.jump.designRange/spec.jump.gapLength>1.75,`${selected}: ballistic safety ${(spec.jump.designRange/spec.jump.gapLength).toFixed(2)}x`);
+const takeoffDeg=spec.jump.takeoffAngle*180/Math.PI;assert(takeoffDeg>=7&&takeoffDeg<=11.5,`${selected}: takeoff angle ${takeoffDeg.toFixed(1)}deg`);
+
+const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z,dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
+for(const [i,l] of spec.loops.entries()){
+  assert(l.radius>=9&&l.radius<=10.5,`${selected} loop ${i+1}: radius ${l.radius}`);
+  assert(l.maxY-l.minY>l.radius*1.92,`${selected} loop ${i+1}: insufficient vertical revolution`);
+  const entry=racePointAt(l.startS),exit=racePointAt(l.endS),inside=racePointAt(l.startS+.12),outside=racePointAt(l.endS+.12);
+  assert(dist(entry,exit)<.03,`${selected} loop ${i+1}: gate position discontinuity`);
+  assert(dot(entry.forward,exit.forward)>.985,`${selected} loop ${i+1}: gate tangent discontinuity`);
+  assert(dot(entry.up,exit.up)>.985,`${selected} loop ${i+1}: gate normal discontinuity`);
+  assert(dist(entry,inside)<.22&&dist(exit,outside)<.22,`${selected} loop ${i+1}: local road continuity failed`);
+}
+
+let worstRoundTrip=0;
+for(let i=0;i<360;i++){
+ const p=racePointAt(i/360*RACE3D_LENGTH),q=projectRacePoint(p.x,p.y,p.z,p.s,true);assert(q&&Number.isFinite(q.s+q.lane+q.y));
+ let d=q.s-p.s;if(d>RACE3D_LENGTH/2)d-=RACE3D_LENGTH;if(d<-RACE3D_LENGTH/2)d+=RACE3D_LENGTH;worstRoundTrip=Math.max(worstRoundTrip,Math.abs(d));
+}
+assert(worstRoundTrip<.45,`${selected}: projection round-trip error ${worstRoundTrip.toFixed(2)}m`);
+
+// Nonadjacent ordinary road must not create accidental same-height branch traps.
+const ordinary=[];for(let s=0;s<RACE3D_LENGTH;s+=4){const p=racePointAt(s);if(p.kind!=='loop'&&p.kind!=='jump-gap')ordinary.push(p);}
+let min3D=Infinity,minXZ=Infinity,crossPair=null;
+for(let i=0;i<ordinary.length;i++)for(let j=i+1;j<ordinary.length;j++){
+ let arc=Math.abs(ordinary[i].s-ordinary[j].s);arc=Math.min(arc,RACE3D_LENGTH-arc);if(arc<42)continue;
+ const xz=Math.hypot(ordinary[i].x-ordinary[j].x,ordinary[i].z-ordinary[j].z),d=dist(ordinary[i],ordinary[j]);min3D=Math.min(min3D,d);
+ if(xz<minXZ){minXZ=xz;crossPair=[ordinary[i],ordinary[j]];}
+}
+if(selected==='sky-forge'){
+ assert(minXZ<5,`SKY FORGE: figure-eight crossing disappeared (${minXZ.toFixed(1)}m)`);
+ assert(Math.abs(crossPair[0].y-crossPair[1].y)>7.5,`SKY FORGE: crossing vertical separation too small`);
+ assert(min3D>7.5,`SKY FORGE: 3D branch clearance ${min3D.toFixed(1)}m`);
+}else assert(min3D>9,`${selected}: accidental nonadjacent road proximity ${min3D.toFixed(1)}m`);
+
+// Short deterministic physics soak: the calculated surface must remain finite and develop forward race progress.
+const {makeWorld,step}=await import(`../_site/physics.js?math=${selected}-${Date.now()}`),w=makeWorld(0,144,'racing'),start=w.cars.map(c=>c.raceDistance);
+w.endAt=999;w.limit=999;w.done=false;let impacts=0;
+for(let frame=0;frame<720&&!w.done;frame++){step(w,{},1/60,true);for(const c of w.cars){assert(c.p3?.active);assert(Number.isFinite(c.p3.px+c.p3.py+c.p3.pz+c.trackS+c.raceDistance));}impacts+=w.events.filter(e=>e.type==='impact').length;}
+const progress=w.cars.map((c,i)=>c.raceDistance-start[i]).sort((a,b)=>a-b),median=progress[Math.floor(progress.length/2)],leader=progress.at(-1);
+assert(leader>55,`${selected}: leader only advanced ${leader.toFixed(1)}m in 12s`);assert(median>18,`${selected}: median pack progress ${median.toFixed(1)}m`);assert(impacts>=3,`${selected}: Wrecking Racing lost contact density (${impacts} impacts)`);
+console.log(`${selected}: length=${spec.length.toFixed(1)}m grade=${(spec.maxGrade*100).toFixed(1)}% bank=${(spec.bankMax*180/Math.PI).toFixed(1)}deg loops=${spec.loops.length} jump=${spec.jump.gapLength.toFixed(1)}/${spec.jump.designRange.toFixed(1)}m safety=${(spec.jump.designRange/spec.jump.gapLength).toFixed(2)}x minR=${spec.minRadius.toFixed(1)}m roundTrip=${worstRoundTrip.toFixed(2)}m progress=${median.toFixed(1)}/${leader.toFixed(1)}m impacts=${impacts}`);

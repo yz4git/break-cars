@@ -8,8 +8,13 @@ alone; only transient UI uses performance.now() as its expiry clock.
 
 WRECK HUNT's opening callout is also shortened to a compact ~1 second beat and
 is suppressed inside MAYHEM TOUR, where the Director already owns the intro.
+
+This is currently the final generated build hook in prepare-pages, so it also
+invokes the WRECKING RACING math compiler after every legacy racing patch. That
+keeps Pages and every visual/physics diagnostic on the same final course source.
 """
 from pathlib import Path
+import importlib.util
 
 
 def apply_wreck_hunt_intro_v822(target: Path) -> None:
@@ -49,6 +54,12 @@ requestAnimationFrame(toastWallClockTickV822);
 @media(orientation:landscape) and (max-height:430px){#toast.hunt-opening-v822{top:26%;font-size:16px;padding:4px 12px;letter-spacing:.12em}}
 '''
     css.write_text(c)
+
+    compiler_path = Path(__file__).with_name('rebuild-wrecking-racing-math-v1.py')
+    spec = importlib.util.spec_from_file_location('break_cars_wrecking_racing_math_v1', compiler_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.apply_wrecking_racing_math_v1(target)
 
 
 if __name__ == '__main__':
