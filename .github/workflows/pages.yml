@@ -45,6 +45,8 @@ jobs:
         run: node scripts/test-wrecking-racing-math-v1.mjs
       - name: Test WRECKING RACING tactical contact zones
         run: node scripts/test-wrecking-racing-contact-zones-v2.mjs
+      - name: Test WRECKING RACING battle rhythm
+        run: node scripts/test-wrecking-racing-battle-rhythm-v3.mjs
       - name: Test player auto-upright
         run: node scripts/test-player-auto-upright.mjs
       - name: Test non-racing course pack

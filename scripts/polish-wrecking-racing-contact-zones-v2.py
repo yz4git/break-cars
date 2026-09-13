@@ -7,6 +7,7 @@ two close channels after jumps and loops. The zones are derived from the final
 math feature spec so all three WRECKING RACING courses share the same rules.
 """
 from pathlib import Path
+import importlib.util
 
 
 def one(text: str, old: str, new: str, label: str) -> str:
@@ -73,6 +74,12 @@ export function racingTacticalZone(s){
 '''
     s = one(s, avoid, tactical_ai, 'AI lane staging')
     racing.write_text(s)
+
+    rhythm_path = Path(__file__).with_name('polish-wrecking-racing-battle-rhythm-v3.py')
+    spec = importlib.util.spec_from_file_location('break_cars_wrecking_racing_battle_rhythm_v3', rhythm_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.apply_wrecking_racing_battle_rhythm_v3(target)
 
 
 if __name__ == '__main__':
