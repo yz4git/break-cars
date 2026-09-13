@@ -68,6 +68,17 @@ def apply_wrecking_racing_math_v1(target: Path) -> None:
     spec.loader.exec_module(feud_module)
     feud_module.apply_wrecking_racing_rival_feud_v5(target)
 
+    # v5.0.1: guard a generator typo at the final emitted-JS boundary. Keep this
+    # assertive so a later source rewrite cannot silently reintroduce bad output.
+    generated = target / 'racing.js'
+    js = generated.read_text()
+    broken_guard = "if(targetId>0&&feudAliveV5=(w,targetId)){"
+    fixed_guard = "if(targetId>0&&feudAliveV5(w,targetId)){"
+    guard_count = js.count(broken_guard)
+    if guard_count != 1:
+        raise RuntimeError(f'WRECKING RACING rival feud v5 target guard: expected 1 match, found {guard_count}')
+    generated.write_text(js.replace(broken_guard, fixed_guard, 1))
+
 
 if __name__ == '__main__':
     apply_wrecking_racing_math_v1(Path('_site'))
