@@ -25,6 +25,9 @@ on:
       - 'scripts/polish-mayhem-recap-v814.py'
       - 'scripts/polish-mayhem-recap-v815.py'
       - 'scripts/polish-mayhem-recap-v816.py'
+      - 'scripts/polish-mayhem-rival-engagement-v817.py'
+      - 'scripts/polish-mayhem-rival-battle-flow-v818.py'
+      - 'scripts/polish-mayhem-rival-history-v819.py'
       - 'scripts/add-mayhem-highlight-replay-v7.py'
       - 'scripts/apply-mayhem-rival-director-v5.py'
       - 'scripts/expand-mayhem-nine-course-v6.py'
@@ -32,6 +35,9 @@ on:
       - 'scripts/test-mayhem-recap-v814.mjs'
       - 'scripts/test-mayhem-recap-v815.mjs'
       - 'scripts/test-mayhem-recap-v816.mjs'
+      - 'scripts/test-mayhem-rival-v817.mjs'
+      - 'scripts/test-mayhem-rival-flow-v818.mjs'
+      - 'scripts/test-mayhem-rival-history-v819.mjs'
       - 'scripts/prepare-pages.py'
   workflow_dispatch:
 
@@ -58,6 +64,9 @@ jobs:
           node scripts/test-mayhem-recap-v814.mjs
           node scripts/test-mayhem-recap-v815.mjs
           node scripts/test-mayhem-recap-v816.mjs
+          node scripts/test-mayhem-rival-v817.mjs
+          node scripts/test-mayhem-rival-flow-v818.mjs
+          node scripts/test-mayhem-rival-history-v819.mjs
       - name: Install Playwright Chromium
         run: |
           npm install --no-save --package-lock=false playwright@1.55.0
