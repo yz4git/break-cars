@@ -56,6 +56,12 @@ def apply_wrecking_racing_math_v1(target: Path) -> None:
     spec.loader.exec_module(module)
     module.apply_wrecking_racing_contact_v2(target)
 
+    rival_path = here / 'polish-wrecking-racing-rival-duel-v4.py'
+    spec = importlib.util.spec_from_file_location('break_cars_wrecking_racing_rival_duel_v4', rival_path)
+    rival_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rival_module)
+    rival_module.apply_wrecking_racing_rival_duel_v4(target)
+
 
 if __name__ == '__main__':
     apply_wrecking_racing_math_v1(Path('_site'))
