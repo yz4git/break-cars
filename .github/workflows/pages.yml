@@ -49,6 +49,8 @@ jobs:
         run: node scripts/test-wrecking-racing-battle-rhythm-v3.mjs
       - name: Test WRECKING RACING rival duel
         run: node scripts/test-wrecking-racing-rival-duel-v4.mjs
+      - name: Test WRECKING RACING rival feud
+        run: node scripts/test-wrecking-racing-rival-feud-v5.mjs
       - name: Test player auto-upright
         run: node scripts/test-player-auto-upright.mjs
       - name: Test non-racing course pack
