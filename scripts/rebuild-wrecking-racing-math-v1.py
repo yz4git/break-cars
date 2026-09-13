@@ -5,6 +5,7 @@ for RAMPAGE 3D, SKY FORGE and DOUBLE ORBIT. Existing physics/game APIs stay
 compatible, while centerlines, banking, loops and jumps come from one model.
 """
 from pathlib import Path
+import importlib.util
 import shutil
 
 
@@ -48,6 +49,12 @@ def apply_wrecking_racing_math_v1(target: Path) -> None:
         if old_hint in c:
             c = c.replace(old_hint, new_hint, 1)
     courses.write_text(c)
+
+    contact_path = here / 'polish-wrecking-racing-contact-zones-v2.py'
+    spec = importlib.util.spec_from_file_location('break_cars_wrecking_racing_contact_v2', contact_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.apply_wrecking_racing_contact_v2(target)
 
 
 if __name__ == '__main__':
