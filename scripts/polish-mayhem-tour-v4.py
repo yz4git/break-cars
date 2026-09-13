@@ -15,8 +15,9 @@ caption polish, v8.8 showdown replay camera safety, v8.9 nine-event TOUR RECAP,
 v8.10 final presentation cleanup, v8.11 result consolidation, v8.12 ending HUD
 cleanup, v8.13 recap cinematics, v8.14 recap visual identity, v8.15 finale
 editorial cleanup, v8.16 recap chapter stingers, v8.17 RIVAL engagement,
-v8.18 RIVAL battle flow, v8.19 RIVAL clash history, v8.20 visual priority and
-v8.21 impact cinema are chained here so Pages build order stays stable.
+v8.18 RIVAL battle flow, v8.19 RIVAL clash history, v8.20 visual priority,
+v8.21 impact cinema and v8.22 transient HUD timing are chained here so Pages
+build order stays stable.
 """
 from pathlib import Path
 import importlib.util
@@ -81,6 +82,7 @@ def apply_mayhem_tour_v4(target: Path) -> None:
     load_and_apply('polish-mayhem-rival-history-v819.py','break_cars_mayhem_rival_history_v819','apply_mayhem_rival_history_v819',target)
     load_and_apply('polish-mayhem-visual-clarity-v820.py','break_cars_mayhem_visual_clarity_v820','apply_mayhem_visual_clarity_v820',target)
     load_and_apply('polish-impact-cinema-v821.py','break_cars_impact_cinema_v821','apply_impact_cinema_v821',target)
+    load_and_apply('polish-wreck-hunt-intro-v822.py','break_cars_wreck_hunt_intro_v822','apply_wreck_hunt_intro_v822',target)
 
 
 if __name__ == '__main__':
