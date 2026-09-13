@@ -26,3 +26,4 @@ jobs:
           node scripts/test-mayhem-rival-flow-v818.mjs
           node scripts/test-mayhem-rival-history-v819.mjs
           node scripts/test-mayhem-visual-clarity-v820.mjs
+          node scripts/test-impact-cinema-v821.mjs
