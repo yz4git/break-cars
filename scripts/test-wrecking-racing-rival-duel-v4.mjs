@@ -44,7 +44,9 @@ const racingCss=await readFile(new URL('../_site/racing.css',import.meta.url),'u
 assert.match(gameSource,/__breakCarsRivalDuelV4/,'RIVAL HUD telemetry missing');
 assert.match(gameSource,/rival-pass/,'RIVAL PASS presentation missing');
 assert.match(gameSource,/rival-counter/,'RIVAL COUNTER presentation missing');
-assert.match(gameSource,/racingRivalDirector\(world,1\/60\)/,'fixed-step RIVAL director not wired');
+// v5 wraps the v4 director at the fixed-step boundary; the v4 director remains
+// directly exercised below so this wiring check accepts either valid integration.
+assert.match(gameSource,/racingRival(?:Feud)?Director\(world,1\/60\)/,'fixed-step RIVAL director/wrapper not wired');
 assert.match(racingCss,/#race-rival-v4/,'RIVAL HUD styling missing');
 
 // Actual 6DoF race: require a persistent live opponent, but do not force an
