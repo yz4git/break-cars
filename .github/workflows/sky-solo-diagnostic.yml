@@ -39,10 +39,11 @@ jobs:
               if((c.autoUprightTime||0)>.05)lastTimer=snap;
               for(const e of w.events)if(e.type==='auto-upright'){auto++;autoSnap={...snap,event:e,pre:lastTimer};}
             }
-            results.push({seed,auto,maxTimer:+maxTimer.toFixed(3),longestStuck:+(longestStuck/60).toFixed(2),distance:+c.raceDistance.toFixed(2),frames,autoSnap});
+            const reached=c.raceDistance>=LENGTH*.985;
+            results.push({seed,auto,maxTimer:+maxTimer.toFixed(3),longestStuck:+(longestStuck/60).toFixed(2),reached,distance:+c.raceDistance.toFixed(2),frames,autoSnap});
           }
-          const failed=results.filter(r=>r.auto||r.maxTimer>1||r.distance<LENGTH*.985||r.longestStuck>2.5);
+          const failed=results.filter(r=>r.auto||r.maxTimer>1||!r.reached||r.longestStuck>2.5);
           console.log(JSON.stringify({length:LENGTH,seeds:results.length,failed,results},null,2));
-          if(failed.some(r=>r.auto||r.distance<LENGTH*.985))process.exitCode=1;
+          if(failed.some(r=>r.auto||!r.reached))process.exitCode=1;
           EOF
           node /tmp/sky-multiseed.mjs
