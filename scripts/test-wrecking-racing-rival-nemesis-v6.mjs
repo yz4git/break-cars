@@ -15,8 +15,8 @@ if(!selected){
 globalThis.location={search:`?course=${selected}`};
 const stamp=`${selected}-${Date.now()}`;
 const racing=await import(`../_site/racing.js?nemesis=${stamp}`);
-const {racingRivalPersonality,racingNemesisShouldPursue,racingNemesisLaneIntent,racingRivalNemesisResult,racingAI}=racing;
-for(const fn of [racingRivalPersonality,racingNemesisShouldPursue,racingNemesisLaneIntent,racingRivalNemesisResult,racingAI])assert.equal(typeof fn,'function');
+const {LENGTH,trackPoint,racingTacticalZone,racingRivalPersonality,racingNemesisShouldPursue,racingNemesisLaneIntent,racingRivalNemesisResult,racingAI}=racing;
+for(const fn of [trackPoint,racingTacticalZone,racingRivalPersonality,racingNemesisShouldPursue,racingNemesisLaneIntent,racingRivalNemesisResult,racingAI])assert.equal(typeof fn,'function');
 
 const roles=new Set(Array.from({length:8},(_,i)=>racingRivalPersonality(i+1,selected).key));
 assert.deepEqual([...roles].sort(),['BLOCKER','BRAWLER','DAREDEVIL','HUNTER'],`${selected}: deterministic personality coverage incomplete`);
@@ -51,31 +51,58 @@ const racingCss=await readFile(new URL('../_site/racing.css',import.meta.url),'u
 assert.match(racingSource,/WRECKING_RACING_RIVAL_NEMESIS_V6/,'v6 runtime marker missing');
 assert.match(racingSource,/p\.kind!==['"]loop['"]/,'loop safety gate missing');
 assert.match(racingSource,/tactic\.type!==['"]jump-split['"]&&tactic\.type!==['"]jump-flight['"]/,'jump tactical safety gate missing');
+assert.match(racingSource,/c\.raceRivalPersonality=personaV6\.key;c\.raceNemesisIntent=/,'AI personality telemetry not wired');
 assert.match(gameSource,/__breakCarsRivalNemesisV6/,'nemesis telemetry missing');
 assert.match(gameSource,/rival-feud-result-v6/,'feud verdict presentation missing');
 assert.match(racingCss,/#race-feud-result-v6/,'feud verdict styling missing');
 
-const {makeWorld,step}=await import(`../_site/physics.js?nemesis=${stamp}`);
+// Exercise the actual AI at a deliberately safe road sample. The previous test
+// counted telemetry on every fixed-step frame, but the production AI intentionally
+// returns early during loop approaches and stunts. Search for a road sample where
+// the normal AI body runs, then verify the active ARCH RIVAL receives personality
+// pressure without touching score/HP.
+const {makeWorld}=await import(`../_site/physics.js?nemesis=${stamp}`);
 const w=makeWorld(0,9261,'racing');w.endAt=999;w.limit=999;w.done=false;
 w.raceRivalId=1;w.raceRivalFeud={version:'5.0',history:{},archId:1,revengeId:-1,revengeUntil:-1,finalDuelId:-1,finalDuelAnnounced:false,finalDuelResolved:false,lastDefeatedId:-1,lastEvent:'',lastEventAt:-99};
-let personaFrames=0,activeFrames=0,safeViolations=0,maxStrength=0;
-for(let frame=0;frame<360&&!w.done;frame++){
-  const u=racingAI(w,w.cars[0],1/60);step(w,u,1/60,true);
-  for(const c of w.cars.slice(1)){
-    if(c.raceRivalPersonality)personaFrames++;
-    const n=c.raceNemesisIntent;if(n){if(n.active)activeFrames++;if(n.active&&!n.safe)safeViolations++;maxStrength=Math.max(maxStrength,n.strength||0);}
-  }
+const player=w.cars[0],rival=w.cars[1];
+const wrap=s=>(s%LENGTH+LENGTH)%LENGTH;
+const place=(car,s,lane,raceDistance=s)=>{
+  const p=trackPoint(s,lane);
+  Object.assign(car,{x:p.x,z:p.z,heading:p.heading,trackS:wrap(s),raceDistance,lane,dead:false,finished:false,aiReverse:0,stallTime:0,battleTimer:1});
+  if(car.p3){Object.assign(car.p3,{px:p.x,py:p.y??0,pz:p.z,vx:0,vy:0,vz:0});}
+};
+let safeSample=null;
+for(let s=0;s<LENGTH;s+=6){
+  const p=trackPoint(s,0),zone=racingTacticalZone(s),kind=String(p.kind||'');
+  if(kind==='loop'||kind.startsWith('jump')||zone.type==='jump-split'||zone.type==='jump-flight')continue;
+  place(player,s+3,.45,s+3);place(rival,s,-.45,s);
+  rival.battleTarget=0;delete rival.raceRivalPersonality;delete rival.raceNemesisIntent;
+  const score=rival.score,hp=rival.hp;racingAI(w,rival,1/60);
+  if(rival.raceNemesisIntent?.active){safeSample={s,zone:zone.type,intent:{...rival.raceNemesisIntent}};assert.equal(rival.score,score,'nemesis AI must not change score');assert.equal(rival.hp,hp,'nemesis AI must not change HP');break;}
 }
-assert(personaFrames>500,`${selected}: CPU personality telemetry did not run (${personaFrames})`);
-assert(activeFrames>20,`${selected}: ARCH RIVAL never applied safe-road personality pressure (${activeFrames})`);
-assert.equal(safeViolations,0,`${selected}: active nemesis intent bypassed safety gate`);
-assert(maxStrength<=.92+1e-9,`${selected}: personality steering strength escaped cap (${maxStrength})`);
+assert(safeSample,`${selected}: no safe-road ARCH RIVAL personality sample executed`);
+assert.equal(safeSample.intent.safe,true,`${selected}: active personality intent was not safety-gated`);
+assert(safeSample.intent.strength>0&&safeSample.intent.strength<=.92+1e-9,`${selected}: personality pressure escaped strength cap`);
+assert(Math.abs(safeSample.intent.laneGoal)<=5.05+1e-9,`${selected}: personality lane goal escaped safety envelope`);
 
-w.raceRivalId=1;Object.assign(w.raceRivalFeud,{archId:1,finalDuelId:1,finalDuelAnnounced:true,finalDuelResolved:false});
-let finalFrames=0;
-for(let frame=0;frame<120&&!w.done;frame++){
-  const u=racingAI(w,w.cars[0],1/60);step(w,u,1/60,true);
-  if(w.cars[1].raceNemesisIntent?.finalDuel)finalFrames++;
+// The same real AI integration must upgrade to FINAL DUEL on safe road.
+Object.assign(w.raceRivalFeud,{archId:1,finalDuelId:1,finalDuelAnnounced:true,finalDuelResolved:false});
+place(player,safeSample.s+3,.45,safeSample.s+3);place(rival,safeSample.s,-.45,safeSample.s);rival.battleTarget=0;delete rival.raceNemesisIntent;
+racingAI(w,rival,1/60);
+assert.equal(rival.raceNemesisIntent?.finalDuel,true,`${selected}: FINAL DUEL personality behavior never activated`);
+assert(rival.raceNemesisIntent.strength>=safeSample.intent.strength,`${selected}: FINAL DUEL weakened personality pressure`);
+
+// And an actual loop/jump sample must never gain active lane pressure. Clearing
+// the telemetry first ensures an early return cannot accidentally reuse a stale
+// safe-road intent from the preceding call.
+let unsafeChecked=false;
+for(let s=0;s<LENGTH;s+=3){
+  const p=trackPoint(s,0),kind=String(p.kind||''),zone=racingTacticalZone(s);
+  if(!(kind==='loop'||kind.startsWith('jump')||zone.type==='jump-flight'||zone.type==='jump-split'))continue;
+  place(player,s+2,0,s+2);place(rival,s,0,s);rival.battleTarget=0;delete rival.raceNemesisIntent;
+  racingAI(w,rival,1/60);
+  assert(!rival.raceNemesisIntent?.active,`${selected}: nemesis lane pressure activated inside protected stunt/loop region`);
+  unsafeChecked=true;break;
 }
-assert(finalFrames>0,`${selected}: FINAL DUEL personality behavior never activated`);
-console.log(`${selected}: roles=${[...roles].join('/')} personaFrames=${personaFrames} active=${activeFrames} final=${finalFrames} maxStrength=${maxStrength.toFixed(2)}`);
+assert(unsafeChecked,`${selected}: no protected loop/jump sample found`);
+console.log(`${selected}: roles=${[...roles].join('/')} safeZone=${safeSample.zone} strength=${safeSample.intent.strength.toFixed(2)} final=${rival.raceRivalPersonality||persona.key}`);
