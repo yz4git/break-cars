@@ -79,6 +79,12 @@ def apply_wrecking_racing_math_v1(target: Path) -> None:
         raise RuntimeError(f'WRECKING RACING rival feud v5 target guard: expected 1 match, found {guard_count}')
     generated.write_text(js.replace(broken_guard, fixed_guard, 1))
 
+    nemesis_path = here / 'polish-wrecking-racing-rival-nemesis-v6.py'
+    spec = importlib.util.spec_from_file_location('break_cars_wrecking_racing_rival_nemesis_v6', nemesis_path)
+    nemesis_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(nemesis_module)
+    nemesis_module.apply_wrecking_racing_rival_nemesis_v6(target)
+
 
 if __name__ == '__main__':
     apply_wrecking_racing_math_v1(Path('_site'))
