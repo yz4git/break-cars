@@ -26,6 +26,8 @@ on:
       - "scripts/polish-rampage-recover-v21.py"
       - "scripts/polish-driving-hud-v22.py"
       - "scripts/fix-racing3d-speedometer-v1.py"
+      - "scripts/polish-double-orbit-reference-view-v25.py"
+      - "scripts/polish-camera2-v1.py"
       - "scripts/tune-double-orbit-pack-v7.py"
       - "scripts/stabilize-double-orbit-final-jump-v8.py"
       - "scripts/boost-rampage-loop-v6.py"
