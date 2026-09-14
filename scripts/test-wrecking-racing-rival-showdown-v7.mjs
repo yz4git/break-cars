@@ -49,7 +49,9 @@ const racingCss=await readFile(new URL('../_site/racing.css',import.meta.url),'u
 assert.match(racingSource,/WRECKING_RACING_RIVAL_SHOWDOWN_V7/,'v7 runtime marker missing');
 assert.match(racingSource,/c\.raceRivalSignature=\{version:'7\.0'/,'AI signature telemetry not wired');
 assert.match(gameSource,/__breakCarsRivalShowdownV7/,'showdown telemetry missing');
-assert.match(gameSource,/ARCH RIVAL #/,'arch-rival arrival presentation missing');
+assert.match(gameSource,/RIVAL LOCK/,'normal rival-lock arrival presentation missing');
+assert.match(gameSource,/REVENGE RIVAL/,'revenge-rival arrival presentation missing');
+assert.match(gameSource,/ARCH RIVAL/,'arch-rival arrival presentation missing');
 assert.match(gameSource,/FINAL DUEL ·/,'final-duel presentation missing');
 assert.match(gameSource,/RIVAL DEFEATED/,'result presentation missing');
 assert.match(racingCss,/#race-showdown-v7/,'showdown styling missing');
