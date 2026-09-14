@@ -1,12 +1,12 @@
-"""DOUBLE ORBIT v26: keep both open loops readable without losing the player.
+"""WRECKING RACING loop-view v26: keep loop scale without losing the player.
 
 The clean-throat/reference composition remains, but live iPhone captures showed
-the active car becoming too small because the stage camera sat roughly three
-loop radii away. Keep the camera on the side away from the sibling ring while
-moving it closer and biasing its look target toward the player. Camera 2.0 is
-still chained last, with loop protection preventing a second escape transform.
-
-Vehicle physics, controls, progress and loop geometry remain unchanged.
+the active car becoming too small around all three WRECKING RACING loop stages.
+Apply the final camera polish only after DOUBLE ORBIT v24 has consumed the
+stable v18 input contract: DOUBLE ORBIT stays on the side away from its sibling
+ring, while RAMPAGE/SKY move closer and bias their look target toward the car.
+Camera 2.0 is chained last and yields to the authored camera while actually on a
+loop. Vehicle physics, controls, progress and course geometry remain unchanged.
 """
 from pathlib import Path
 import importlib.util
@@ -15,7 +15,7 @@ import importlib.util
 def one(text: str, old: str, new: str, label: str) -> str:
     n = text.count(old)
     if n != 1:
-        raise RuntimeError(f'DOUBLE ORBIT reference view v26 {label}: expected 1 match, found {n}')
+        raise RuntimeError(f'WRECKING RACING loop-view v26 {label}: expected 1 match, found {n}')
     return text.replace(old, new, 1)
 
 
@@ -48,9 +48,15 @@ def apply_double_orbit_reference_view_v25(target: Path) -> None:
 
     game = target / 'game.js'
     s = game.read_text()
-    old = "side=(view===1?2.85:2.55)*doubleOrbitLoop.radius*outward,back=(view===1?1.55:1.28)*doubleOrbitLoop.radius,stageLift=view===1?2.8:2.1,loopFocusY=my+doubleOrbitLoop.radius-1.35,playerFocus=.30;camTarget.set(mx+rx*side-fx*back,my+doubleOrbitLoop.radius+stageLift,mz+rz*side-fz*back);"
-    new = "side=(view===1?2.15:1.90)*doubleOrbitLoop.radius*outward,back=(view===1?1.20:1.05)*doubleOrbitLoop.radius,stageLift=view===1?2.8:2.1,pair=fullPhysicsSpec.race?.loops||[],loopIndex=pair.indexOf(doubleOrbitLoop),other=pair.length>1?pair[loopIndex===0?1:0]:null,otherP=other?trackPoint((other.startS+other.endS)*.5,0):null,away=otherP&&((otherP.x-mx)*fx+(otherP.z-mz)*fz)>0?-1:1,loopFocusY=my+doubleOrbitLoop.radius-1.15,playerFocus=view===1?.48:.58;camTarget.set(mx+rx*side+fx*back*away,my+doubleOrbitLoop.radius+stageLift,mz+rz*side+fz*back*away);"
-    s = one(s, old, new, 'closer camera away from sibling ring')
+
+    double_old = "side=(view===1?2.85:2.55)*doubleOrbitLoop.radius*outward,back=(view===1?1.55:1.28)*doubleOrbitLoop.radius,stageLift=view===1?2.8:2.1,loopFocusY=my+doubleOrbitLoop.radius-1.35,playerFocus=.30;camTarget.set(mx+rx*side-fx*back,my+doubleOrbitLoop.radius+stageLift,mz+rz*side-fz*back);"
+    double_new = "side=(view===1?2.15:1.90)*doubleOrbitLoop.radius*outward,back=(view===1?1.20:1.05)*doubleOrbitLoop.radius,stageLift=view===1?2.8:2.1,pair=fullPhysicsSpec.race?.loops||[],loopIndex=pair.indexOf(doubleOrbitLoop),other=pair.length>1?pair[loopIndex===0?1:0]:null,otherP=other?trackPoint((other.startS+other.endS)*.5,0):null,away=otherP&&((otherP.x-mx)*fx+(otherP.z-mz)*fz)>0?-1:1,loopFocusY=my+doubleOrbitLoop.radius-1.15,playerFocus=view===1?.48:.58;camTarget.set(mx+rx*side+fx*back*away,my+doubleOrbitLoop.radius+stageLift,mz+rz*side+fz*back*away);"
+    s = one(s, double_old, double_new, 'closer DOUBLE ORBIT camera away from sibling ring')
+
+    generic_old = "side=-(view===1?2.64:2.45)*raceLoopSpec.radius*outward,back=(view===1?2.17:2.00)*raceLoopSpec.radius,stageLift=view===1?3.5:2.7,loopFocusY=my+raceLoopSpec.radius-2.6,playerFocus=.24;camTarget.set(mx+nx*side-fx*back,my+raceLoopSpec.radius+stageLift,mz+nz*side-fz*back);lookTarget.set(mx+(b.px-mx)*playerFocus,loopFocusY+(b.py+.45-loopFocusY)*playerFocus,mz+(b.pz-mz)*playerFocus);camera.up.lerp(physicsWorldUp,1-Math.exp(-12*dt));camera.fov=view===1?54:55;"
+    generic_new = "side=-(view===1?2.05:1.82)*raceLoopSpec.radius*outward,back=(view===1?1.48:1.30)*raceLoopSpec.radius,stageLift=view===1?3.5:2.7,loopFocusY=my+raceLoopSpec.radius-2.0,playerFocus=view===1?.48:.58;camTarget.set(mx+nx*side-fx*back,my+raceLoopSpec.radius+stageLift,mz+nz*side-fz*back);lookTarget.set(mx+(b.px-mx)*playerFocus,loopFocusY+(b.py+.45-loopFocusY)*playerFocus,mz+(b.pz-mz)*playerFocus);camera.up.lerp(physicsWorldUp,1-Math.exp(-12*dt));camera.fov=view===1?56:58;"
+    s = one(s, generic_old, generic_new, 'closer RAMPAGE/SKY camera')
+
     game.write_text(s)
     apply_clean_throat(target)
     apply_camera2(target)
