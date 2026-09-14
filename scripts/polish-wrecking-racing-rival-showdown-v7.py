@@ -85,7 +85,7 @@ updateRivalHudV4=function(){
  const persona=c?.raceRivalPersonality||n?.persona||'';
  rivalSignatureV7.textContent=active&&sig?.active?sig.label:'';rivalSignatureV7.classList.toggle('active',!!(active&&sig?.active));
  if(active){rivalHudV4.dataset.personaV7=persona;}else{delete rivalHudV4.dataset.personaV7;}
- if(mode==='race'&&active&&r.id!==lastRivalV7){showRivalShowdownV7(`ARCH RIVAL #${String(r.id+1).padStart(2,'0')} · ${persona}`,sig?.cue||'',1250,false);lastRivalV7=r.id;}
+ if(mode==='race'&&active&&r.id!==lastRivalV7){const lockTitle=r.revenge?'REVENGE RIVAL':r.archRival?'ARCH RIVAL':'RIVAL LOCK';showRivalShowdownV7(`${lockTitle} #${String(r.id+1).padStart(2,'0')} · ${persona}`,sig?.cue||'',1250,false);lastRivalV7=r.id;}
  if(active&&r.finalDuel&&!lastFinalDuelV7){showRivalShowdownV7(`FINAL DUEL · ${persona}`,`RIVAL #${String(r.id+1).padStart(2,'0')} · ${sig?.label||'LOCK ON'}`,1650,true);}
  lastFinalDuelV7=!!(active&&r.finalDuel);
  if(active&&sig?.active&&sig.label!==lastSignatureV7){signaturePulseUntilV7=performance.now()+420;lastSignatureV7=sig.label;}else if(!sig?.active)lastSignatureV7='';
