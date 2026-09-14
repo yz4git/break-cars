@@ -51,12 +51,14 @@ for(const item of cases){
   await page.keyboard.down('ArrowUp');
   await page.waitForTimeout(1100);
   await page.screenshot({path:path.join(dir,'10-follow-early.png')});
-  const camera2Early=await c2(page);
+  const camera2Early=await c2(page),cameraTrace=[];
+  if(camera2Early)cameraTrace.push(camera2Early);
 
   if(item.mode==='racing'){
-    // visualAudit starts 30 m before the first loop; keep the steering neutral so
-    // the screenshot run reviews the authored loop/boost/camera behavior.
-    await page.waitForTimeout(3600);
+    // visualAudit starts 30 m before the first loop. Sample Camera 2.0 through
+    // the entire approach/arc so the audit catches a second escape transform
+    // stacked on top of the authored loop-stage camera, not merely JS crashes.
+    for(let i=0;i<24;i++){await page.waitForTimeout(150);const snap=await c2(page);if(snap)cameraTrace.push(snap);}
   }else{
     // Actual input pass: sweep left/right and drift once so each arena review
     // includes live collisions, terrain loading and camera follow under motion.
@@ -67,7 +69,7 @@ for(const item of cases){
     }
   }
   await page.screenshot({path:path.join(dir,'20-follow-action.png')});
-  const camera2Action=await c2(page);
+  const camera2Action=await c2(page);if(camera2Action)cameraTrace.push(camera2Action);
 
   await page.keyboard.press('KeyC');await page.waitForTimeout(1500);
   await page.screenshot({path:path.join(dir,'30-wide.png')});
@@ -78,7 +80,7 @@ for(const item of cases){
     await page.keyboard.down('ArrowRight');await page.waitForTimeout(950);await page.keyboard.up('ArrowRight');
   }else await page.waitForTimeout(950);
   await page.screenshot({path:path.join(dir,'50-follow-late.png')});
-  const camera2Late=await c2(page);
+  const camera2Late=await c2(page);if(camera2Late)cameraTrace.push(camera2Late);
   await page.keyboard.up('ArrowUp');
 
   const hud={
@@ -95,13 +97,20 @@ for(const item of cases){
     try{return c.getContext('webgl2')?'webgl2':c.getContext('webgl')?'webgl':'canvas';}catch{return 'canvas';}
   });
   const camera2={early:camera2Early,action:camera2Action,late:camera2Late};
-  const row={...item,url,menu,hud,audit,camera2,renderer,errors};report.push(row);
+  const loopTrace=cameraTrace.filter(v=>v?.loopProtected||v?.poseKind==='loop'),loopDistances=loopTrace.map(v=>Number(v?.compositionDistance)||0).filter(v=>v>0);
+  const cameraReview={
+    loopSamples:loopTrace.length,
+    maxLoopEscape:Math.max(0,...loopTrace.map(v=>Math.abs(Number(v?.escape)||0))),
+    avgLoopDistance:loopDistances.length?loopDistances.reduce((a,b)=>a+b,0)/loopDistances.length:0,
+    maxLoopDistance:Math.max(0,...loopDistances),
+  };
+  const row={...item,url,menu,hud,audit,camera2,cameraReview,renderer,errors};report.push(row);
   await fs.writeFile(path.join(dir,'diagnostics.json'),JSON.stringify(row,null,2));
   await context.close();
 }
 await browser.close();
 await fs.writeFile(path.join(out,'summary.json'),JSON.stringify(report,null,2));
-const bad=report.filter(x=>x.errors.length||x.renderer==='none');
+const bad=report.filter(x=>x.errors.length||x.renderer==='none'||(x.mode==='racing'&&x.cameraReview.loopSamples>0&&x.cameraReview.maxLoopEscape>1.35));
 console.log(`MODE REVIEW audit: ${report.length} course/mode variants, errors=${bad.length}`);
-for(const x of report){const esc=Math.max(0,...Object.values(x.camera2).map(v=>v?.escape||0));console.log(`${x.mode.padEnd(10)} ${x.course.padEnd(15)} renderer=${x.renderer} hp=${x.hud.hp||'-'} speed=${x.hud.speed.replace(/\s+/g,' ')||'-'} c2=${esc.toFixed(2)}m errors=${x.errors.length}`);}
-if(bad.length)process.exitCode=1;
+for(const x of report){const esc=Math.max(0,...Object.values(x.camera2).map(v=>v?.escape||0));const cam=x.mode==='racing'?` loop=${x.cameraReview.loopSamples} avg=${x.cameraReview.avgLoopDistance.toFixed(1)}m max=${x.cameraReview.maxLoopDistance.toFixed(1)}m`:'';console.log(`${x.mode.padEnd(10)} ${x.course.padEnd(15)} renderer=${x.renderer} hp=${x.hud.hp||'-'} speed=${x.hud.speed.replace(/\s+/g,' ')||'-'} c2=${esc.toFixed(2)}m${cam} errors=${x.errors.length}`);}
+if(bad.length){for(const x of bad)console.error(`REVIEW FAIL ${x.mode}/${x.course}: ${x.errors.join('; ')||`loop camera escape=${x.cameraReview.maxLoopEscape.toFixed(2)} avg=${x.cameraReview.avgLoopDistance.toFixed(1)} max=${x.cameraReview.maxLoopDistance.toFixed(1)}`}`);process.exitCode=1;}
