@@ -4,6 +4,8 @@ The final generated runtime is intentionally assembled from many gameplay
 layers. Keep the survival core strict, but adapt its two insertion points that
 are known to have stable semantic locations while their exact emitted text can
 change: the courses.js import and the end of the full-physics substep block.
+After the core patch, normalize elevated non-racing starts so WRECK HUNT's
+ordinary opening choreography cannot place a rival over a real survival hole.
 """
 from pathlib import Path
 import importlib.util
@@ -38,6 +40,12 @@ def apply_survival_courses_v1(target: Path) -> None:
 
     core.one = tolerant_one
     core.apply_survival_courses_v1(target)
+
+    fix_path = Path(__file__).with_name('fix-survival-spawns-v11.py')
+    fix_spec = importlib.util.spec_from_file_location('break_cars_survival_spawn_fix_v11', fix_path)
+    fix = importlib.util.module_from_spec(fix_spec)
+    fix_spec.loader.exec_module(fix)
+    fix.apply_survival_spawn_fix_v11(target)
 
 
 if __name__ == '__main__':
