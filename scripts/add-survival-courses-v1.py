@@ -1,9 +1,9 @@
 """Stable loader for survival course pack v1.
 
-The generated full-physics file may carry a cache/versioned courses.js import
-by the time the final gameplay layers run.  Keep the core patch strict for all
-other generator invariants, but provide activeCourse as a separate binding when
-that one import has already changed shape.
+The final generated runtime is intentionally assembled from many gameplay
+layers. Keep the survival core strict, but adapt its two insertion points that
+are known to have stable semantic locations while their exact emitted text can
+change: the courses.js import and the end of the full-physics substep block.
 """
 from pathlib import Path
 import importlib.util
@@ -23,6 +23,17 @@ def apply_survival_courses_v1(target: Path) -> None:
             if not has_active:
                 text = "import {activeCourse} from './courses.js';\n" + text
             return text
+        if label == 'fall check after physics' and old not in text:
+            # add-player-auto-upright runs before this final pass and inserts its
+            # call between the substep loop and the mode dispatch. Fatal falls
+            # belong at exactly that boundary: physics has settled, but no
+            # recovery or finish logic has run yet.
+            anchor = "  updatePlayerAutoUpright(w,dt);\n  if (w.mode==='racing')"
+            replacement = "  for (const c of w.cars) survivalFall(w,c,ctx);\n  updatePlayerAutoUpright(w,dt);\n  if (w.mode==='racing')"
+            n = text.count(anchor)
+            if n != 1:
+                raise RuntimeError(f'Survival courses fall check after physics: expected semantic anchor once, found {n}')
+            return text.replace(anchor, replacement, 1)
         return strict_one(text, old, new, label)
 
     core.one = tolerant_one
