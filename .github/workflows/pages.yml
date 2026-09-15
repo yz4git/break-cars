@@ -39,6 +39,8 @@ jobs:
           node --check _site/colosseum-ui.js
       - name: Test one-minute stage pacing
         run: node scripts/test-one-minute-stages-v1.mjs
+      - name: Test survival course pack
+        run: node scripts/test-survival-courses-v1.mjs
       - name: Test WRECK HUNT
         run: node scripts/test-wreck-hunt.mjs
       - name: Test full 3D physics
