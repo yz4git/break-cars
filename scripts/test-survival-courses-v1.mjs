@@ -56,8 +56,14 @@ const physics=await import(`../_site/physics.js?survival=${id}`);
 const mode=courseMod.activeCourse.mode;
 const w=physics.makeWorld(0,91415,mode);
 physics.step(w,{gas:0,brake:0,steer:0,hand:0},1/60,true);
-const p=w.cars[0];
+const p=w.cars[0],deathY=Number(courseMod.activeCourse.deathY??6.2);
 assert.ok(p.p3?.active,`${id} player full-3D body missing`);
+assert.equal(p.dead,false,`${id}: player must start alive on the elevated course`);
+for(const c of w.cars){
+ assert.ok(c.p3?.active,`${id}: car ${c.id} full-3D body missing at spawn`);
+ assert.equal(c.dead,false,`${id}: car ${c.id} must not spawn below the survival deck`);
+ assert.ok(c.p3.py>deathY+1.0,`${id}: car ${c.id} spawned too low at y=${c.p3.py.toFixed(2)}`);
+}
 
 // Simulate a real push-out after the body has left the deck. The killer credit
 // should survive because fall death goes through the ordinary hit/wreck path.
@@ -84,4 +90,4 @@ if(id==='skyfall-circuit'){
  assert.equal(racing.recoverRaceCar(w,p),false,'SKYFALL must not allow recovery after a fall');
 }
 
-console.log(`${id}: fall=WRECK runtime passed`);
+console.log(`${id}: elevated-spawn + fall=WRECK runtime passed`);
