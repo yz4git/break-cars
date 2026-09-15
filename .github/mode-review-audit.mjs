@@ -11,12 +11,15 @@ const cases=[
   {mode:'colosseum',course:'classic',name:'THE COLOSSEUM'},
   {mode:'colosseum',course:'crater-crown',name:'CRATER CROWN'},
   {mode:'colosseum',course:'maelstrom-pit',name:'MAELSTROM PIT'},
+  {mode:'colosseum',course:'last-platform',name:'LAST PLATFORM',survival:true},
   {mode:'wreck-hunt',course:'hunt-classic',name:'WRECK HUNT'},
   {mode:'wreck-hunt',course:'tidal-foundry',name:'TIDAL FOUNDRY'},
   {mode:'wreck-hunt',course:'cross-fire',name:'CROSS FIRE'},
+  {mode:'wreck-hunt',course:'void-hunt',name:'VOID HUNT',survival:true},
   {mode:'racing',course:'rampage-3d',name:'RAMPAGE 3D'},
   {mode:'racing',course:'sky-forge',name:'SKY FORGE'},
   {mode:'racing',course:'double-orbit',name:'DOUBLE ORBIT'},
+  {mode:'racing',course:'skyfall-circuit',name:'SKYFALL CIRCUIT',survival:true},
 ];
 
 const browser=await chromium.launch({headless:true,args:[
@@ -104,7 +107,12 @@ for(const item of cases){
     avgLoopDistance:loopDistances.length?loopDistances.reduce((a,b)=>a+b,0)/loopDistances.length:0,
     maxLoopDistance:Math.max(0,...loopDistances),
   };
-  const row={...item,url,menu,hud,audit,camera2,cameraReview,renderer,errors};report.push(row);
+  const survivalState=item.survival?await page.evaluate(()=>{
+    const p=window.__breakCarsAuditState?.();
+    const recover=document.querySelector('#recover');
+    return {recoverHidden:recover?.classList.contains('hidden')??true,audit:p??null};
+  }):null;
+  const row={...item,url,menu,hud,audit,camera2,cameraReview,survivalState,renderer,errors};report.push(row);
   await fs.writeFile(path.join(dir,'diagnostics.json'),JSON.stringify(row,null,2));
   await context.close();
 }
@@ -112,5 +120,5 @@ await browser.close();
 await fs.writeFile(path.join(out,'summary.json'),JSON.stringify(report,null,2));
 const bad=report.filter(x=>x.errors.length||x.renderer==='none'||(x.mode==='racing'&&x.cameraReview.loopSamples>0&&x.cameraReview.maxLoopEscape>1.35));
 console.log(`MODE REVIEW audit: ${report.length} course/mode variants, errors=${bad.length}`);
-for(const x of report){const esc=Math.max(0,...Object.values(x.camera2).map(v=>v?.escape||0));const cam=x.mode==='racing'?` loop=${x.cameraReview.loopSamples} avg=${x.cameraReview.avgLoopDistance.toFixed(1)}m max=${x.cameraReview.maxLoopDistance.toFixed(1)}m`:'';console.log(`${x.mode.padEnd(10)} ${x.course.padEnd(15)} renderer=${x.renderer} hp=${x.hud.hp||'-'} speed=${x.hud.speed.replace(/\s+/g,' ')||'-'} c2=${esc.toFixed(2)}m${cam} errors=${x.errors.length}`);}
+for(const x of report){const esc=Math.max(0,...Object.values(x.camera2).map(v=>v?.escape||0));const cam=x.mode==='racing'?` loop=${x.cameraReview.loopSamples} avg=${x.cameraReview.avgLoopDistance.toFixed(1)}m max=${x.cameraReview.maxLoopDistance.toFixed(1)}m`:'';const survival=x.survival?' SURVIVAL':'';console.log(`${x.mode.padEnd(10)} ${x.course.padEnd(15)} renderer=${x.renderer} hp=${x.hud.hp||'-'} speed=${x.hud.speed.replace(/\s+/g,' ')||'-'} c2=${esc.toFixed(2)}m${cam}${survival} errors=${x.errors.length}`);}
 if(bad.length){for(const x of bad)console.error(`REVIEW FAIL ${x.mode}/${x.course}: ${x.errors.join('; ')||`loop camera escape=${x.cameraReview.maxLoopEscape.toFixed(2)} avg=${x.cameraReview.avgLoopDistance.toFixed(1)} max=${x.cameraReview.maxLoopDistance.toFixed(1)}`}`);process.exitCode=1;}
