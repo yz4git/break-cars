@@ -9,8 +9,8 @@ mode identities:
 This runs at the final generated-output boundary so MAYHEM TOUR inherits the
 same event pacing after all of its gameplay/presentation layers are applied.
 Legacy DURATION/w.limit values are retained for compatibility with older tuning
-code; stageLimit is the authoritative non-racing deadline exposed to the final
-runtime and HUD.
+code; stageLimit is the authoritative non-racing deadline exposed to both the
+legacy facade and the authoritative full-3D runtime.
 """
 from pathlib import Path
 import re
@@ -48,15 +48,34 @@ def apply_one_minute_stages_v1(target: Path) -> None:
         physics,
         'w.time>=w.limit',
         'w.time>=(w.stageLimit||w.limit)',
-        'WRECK HUNT deadline',
+        'legacy WRECK HUNT deadline',
     )
     physics = one(
         physics,
         'w.time>=DURATION',
         'w.time>=(w.stageLimit||DURATION)',
-        'COLOSSEUM deadline',
+        'legacy COLOSSEUM deadline',
     )
     physics_path.write_text(physics)
+
+    # physics.js is now a compatibility facade: actual gameplay steps through
+    # stepFullPhysics in physics3d.js. Patch both paths so tests and production
+    # cannot disagree about when a one-minute stage ends.
+    physics3d_path = target / 'physics3d.js'
+    physics3d = physics3d_path.read_text()
+    physics3d = one(
+        physics3d,
+        'p.lastContact=w.time; if (p.dead||w.time>=w.limit) w.done=true;',
+        'p.lastContact=w.time; if (p.dead||w.time>=(w.stageLimit||w.limit)) w.done=true;',
+        'full 3D WRECK HUNT deadline',
+    )
+    physics3d = one(
+        physics3d,
+        'w.time>=ctx.DURATION',
+        'w.time>=(w.stageLimit||ctx.DURATION)',
+        'full 3D COLOSSEUM deadline',
+    )
+    physics3d_path.write_text(physics3d)
 
     racing_path = target / 'racing.js'
     racing = racing_path.read_text()
@@ -96,14 +115,19 @@ def apply_one_minute_stages_v1(target: Path) -> None:
     # Final-output invariants. These make generator drift fail loudly instead of
     # silently publishing the old multi-minute pacing.
     final_physics = physics_path.read_text()
+    final_physics3d = physics3d_path.read_text()
     final_racing = racing_path.read_text()
     final_game = game_path.read_text()
     if f'stageLimit:{STAGE_SECONDS}' not in final_physics:
         raise RuntimeError('One-minute stages: stageLimit missing from generated physics')
     if 'w.time>=(w.stageLimit||w.limit)' not in final_physics:
-        raise RuntimeError('One-minute stages: WRECK HUNT deadline not generated')
+        raise RuntimeError('One-minute stages: legacy WRECK HUNT deadline not generated')
     if 'w.time>=(w.stageLimit||DURATION)' not in final_physics:
-        raise RuntimeError('One-minute stages: COLOSSEUM deadline not generated')
+        raise RuntimeError('One-minute stages: legacy COLOSSEUM deadline not generated')
+    if 'w.time>=(w.stageLimit||w.limit)' not in final_physics3d:
+        raise RuntimeError('One-minute stages: full 3D WRECK HUNT deadline not generated')
+    if 'w.time>=(w.stageLimit||ctx.DURATION)' not in final_physics3d:
+        raise RuntimeError('One-minute stages: full 3D COLOSSEUM deadline not generated')
     expected_track = f'laps:{RACE_LAPS},limit:{RACE_LIMIT},grace:{RACE_GRACE}'
     if expected_track not in final_racing:
         raise RuntimeError('One-minute stages: WRECKING RACING timing not generated')
