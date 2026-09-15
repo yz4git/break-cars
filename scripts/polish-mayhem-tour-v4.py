@@ -17,7 +17,8 @@ cleanup, v8.13 recap cinematics, v8.14 recap visual identity, v8.15 finale
 editorial cleanup, v8.16 recap chapter stingers, v8.17 RIVAL engagement,
 v8.18 RIVAL battle flow, v8.19 RIVAL clash history, v8.20 visual priority,
 v8.21 impact cinema and v8.22 transient HUD timing are chained here so Pages
-build order stays stable.
+build order stays stable. The final one-minute pacing pass runs after that chain
+so every standalone event and MAYHEM TOUR stage shares the same short cadence.
 """
 from pathlib import Path
 import importlib.util
@@ -83,6 +84,7 @@ def apply_mayhem_tour_v4(target: Path) -> None:
     load_and_apply('polish-mayhem-visual-clarity-v820.py','break_cars_mayhem_visual_clarity_v820','apply_mayhem_visual_clarity_v820',target)
     load_and_apply('polish-impact-cinema-v821.py','break_cars_impact_cinema_v821','apply_impact_cinema_v821',target)
     load_and_apply('polish-wreck-hunt-intro-v822.py','break_cars_wreck_hunt_intro_v822','apply_wreck_hunt_intro_v822',target)
+    load_and_apply('polish-one-minute-stages-v1.py','break_cars_one_minute_stages_v1','apply_one_minute_stages_v1',target)
 
 
 if __name__ == '__main__':
