@@ -55,6 +55,12 @@ def apply_survival_courses_v1(target: Path) -> None:
     death_spec.loader.exec_module(death)
     death.apply_death_colosseum_v1(target)
 
+    hud_path = Path(__file__).with_name('fix-death-colosseum-hud-v11.py')
+    hud_spec = importlib.util.spec_from_file_location('break_cars_death_colosseum_hud_v11', hud_path)
+    hud = importlib.util.module_from_spec(hud_spec)
+    hud_spec.loader.exec_module(hud)
+    hud.apply_death_colosseum_hud_fix_v11(target)
+
 
 if __name__ == '__main__':
     apply_survival_courses_v1(Path('_site'))
