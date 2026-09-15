@@ -1,0 +1,49 @@
+name: Death Colosseum visual audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/death-colosseum-audit.mjs'
+      - '.github/workflows/death-colosseum-audit.yml'
+      - 'dist/**'
+      - 'scripts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+      - name: Prepare exact game build
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: python3 scripts/prepare-pages.py
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Serve generated game
+        run: |
+          python3 -m http.server 4173 --directory _site >/tmp/break-cars-death-http.log 2>&1 &
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/break-cars-death-http.log
+          exit 1
+      - name: Drive and capture Death Colosseum
+        env:
+          BREAK_CARS_AUDIT_URL: http://127.0.0.1:4173/
+        run: node .github/death-colosseum-audit.mjs
+      - name: Upload Death Colosseum screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: break-cars-death-colosseum-${{ github.sha }}
+          path: artifacts/death-colosseum-audit
+          if-no-files-found: error
+          retention-days: 7
