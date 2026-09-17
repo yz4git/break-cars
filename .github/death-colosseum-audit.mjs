@@ -16,6 +16,7 @@ const cases=[
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-angle=swiftshader-webgl','--disable-background-timer-throttling','--disable-renderer-backgrounding']});
 const report=[];
 const text=async(page,sel)=>{try{return (await page.locator(sel).innerText({timeout:800})).trim();}catch{return '';}};
+const aliveCount=value=>Number((String(value).match(/\d+/)||['0'])[0]);
 const state=async page=>({
  countdown:await text(page,'#countdown'),
  time:await text(page,'#time'),
@@ -28,7 +29,7 @@ const state=async page=>({
 });
 for(const item of cases){
  const dir=path.join(out,item.course);await fs.mkdir(dir,{recursive:true});
- const context=await browser.newContext({viewport:{width:852,height:393},deviceScaleFactor:2,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1'});
+ const context=await browser.newContext({viewport:{width:852,height:393},deviceScaleFactor:1.25,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 26_6 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1'});
  const page=await context.newPage(),errors=[];
  page.on('console',m=>{if(m.type()==='error')errors.push(`console: ${m.text()}`);});page.on('pageerror',e=>errors.push(`page: ${String(e)}`));
  const url=`${base}?course=${encodeURIComponent(item.course)}&deathAudit=${Date.now()}`;
@@ -37,7 +38,7 @@ for(const item of cases){
  const menu={tag:await text(page,'#mode-tag'),subtitle:await text(page,'#mode-subtitle'),lead:await text(page,'#mode-lead'),course:await page.locator('#course-picker').inputValue(),modeSelected:await page.locator('[data-mode="death-colosseum"]').getAttribute('aria-pressed')};
  await page.click('#start');
  await page.waitForTimeout(800);await page.screenshot({path:path.join(dir,'05-countdown.png')});
- await page.waitForFunction(()=>!(document.querySelector('#countdown')?.textContent||'').trim(),null,{timeout:30000});
+ await page.waitForFunction(()=>!(document.querySelector('#countdown')?.textContent||'').trim(),null,{timeout:12000});
  await page.keyboard.down('ArrowUp');await page.waitForTimeout(1500);
  const liveStart=await state(page);await page.screenshot({path:path.join(dir,'10-follow.png')});
  for(let i=0;i<4;i++){const key=i%2?'ArrowRight':'ArrowLeft';await page.keyboard.down(key);await page.waitForTimeout(420);await page.keyboard.up(key);}
@@ -51,7 +52,7 @@ for(const item of cases){
  const row={...item,url,menu,liveStart,liveAction,hud,renderer,deck,errors};report.push(row);await fs.writeFile(path.join(dir,'diagnostics.json'),JSON.stringify(row,null,2));await context.close();
 }
 await browser.close();await fs.writeFile(path.join(out,'summary.json'),JSON.stringify(report,null,2));
-const bad=report.filter(x=>x.errors.length||x.renderer==='none'||x.menu.modeSelected!=='true'||x.menu.course!==x.course||x.deck.mode!=='death-colosseum'||x.hud.scoreLabel!=='RING OUT SCORE'||x.liveStart.countdown||x.liveStart.time==='1:00'||Number(x.liveStart.speed)<=0||x.liveStart.modalVisible);
+const bad=report.filter(x=>x.errors.length||x.renderer==='none'||x.menu.modeSelected!=='true'||x.menu.course!==x.course||x.deck.mode!=='death-colosseum'||x.hud.scoreLabel!=='RING OUT SCORE'||x.liveStart.countdown||x.hud.time==='1:00'||Number(x.liveStart.speed)<=0||x.liveStart.modalVisible||x.liveAction.modalVisible||aliveCount(x.hud.alive)<9);
 console.log(`DEATH COLOSSEUM live audit: ${report.length} courses, errors=${bad.length}`);
-for(const x of report)console.log(`${x.course.padEnd(14)} renderer=${x.renderer} live=${x.liveStart.time} speed=${x.liveStart.speed} alive=${x.liveAction.alive.replace(/\s+/g,' ')} result=${x.liveAction.result||'-'} errors=${x.errors.length}`);
+for(const x of report)console.log(`${x.course.padEnd(14)} renderer=${x.renderer} start=${x.liveStart.time} action=${x.liveAction.time} speed=${x.liveAction.speed} alive=${x.hud.alive.replace(/\s+/g,' ')} result=${x.liveAction.result||'-'} errors=${x.errors.length}`);
 if(bad.length){for(const x of bad)console.error(`DEATH LIVE REVIEW FAIL ${x.course}: ${x.errors.join('; ')||JSON.stringify({menu:x.menu,deck:x.deck,liveStart:x.liveStart,liveAction:x.liveAction,hud:x.hud})}`);process.exitCode=1;}
