@@ -55,6 +55,12 @@ def apply_survival_courses_v1(target: Path) -> None:
     death_spec.loader.exec_module(death)
     death.apply_death_colosseum_v1(target)
 
+    opening_path = Path(__file__).with_name('improve-death-colosseum-openings-v13.py')
+    opening_spec = importlib.util.spec_from_file_location('break_cars_death_colosseum_openings_v13', opening_path)
+    opening = importlib.util.module_from_spec(opening_spec)
+    opening_spec.loader.exec_module(opening)
+    opening.apply_death_colosseum_openings_v13(target)
+
     countdown_path = Path(__file__).with_name('fix-death-colosseum-countdown-v12.py')
     countdown_spec = importlib.util.spec_from_file_location('break_cars_death_colosseum_countdown_v12', countdown_path)
     countdown = importlib.util.module_from_spec(countdown_spec)
