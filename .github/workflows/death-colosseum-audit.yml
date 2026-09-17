@@ -45,6 +45,7 @@ jobs:
           BREAK_CARS_AUDIT_URL: http://127.0.0.1:4173/
         run: node .github/death-colosseum-audit.mjs
       - name: Upload Death Colosseum screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: break-cars-death-colosseum-${{ github.sha }}
