@@ -47,8 +47,8 @@ def apply_death_colosseum_playability_v14(target: Path) -> None:
     p3 = p3_path.read_text()
     p3 = one(
         p3,
-        ",ground=baseHeight(c.x,c.z).h;",
-        ",survivalDeck=activeCourse?.survival?courseSurface(c.x,c.z):null,ground=survivalDeck?.h??baseHeight(c.x,c.z).h;",
+        "py:ground+COM_VISUAL_Y",
+        "py:(activeCourse?.survival?(courseSurface(c.x,c.z)?.h??ground):ground)+COM_VISUAL_Y",
         'elevated body creation',
     )
     p3_path.write_text(p3)
