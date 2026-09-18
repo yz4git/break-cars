@@ -53,11 +53,48 @@ def apply_death_colosseum_playability_v14(target: Path) -> None:
     )
     p3_path.write_text(p3)
 
+    # Create the 6DoF pose during reset, not on the first live physics tick.
+    # Countdown/menu cameras can then use the authored elevated pose without
+    # moving cars or advancing match time.
+    game_path = target / 'game.js'
+    game = game_path.read_text()
+    game = one(
+        game,
+        "import {fullPhysicsFeatureSpec} from './physics3d.js?v=works-full3d';",
+        "import {ensureFullPhysics,fullPhysicsFeatureSpec} from './physics3d.js?v=works-full3d';",
+        'full physics initializer import',
+    )
+    game = one(
+        game,
+        "world=makeWorld(selection,seed++,gameMode);",
+        "world=makeWorld(selection,seed++,gameMode);ensureFullPhysics(world,TYPES);",
+        'pre-countdown full physics pose',
+    )
+    game_path.write_text(game)
+
+    # Elevated arenas need a little more steering margin on touch controls.
+    p3 = p3_path.read_text()
+    p3 = one(
+        p3,
+        "let steer=c.dead ? 0 : (u.steer||0); if (player) steer=-steer;",
+        "let steer=c.dead ? 0 : (u.steer||0); if (player) steer=-steer;if(player&&w.mode==='death-colosseum')steer*=.78;",
+        'death colosseum player steering margin',
+    )
+    p3_path.write_text(p3)
+
     physics_path = target / 'physics.js'
     physics = physics_path.read_text()
     marker = "function ai(w,c,dt){"
     helper = r"""function deathColosseumSafeAim(w,c,aimX,aimZ){
- if(w.mode!=='death-colosseum'||activeCourse?.id!=='death-wheel')return{x:aimX,z:aimZ};
+ if(w.mode!=='death-colosseum')return{x:aimX,z:aimZ};
+ if(activeCourse?.id==='sky-tiles'){
+  const lanes=[-22,0,22],nearest=v=>lanes.reduce((a,b)=>Math.abs(v-b)<Math.abs(v-a)?b:a,lanes[0]);
+  const row=nearest(c.z),col=nearest(c.x),dx=aimX-c.x,dz=aimZ-c.z;
+  const onRow=Math.abs(c.z-row)<=3.4,onCol=Math.abs(c.x-col)<=3.4;
+  if((onRow&&!onCol)||(onRow&&onCol&&Math.abs(dx)>=Math.abs(dz)))return{x:c.x+clamp(dx,-14,14),z:row};
+  return{x:col,z:c.z+clamp(dz,-14,14)};
+ }
+ if(activeCourse?.id!=='death-wheel')return{x:aimX,z:aimZ};
  const r=Math.hypot(c.x,c.z)||1,rx=c.x/r,rz=c.z/r,tx=rz,tz=-rx;
  const toX=aimX-c.x,toZ=aimZ-c.z,targetTangent=toX*tx+toZ*tz;
  const fx=Math.sin(c.heading),fz=Math.cos(c.heading),forwardTangent=fx*tx+fz*tz;
