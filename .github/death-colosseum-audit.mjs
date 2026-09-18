@@ -43,16 +43,17 @@ for(const item of cases){
  const liveStart=await state(page);await page.screenshot({path:path.join(dir,'10-follow.png')});
  for(let i=0;i<4;i++){const key=i%2?'ArrowRight':'ArrowLeft';await page.keyboard.down(key);await page.waitForTimeout(420);await page.keyboard.up(key);}
  const liveAction=await state(page);await page.screenshot({path:path.join(dir,'20-action.png')});
+ await page.keyboard.up('ArrowUp');
+ await page.keyboard.down('ArrowDown');await page.waitForTimeout(450);await page.keyboard.up('ArrowDown');await page.waitForTimeout(250);
  await page.keyboard.press('KeyC');await page.waitForTimeout(800);await page.screenshot({path:path.join(dir,'30-wide.png')});
  await page.keyboard.press('KeyC');await page.waitForTimeout(800);await page.screenshot({path:path.join(dir,'40-overhead.png')});
- await page.keyboard.up('ArrowUp');
  const hud={position:await text(page,'#position-label'),alive:await text(page,'#alive'),scoreLabel:await text(page,'#score-label'),hp:await text(page,'#hp'),time:await text(page,'#time'),toast:await text(page,'#toast')};
  const renderer=await page.evaluate(()=>{const c=document.querySelector('canvas');if(!c)return'none';try{return c.getContext('webgl2')?'webgl2':c.getContext('webgl')?'webgl':'canvas';}catch{return'canvas';}});
  const deck=await page.evaluate(()=>({mode:document.body.dataset.gameMode||'',recoverHidden:document.querySelector('#recover')?.classList.contains('hidden')??true,courseHint:document.querySelector('.course-hint')?.textContent||''}));
  const row={...item,url,menu,liveStart,liveAction,hud,renderer,deck,errors};report.push(row);await fs.writeFile(path.join(dir,'diagnostics.json'),JSON.stringify(row,null,2));await context.close();
 }
 await browser.close();await fs.writeFile(path.join(out,'summary.json'),JSON.stringify(report,null,2));
-const bad=report.filter(x=>x.errors.length||x.renderer==='none'||x.menu.modeSelected!=='true'||x.menu.course!==x.course||x.deck.mode!=='death-colosseum'||x.hud.scoreLabel!=='RING OUT SCORE'||x.liveStart.countdown||x.hud.time==='1:00'||Number(x.liveStart.speed)<=0||x.liveStart.modalVisible||x.liveAction.modalVisible||aliveCount(x.hud.alive)<9);
+const bad=report.filter(x=>x.errors.length||x.renderer==='none'||x.menu.modeSelected!=='true'||x.menu.course!==x.course||x.deck.mode!=='death-colosseum'||x.hud.scoreLabel!=='RING OUT SCORE'||x.liveStart.countdown||x.hud.time==='1:00'||Number(x.liveStart.speed)<=0||x.liveStart.modalVisible||x.liveAction.modalVisible||x.hud.hp==='0%'||aliveCount(x.hud.alive)<9);
 console.log(`DEATH COLOSSEUM live audit: ${report.length} courses, errors=${bad.length}`);
 for(const x of report)console.log(`${x.course.padEnd(14)} renderer=${x.renderer} start=${x.liveStart.time} action=${x.liveAction.time} speed=${x.liveAction.speed} alive=${x.hud.alive.replace(/\s+/g,' ')} result=${x.liveAction.result||'-'} errors=${x.errors.length}`);
 if(bad.length){for(const x of bad)console.error(`DEATH LIVE REVIEW FAIL ${x.course}: ${x.errors.join('; ')||JSON.stringify({menu:x.menu,deck:x.deck,liveStart:x.liveStart,liveAction:x.liveAction,hud:x.hud})}`);process.exitCode=1;}
