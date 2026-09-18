@@ -13,6 +13,7 @@ fall is still instant WRECK, but normal steering has enough recovery room to
 create actual pushing battles instead of accidental opening suicides.
 """
 from pathlib import Path
+import re
 
 
 def one(text: str, old: str, new: str, label: str) -> str:
@@ -45,12 +46,11 @@ def apply_death_colosseum_playability_v14(target: Path) -> None:
 
     p3_path = target / 'physics3d.js'
     p3 = p3_path.read_text()
-    p3 = one(
-        p3,
-        "py:ground+COM_VISUAL_Y",
-        "py:(activeCourse?.survival?(courseSurface(c.x,c.z)?.h??ground):ground)+COM_VISUAL_Y",
-        'elevated body creation',
-    )
+    body_pattern = r"(function makeBody\\(c,type\\)\\s*\\{.*?return\\s*\\{.*?\\bpx:c\\.x,\\s*py:)(.*?)(,\\s*pz:c\\.z)"
+    body_repl = r"\\1(activeCourse?.survival?(courseSurface(c.x,c.z)?.h??baseHeight(c.x,c.z).h):baseHeight(c.x,c.z).h)+COM_VISUAL_Y\\3"
+    p3, n = re.subn(body_pattern, body_repl, p3, count=1, flags=re.S)
+    if n != 1:
+        raise RuntimeError(f'Death Colosseum v1.4 elevated body creation: expected makeBody py once, found {n}')
     p3_path.write_text(p3)
 
     physics_path = target / 'physics.js'
