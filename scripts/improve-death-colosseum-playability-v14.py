@@ -70,6 +70,12 @@ def apply_death_colosseum_playability_v14(target: Path) -> None:
         "world=makeWorld(selection,seed++,gameMode);ensureFullPhysics(world,TYPES);",
         'pre-countdown full physics pose',
     )
+    game = one(
+        game,
+        "if(mode==='menu'){menuTime+=dt;const a=.35+Math.sin(menuTime*.11)*.25;camTarget.set(p.x+Math.sin(a)*13,7,p.z+Math.cos(a)*13);lookTarget.set(p.x-2.5,1,p.z-2.5);camera.fov=50;camera.up.lerp(physicsWorldUp,1-Math.exp(-6*dt));}",
+        "if(mode==='menu'){menuTime+=dt;const a=.35+Math.sin(menuTime*.11)*.25,menuY=p.p3?.active?p.p3.py:.9;camTarget.set(p.x+Math.sin(a)*13,menuY+6,p.z+Math.cos(a)*13);lookTarget.set(p.x-2.5,menuY+.2,p.z-2.5);camera.fov=50;camera.up.lerp(physicsWorldUp,1-Math.exp(-6*dt));}",
+        'elevated menu camera',
+    )
     game_path.write_text(game)
 
     # Elevated arenas need a little more steering margin on touch controls.
