@@ -11,7 +11,6 @@ has deck support; recent opponent hits deliberately bypass the player edge
 brake so real push-outs remain lethal.
 """
 from pathlib import Path
-import re
 
 
 def one(text: str, old: str, new: str, label: str) -> str:
@@ -25,16 +24,12 @@ def apply_death_colosseum_combat_v15(target: Path) -> None:
     physics_path = target / 'physics.js'
     physics = physics_path.read_text()
 
-    physics, n = re.subn(
-        r"(\\s*const bias=.*?;\\n)(\\s*const cost=)(.*?)(;)",
-        lambda m: m.group(1) + "   const crowdPenalty=w.mode==='death-colosseum'?w.cars.reduce((n,q)=>n+(q!==c&&!q.dead&&q.target===o.id?1:0),0)*8.5:0;\\n" + m.group(2) + m.group(3) + "+crowdPenalty" + m.group(4),
+    physics = one(
         physics,
-        count=1,
+        "const bias=(o.id===0?(w.mode==='wreck-hunt'?(c.id%3===0?1.04:.48):1.08):1)*(1+w.rand()*(w.mode==='wreck-hunt'?.20:.35));\n   const cost=dist*bias+Math.abs(angle(Math.atan2(o.x-c.x,o.z-c.z)-c.heading))*3+edgePenalty+centerPenalty;",
+        "const bias=(o.id===0?(w.mode==='wreck-hunt'?(c.id%3===0?1.04:.48):1.08):1)*(1+w.rand()*(w.mode==='wreck-hunt'?.20:.35));\n   const crowdPenalty=w.mode==='death-colosseum'?w.cars.reduce((n,q)=>n+(q!==c&&!q.dead&&q.target===o.id?1:0),0)*8.5:0;\n   const cost=dist*bias+Math.abs(angle(Math.atan2(o.x-c.x,o.z-c.z)-c.heading))*3+edgePenalty+centerPenalty+crowdPenalty;",
+        'target crowd dispersion',
     )
-    if n != 1:
-        probe = physics.find('function ai')
-        context = physics[max(0, probe-200):probe+4200] if probe >= 0 else physics[:4200]
-        raise RuntimeError(f'Death Colosseum v1.5 target crowd dispersion: expected AI cost once, found {n}; context={context!r}')
     physics = one(
         physics,
         "if(reengage>0){",
