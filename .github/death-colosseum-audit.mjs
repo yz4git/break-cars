@@ -44,7 +44,9 @@ for(const item of cases){
  for(let i=0;i<4;i++){const key=i%2?'ArrowRight':'ArrowLeft';await page.keyboard.down(key);await page.waitForTimeout(420);await page.keyboard.up(key);}
  const liveAction=await state(page);await page.screenshot({path:path.join(dir,'20-action.png')});
  await page.keyboard.up('ArrowUp');
- await page.keyboard.down('ArrowDown');await page.waitForTimeout(450);await page.keyboard.up('ArrowDown');await page.waitForTimeout(250);
+ await page.keyboard.down('ArrowDown');
+ for(let i=0;i<18;i++){await page.waitForTimeout(100);const s=Number(await text(page,'#speed b'));if(Number.isFinite(s)&&s<=5)break;}
+ await page.keyboard.up('ArrowDown');await page.waitForTimeout(180);
  await page.keyboard.press('KeyC');await page.waitForTimeout(800);await page.screenshot({path:path.join(dir,'30-wide.png')});
  await page.keyboard.press('KeyC');await page.waitForTimeout(800);await page.screenshot({path:path.join(dir,'40-overhead.png')});
  const hud={position:await text(page,'#position-label'),alive:await text(page,'#alive'),scoreLabel:await text(page,'#score-label'),hp:await text(page,'#hp'),time:await text(page,'#time'),toast:await text(page,'#toast')};
