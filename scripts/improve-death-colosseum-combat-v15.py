@@ -21,6 +21,26 @@ def one(text: str, old: str, new: str, label: str) -> str:
 
 
 def apply_death_colosseum_combat_v15(target: Path) -> None:
+    courses_path = target / 'courses.js'
+    courses = courses_path.read_text()
+    courses = one(
+        courses,
+        "if(r>=8&&r<=28.5&&Math.abs(Math.sin(3*a))<.14)return H;",
+        "if(r>=8&&r<=28.5&&Math.abs(Math.sin(3*a))<.18)return H;",
+        'wider hex bridge collision',
+    )
+    courses_path.write_text(courses)
+
+    view_path = target / 'course-view.js'
+    view = view_path.read_text()
+    view = one(
+        view,
+        "addBridge(a,18,18.8,3.4);",
+        "addBridge(a,18,18.8,4.2);",
+        'wider hex bridge render',
+    )
+    view_path.write_text(view)
+
     physics_path = target / 'physics.js'
     physics = physics_path.read_text()
 
@@ -29,24 +49,6 @@ def apply_death_colosseum_combat_v15(target: Path) -> None:
         "const bias=(o.id===0?(w.mode==='wreck-hunt'?(c.id%3===0?1.04:.48):1.08):1)*(1+w.rand()*(w.mode==='wreck-hunt'?.20:.35));\n   const cost=dist*bias+Math.abs(angle(Math.atan2(o.x-c.x,o.z-c.z)-c.heading))*3+edgePenalty+centerPenalty;",
         "const bias=(o.id===0?(w.mode==='wreck-hunt'?(c.id%3===0?1.04:.48):1.08):1)*(1+w.rand()*(w.mode==='wreck-hunt'?.20:.35));\n   const crowdPenalty=w.mode==='death-colosseum'?w.cars.reduce((n,q)=>n+(q!==c&&!q.dead&&q.target===o.id?1:0),0)*8.5:0;\n   const cost=dist*bias+Math.abs(angle(Math.atan2(o.x-c.x,o.z-c.z)-c.heading))*3+edgePenalty+centerPenalty+crowdPenalty;",
         'target crowd dispersion',
-    )
-    physics = one(
-        physics,
-        "if(reengage>0){",
-        "if(w.mode!=='death-colosseum'&&reengage>0){",
-        'disable generic center magnet',
-    )
-    physics = one(
-        physics,
-        "const edge=clamp((radius-(RADIUS-12))/7,0,1);",
-        "const edge=w.mode==='death-colosseum'?0:clamp((radius-(RADIUS-12))/7,0,1);",
-        'disable circular edge pull',
-    )
-    physics = one(
-        physics,
-        "if(radius>RADIUS-5.5){aimX=-c.x*.25;aimZ=-c.z*.25;}",
-        "if(w.mode!=='death-colosseum'&&radius>RADIUS-5.5){aimX=-c.x*.25;aimZ=-c.z*.25;}",
-        'disable circular emergency aim',
     )
     physics = one(
         physics,
@@ -65,14 +67,15 @@ def apply_death_colosseum_combat_v15(target: Path) -> None:
     if(c.id===0&&b.grounded&&b.groundedWheels>=2&&w.time-c.hitAt>.65){
       const speed=Math.hypot(b.vx,b.vz);
       if(speed>5&&courseSurface(b.px,b.pz)){
-        const danger=[.18,.30,.42].some(t=>!courseSurface(b.px+b.vx*t,b.pz+b.vz*t));
-        if(danger){const brake=4.2;acc.fx-=b.vx*b.mass*brake;acc.fz-=b.vz*b.mass*brake;}
+        const danger=[.12,.22,.34,.48].some(t=>!courseSurface(b.px+b.vx*t,b.pz+b.vz*t));
+        if(danger){const brake=5.8;acc.fx-=b.vx*b.mass*brake;acc.fz-=b.vz*b.mass*brake;}
       }
     }
-    if(b.grounded&&b.groundedWheels>=2&&w.time-c.hitAt>.28){
+    const support=courseSurface(b.px,b.pz),nearDeck=!!support&&b.py<support.h+2.6;
+    if((b.groundedWheels>=1||nearDeck)&&w.time-c.hitAt>.38){
       const up=bodyUp(b),tilt=Math.max(0,.76-up.y);
       if(tilt>0){
-        const strength=(10+24*tilt)*b.mass;
+        const strength=(12+30*tilt)*b.mass;
         acc.tx+=up.z*strength;acc.tz-=up.x*strength;
         const settle=Math.exp(-(2.4+5.5*tilt)*dt);b.wx*=settle;b.wz*=settle;
       }
