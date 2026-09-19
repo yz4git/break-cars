@@ -59,11 +59,8 @@ def apply_death_colosseum_combat_v15(target: Path) -> None:
     p3_path = target / 'physics3d.js'
     p3 = p3_path.read_text()
 
-    old_integrate = """function integrateBody(w,c,u,ctx,dt) {
-  const b=c.p3,acc={fx:0,fy:-9.81*b.mass,fz:0,tx:0,ty:0,tz:0}; wheelForces(w,c,u,ctx,dt,acc);
-  const drag=c.dead ? .22 : .075;"""
-    new_integrate = """function integrateBody(w,c,u,ctx,dt) {
-  const b=c.p3,acc={fx:0,fy:-9.81*b.mass,fz:0,tx:0,ty:0,tz:0}; wheelForces(w,c,u,ctx,dt,acc);
+    integrate_anchor = "skyForgeExitGuide(w,c,acc,ctx);\n  const drag=c.dead ? .22 : .075;"
+    integrate_patch = """skyForgeExitGuide(w,c,acc,ctx);
   if(w.mode==='death-colosseum'&&!c.dead){
     if(c.id===0&&b.grounded&&b.groundedWheels>=2&&w.time-c.hitAt>.65){
       const speed=Math.hypot(b.vx,b.vz);
@@ -82,12 +79,7 @@ def apply_death_colosseum_combat_v15(target: Path) -> None:
     }
   }
   const drag=c.dead ? .22 : .075;"""
-    try:
-        p3 = one(p3, old_integrate, new_integrate, 'supported edge brake and anti-tip')
-    except RuntimeError:
-        probe = p3.find('function integrateBody')
-        context = p3[max(0, probe-200):probe+4200] if probe >= 0 else p3[:4200]
-        raise RuntimeError(f'Death Colosseum v1.5 integrateBody layout context={context!r}')
+    p3 = one(p3, integrate_anchor, integrate_patch, 'supported edge brake and anti-tip')
     p3_path.write_text(p3)
 
 
