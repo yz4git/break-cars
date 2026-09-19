@@ -67,6 +67,12 @@ def apply_survival_courses_v1(target: Path) -> None:
     playability_spec.loader.exec_module(playability)
     playability.apply_death_colosseum_playability_v14(target)
 
+    combat_path = Path(__file__).with_name('improve-death-colosseum-combat-v15.py')
+    combat_spec = importlib.util.spec_from_file_location('break_cars_death_colosseum_combat_v15', combat_path)
+    combat = importlib.util.module_from_spec(combat_spec)
+    combat_spec.loader.exec_module(combat)
+    combat.apply_death_colosseum_combat_v15(target)
+
     countdown_path = Path(__file__).with_name('fix-death-colosseum-countdown-v12.py')
     countdown_spec = importlib.util.spec_from_file_location('break_cars_death_colosseum_countdown_v12', countdown_path)
     countdown = importlib.util.module_from_spec(countdown_spec)
