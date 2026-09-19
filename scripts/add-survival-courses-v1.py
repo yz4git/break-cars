@@ -85,6 +85,12 @@ def apply_survival_courses_v1(target: Path) -> None:
     sky_tiles_spec.loader.exec_module(sky_tiles)
     sky_tiles.apply_death_colosseum_sky_tiles_v17(target)
 
+    razor_path = Path(__file__).with_name('improve-death-colosseum-razor-v18.py')
+    razor_spec = importlib.util.spec_from_file_location('break_cars_death_colosseum_razor_v18', razor_path)
+    razor = importlib.util.module_from_spec(razor_spec)
+    razor_spec.loader.exec_module(razor)
+    razor.apply_death_colosseum_razor_v18(target)
+
     countdown_path = Path(__file__).with_name('fix-death-colosseum-countdown-v12.py')
     countdown_spec = importlib.util.spec_from_file_location('break_cars_death_colosseum_countdown_v12', countdown_path)
     countdown = importlib.util.module_from_spec(countdown_spec)
