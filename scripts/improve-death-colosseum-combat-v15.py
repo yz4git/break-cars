@@ -82,7 +82,12 @@ def apply_death_colosseum_combat_v15(target: Path) -> None:
     }
   }
   const drag=c.dead ? .22 : .075;"""
-    p3 = one(p3, old_integrate, new_integrate, 'supported edge brake and anti-tip')
+    try:
+        p3 = one(p3, old_integrate, new_integrate, 'supported edge brake and anti-tip')
+    except RuntimeError:
+        probe = p3.find('function integrateBody')
+        context = p3[max(0, probe-200):probe+4200] if probe >= 0 else p3[:4200]
+        raise RuntimeError(f'Death Colosseum v1.5 integrateBody layout context={context!r}')
     p3_path.write_text(p3)
 
 
