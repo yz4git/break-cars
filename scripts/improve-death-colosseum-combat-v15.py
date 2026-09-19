@@ -32,7 +32,9 @@ def apply_death_colosseum_combat_v15(target: Path) -> None:
         count=1,
     )
     if n != 1:
-        raise RuntimeError(f'Death Colosseum v1.5 target crowd dispersion: expected AI cost once, found {n}')
+        probe = physics.find('function ai')
+        context = physics[max(0, probe-200):probe+4200] if probe >= 0 else physics[:4200]
+        raise RuntimeError(f'Death Colosseum v1.5 target crowd dispersion: expected AI cost once, found {n}; context={context!r}')
     physics = one(
         physics,
         "if(reengage>0){",
