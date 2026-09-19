@@ -73,6 +73,12 @@ def apply_survival_courses_v1(target: Path) -> None:
     combat_spec.loader.exec_module(combat)
     combat.apply_death_colosseum_combat_v15(target)
 
+    visual_path = Path(__file__).with_name('improve-death-colosseum-visual-v16.py')
+    visual_spec = importlib.util.spec_from_file_location('break_cars_death_colosseum_visual_v16', visual_path)
+    visual = importlib.util.module_from_spec(visual_spec)
+    visual_spec.loader.exec_module(visual)
+    visual.apply_death_colosseum_visual_v16(target)
+
     countdown_path = Path(__file__).with_name('fix-death-colosseum-countdown-v12.py')
     countdown_spec = importlib.util.spec_from_file_location('break_cars_death_colosseum_countdown_v12', countdown_path)
     countdown = importlib.util.module_from_spec(countdown_spec)
