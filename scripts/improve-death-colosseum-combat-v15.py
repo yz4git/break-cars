@@ -41,6 +41,24 @@ def apply_death_colosseum_combat_v15(target: Path) -> None:
     )
     view_path.write_text(view)
 
+    game_path = target / 'game.js'
+    game = game_path.read_text()
+    if game.count("<small>IMPACT SCORE</small>") != 1:
+        raise RuntimeError('Death Colosseum v1.5 result IMPACT SCORE label not unique')
+    game = game.replace(
+        "<small>IMPACT SCORE</small>",
+        "<small>${world.mode==='death-colosseum'?'RING OUT SCORE':'IMPACT SCORE'}</small>",
+        1,
+    )
+    if "<small>WRECKS</small>" not in game:
+        raise RuntimeError('Death Colosseum v1.5 result WRECKS label missing')
+    game = game.replace(
+        "<small>WRECKS</small>",
+        "<small>${world.mode==='death-colosseum'?'RING OUTS':'WRECKS'}</small>",
+        1,
+    )
+    game_path.write_text(game)
+
     physics_path = target / 'physics.js'
     physics = physics_path.read_text()
 
