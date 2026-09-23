@@ -25,12 +25,16 @@ def apply_death_colosseum_fall_camera_v19(target: Path) -> None:
         "let previousMode='race',deathFinishAt=0;function togglePause()",
         'fall camera timer state',
     )
-    game=one(
-        game,
-        "function start(){resetInput();resetWorld();mode='countdown';",
-        "function start(){resetInput();resetWorld();deathFinishAt=0;mode='countdown';",
-        'fall camera timer reset',
-    )
+    if "function start(){resetInput();resetWorld();" in game:
+        game=game.replace(
+            "function start(){resetInput();resetWorld();",
+            "function start(){resetInput();resetWorld();deathFinishAt=0;",
+            1,
+        )
+    else:
+        probe=game.find("function start")
+        context=game[max(0,probe-300):probe+1800] if probe>=0 else game[:1800]
+        raise RuntimeError(f'Death Colosseum v1.9 start layout context={context!r}')
     old="if((world.mode!=='racing'&&world.cars[0].dead)||world.done){finish();break;}"
     new="""if(world.mode==='death-colosseum'&&world.cars[0].dead){
  if(!deathFinishAt){deathFinishAt=now+1350;resetInput();$('driving').classList.add('hidden');toast('FALLEN — RING OUT',1.15);}
