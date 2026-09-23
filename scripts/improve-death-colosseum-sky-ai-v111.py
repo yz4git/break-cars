@@ -25,7 +25,7 @@ def apply_death_colosseum_sky_ai_v111(target: Path) -> None:
     physics_path=target/'physics.js'
     physics=physics_path.read_text()
     old="return{gas:Math.abs(delta)>1.2?.58:1,brake:0,steer:clamp(delta*1.95,-1,1),hand:(Math.abs(delta)>1.18&&speed>11)||edge>.72?1:0};"
-    new="const skyTiles=w.mode==='death-colosseum'&&activeCourse?.id==='sky-tiles';const skyPad=skyTiles&&[-22,0,22].some(px=>Math.abs(c.x-px)<=4.8)&&[-22,0,22].some(pz=>Math.abs(c.z-pz)<=4.8);const skyBridge=skyTiles&&!skyPad,skyTurn=Math.abs(delta);return{gas:skyBridge?(skyTurn>.72?.26:.58):(skyTurn>1.2?.58:1),brake:skyBridge&&skyTurn>.9&&speed>7?1:0,steer:skyBridge?clamp(delta*1.25,-.60,.60):clamp(delta*1.95,-1,1),hand:skyBridge?0:((skyTurn>1.18&&speed>11)||edge>.72?1:0)};"
+    new="const skyTiles=w.mode==='death-colosseum'&&activeCourse?.id==='sky-tiles';const skyPad=skyTiles&&[-22,0,22].some(px=>Math.abs(c.x-px)<=4.8)&&[-22,0,22].some(pz=>Math.abs(c.z-pz)<=4.8);const skyBridge=skyTiles&&!skyPad,skyTurn=Math.abs(delta),skyJunction=skyTiles&&!!c.skyJunctionBrake;return{gas:skyJunction?0:skyBridge?(skyTurn>.72?.26:.58):(skyTurn>1.2?.58:1),brake:skyJunction?1:(skyBridge&&skyTurn>.9&&speed>7?1:0),steer:skyJunction?clamp(delta*.9,-.45,.45):skyBridge?clamp(delta*1.25,-.60,.60):clamp(delta*1.95,-1,1),hand:skyBridge||skyJunction?0:((skyTurn>1.18&&speed>11)||edge>.72?1:0)};"
     physics=one(physics,old,new,'SKY TILES AI bridge control')
     physics_path.write_text(physics)
 
