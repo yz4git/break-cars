@@ -63,16 +63,16 @@ for(const c of w.cars){
 
 if(id==='sky-tiles'){
  const pack=physics.makeWorld(0,71239,'death-colosseum');
- let impacts=0,selfFalls=0,pushedFalls=0;
+ let impacts=0,selfFalls=0,pushedFalls=0;const fallDetails=[];
  for(let i=0;i<600&&!pack.done;i++){
   physics.step(pack,{},1/60,true);
   for(const e of pack.events){
    if(e.type==='impact')impacts++;
-   if(e.type==='fall'){if((e.by??-1)<0)selfFalls++;else pushedFalls++;}
+   if(e.type==='fall'){const car=pack.cars[e.car];fallDetails.push({t:+pack.time.toFixed(2),car:e.car,by:e.by??-1,x:+(e.x??car?.x??0).toFixed(1),z:+(e.z??car?.z??0).toFixed(1),sinceContact:+(pack.time-(car?.lastContact??pack.time)).toFixed(2),lastOpponent:car?.lastOpponent??-1});if((e.by??-1)<0)selfFalls++;else pushedFalls++;}
   }
  }
  const alive=pack.cars.filter(c=>!c.dead).length;
- assert.ok(selfFalls<=2,`sky-tiles: excessive unforced AI falls in first 10s (${selfFalls})`);
+ assert.ok(selfFalls<=2,`sky-tiles: excessive unforced AI falls in first 10s (${selfFalls}); falls=${JSON.stringify(fallDetails)}`);
  assert.ok(alive>=6,`sky-tiles: pack collapsed too early (${alive}/12 alive after 10s)`);
  assert.ok(impacts>=2,`sky-tiles: bridge caution removed combat (${impacts} impacts in 10s)`);
  console.log(`sky-tiles: 10s AI discipline passed, alive=${alive}/12, impacts=${impacts}, self-falls=${selfFalls}, pushed-falls=${pushedFalls}`);
