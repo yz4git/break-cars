@@ -95,15 +95,32 @@ def apply_death_colosseum_playability_v14(target: Path) -> None:
  if(w.mode!=='death-colosseum')return{x:aimX,z:aimZ};
  if(activeCourse?.id==='sky-tiles'){
   const lanes=[-22,0,22],nearest=v=>lanes.reduce((a,b)=>Math.abs(v-b)<Math.abs(v-a)?b:a,lanes[0]);
-  const row=nearest(c.z),col=nearest(c.x),dx=aimX-c.x,dz=aimZ-c.z;
-  const onRow=Math.abs(c.z-row)<=3.4,onCol=Math.abs(c.x-col)<=3.4;
+  const row=nearest(c.z),col=nearest(c.x),trow=nearest(aimZ),tcol=nearest(aimX);
   const onPad=Math.abs(c.x-col)<=6.6&&Math.abs(c.z-row)<=6.6;
   const centerDist=Math.hypot(c.x-col,c.z-row);
-  // Do not carve a diagonal across a tile corner. Enter the pad, settle near
-  // its center, then choose the next orthogonal bridge.
-  if(onPad&&centerDist>2.6)return{x:col,z:row};
-  if((onRow&&!onCol)||(onRow&&onCol&&Math.abs(dx)>=Math.abs(dz)))return{x:c.x+clamp(dx,-14,14),z:row};
-  return{x:col,z:c.z+clamp(dz,-14,14)};
+  // Lock one orthogonal waypoint at a time. Target selection may change while
+  // crossing a bridge, but steering must not change axis until the next pad.
+  let wx=Number.isFinite(c.skyWayX)?c.skyWayX:null,wz=Number.isFinite(c.skyWayZ)?c.skyWayZ:null;
+  if(wx!==null&&Math.hypot(c.x-wx,c.z-wz)<2.4){c.skyWayX=null;c.skyWayZ=null;wx=wz=null;}
+  if(wx===null){
+   if(onPad&&centerDist>2.4){wx=col;wz=row;}
+   else{
+    let nx=col,nz=row;
+    const dc=tcol-col,dr=trow-row;
+    if(dc&&(!dr||Math.abs(aimX-col)>=Math.abs(aimZ-row)))nx=col+Math.sign(dc)*22;
+    else if(dr)nz=row+Math.sign(dr)*22;
+    else{
+     const vx=c.vx||Math.sin(c.heading),vz=c.vz||Math.cos(c.heading);
+     if(Math.abs(vx)>=Math.abs(vz)&&col!==0)nx=col-Math.sign(col)*22;
+     else if(row!==0)nz=row-Math.sign(row)*22;
+     else nx=col+(c.id%2?22:-22);
+    }
+    nx=clamp(nx,-22,22);nz=clamp(nz,-22,22);
+    wx=nx;wz=nz;
+   }
+   c.skyWayX=wx;c.skyWayZ=wz;
+  }
+  return{x:wx,z:wz};
  }
  if(activeCourse?.id!=='death-wheel')return{x:aimX,z:aimZ};
  const r=Math.hypot(c.x,c.z)||1,rx=c.x/r,rz=c.z/r,tx=rz,tz=-rx;
