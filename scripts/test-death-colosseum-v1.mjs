@@ -60,6 +60,24 @@ for(const c of w.cars){
  assert.ok(c.p3.py>deathY+1,`${id}: car ${c.id} spawned too low (${c.p3.py})`);
 }
 
+
+if(id==='sky-tiles'){
+ const pack=physics.makeWorld(0,71239,'death-colosseum');
+ let impacts=0,selfFalls=0,pushedFalls=0;
+ for(let i=0;i<600&&!pack.done;i++){
+  physics.step(pack,{},1/60,true);
+  for(const e of pack.events){
+   if(e.type==='impact')impacts++;
+   if(e.type==='fall'){if((e.by??-1)<0)selfFalls++;else pushedFalls++;}
+  }
+ }
+ const alive=pack.cars.filter(c=>!c.dead).length;
+ assert.ok(selfFalls<=2,`sky-tiles: excessive unforced AI falls in first 10s (${selfFalls})`);
+ assert.ok(alive>=6,`sky-tiles: pack collapsed too early (${alive}/12 alive after 10s)`);
+ assert.ok(impacts>=2,`sky-tiles: bridge caution removed combat (${impacts} impacts in 10s)`);
+ console.log(`sky-tiles: 10s AI discipline passed, alive=${alive}/12, impacts=${impacts}, self-falls=${selfFalls}, pushed-falls=${pushedFalls}`);
+}
+
 const p=w.cars[0];
 physics.hit(w,p,99999,1,0,w.cars[1]);
 assert.equal(p.dead,false,`${id}: impact damage must not eliminate in Death Colosseum`);
