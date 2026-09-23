@@ -3,8 +3,7 @@
 Visual playtest after the v1.6 readability pass showed SKY TILES dropping too
 many AI cars in the first few seconds. Widen only its tiles/bridges enough to
 absorb touch/AI steering noise while preserving the gap-and-bridge topology.
-The bridge width is kept modest relative to the 13.2 m pads so ring-outs remain
-central to the course instead of turning the grid into broad roadways.
+
 """
 from pathlib import Path
 
@@ -28,7 +27,7 @@ def apply_death_colosseum_sky_tiles_v17(target: Path) -> None:
     courses=one(
         courses,
         "if(Math.abs(x)<=28&&[-22,0,22].some(pz=>Math.abs(z-pz)<=2.2))return H;\n  if(Math.abs(z)<=28&&[-22,0,22].some(px=>Math.abs(x-px)<=2.2))return H;",
-        "if(Math.abs(x)<=28&&[-22,0,22].some(pz=>Math.abs(z-pz)<=3.0))return H;\n  if(Math.abs(z)<=28&&[-22,0,22].some(px=>Math.abs(x-px)<=3.0))return H;",
+        "if(Math.abs(x)<=28&&[-22,0,22].some(pz=>Math.abs(z-pz)<=2.7))return H;\n  if(Math.abs(z)<=28&&[-22,0,22].some(px=>Math.abs(x-px)<=2.7))return H;",
         'bridge collision width',
     )
     courses_path.write_text(courses)
@@ -38,7 +37,7 @@ def apply_death_colosseum_sky_tiles_v17(target: Path) -> None:
     view=one(
         view,
         "for(const x of [-22,0,22])for(const z of [-22,0,22])addBox(x,z,12.4,12.4);for(const z of [-22,0,22])addBox(0,z,56,4.4);for(const x of [-22,0,22])addBox(x,0,4.4,56);",
-        "for(const x of [-22,0,22])for(const z of [-22,0,22])addBox(x,z,13.2,13.2);for(const z of [-22,0,22])addBox(0,z,56,6.0);for(const x of [-22,0,22])addBox(x,0,6.0,56);",
+        "for(const x of [-22,0,22])for(const z of [-22,0,22])addBox(x,z,13.2,13.2);for(const z of [-22,0,22])addBox(0,z,56,5.4);for(const x of [-22,0,22])addBox(x,0,5.4,56);",
         'rendered tile and bridge width',
     )
     view_path.write_text(view)
