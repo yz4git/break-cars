@@ -30,8 +30,13 @@ def apply_death_colosseum_openings_v13(target: Path) -> None:
  }
  if(id==='sky-tiles'){
   let dx=0,dz=0;
-  // Pick an orthogonal bridge toward the center instead of the missing diagonal.
-  if(Math.abs(x)>=Math.abs(z)&&Math.abs(x)>6)dx=-Math.sign(x);
+  const lanes=[-22,0,22],nearest=v=>lanes.reduce((a,b)=>Math.abs(v-b)<Math.abs(v-a)?b:a,lanes[0]);
+  const row=nearest(z),col=nearest(x),onRow=Math.abs(z-row)<=2.7,onCol=Math.abs(x-col)<=2.7;
+  // Leave a pad only along a bridge centerline the spawn already occupies.
+  // The two offset spawns must not point toward the perpendicular gap.
+  if(onRow&&!onCol)dx=-Math.sign(x||1);
+  else if(onCol&&!onRow)dz=-Math.sign(z||1);
+  else if(Math.abs(x)>=Math.abs(z)&&Math.abs(x)>6)dx=-Math.sign(x);
   else if(Math.abs(z)>6)dz=-Math.sign(z);
   else dz=1;
   return Math.atan2(dx,dz);
