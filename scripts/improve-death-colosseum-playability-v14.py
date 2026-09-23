@@ -97,6 +97,11 @@ def apply_death_colosseum_playability_v14(target: Path) -> None:
   const lanes=[-22,0,22],nearest=v=>lanes.reduce((a,b)=>Math.abs(v-b)<Math.abs(v-a)?b:a,lanes[0]);
   const row=nearest(c.z),col=nearest(c.x),dx=aimX-c.x,dz=aimZ-c.z;
   const onRow=Math.abs(c.z-row)<=3.4,onCol=Math.abs(c.x-col)<=3.4;
+  const onPad=Math.abs(c.x-col)<=6.6&&Math.abs(c.z-row)<=6.6;
+  const centerDist=Math.hypot(c.x-col,c.z-row);
+  // Do not carve a diagonal across a tile corner. Enter the pad, settle near
+  // its center, then choose the next orthogonal bridge.
+  if(onPad&&centerDist>2.6)return{x:col,z:row};
   if((onRow&&!onCol)||(onRow&&onCol&&Math.abs(dx)>=Math.abs(dz)))return{x:c.x+clamp(dx,-14,14),z:row};
   return{x:col,z:c.z+clamp(dz,-14,14)};
  }
