@@ -101,7 +101,11 @@ def apply_death_colosseum_playability_v14(target: Path) -> None:
   // Lock one orthogonal waypoint at a time. Target selection may change while
   // crossing a bridge, but steering must not change axis until the next pad.
   let wx=Number.isFinite(c.skyWayX)?c.skyWayX:null,wz=Number.isFinite(c.skyWayZ)?c.skyWayZ:null;
-  if(wx!==null&&Math.hypot(c.x-wx,c.z-wz)<2.4){c.skyWayX=null;c.skyWayZ=null;wx=wz=null;}
+  if(wx!==null&&Math.hypot(c.x-wx,c.z-wz)<3.2){
+   const junctionSpeed=Math.hypot(c.vx,c.vz);
+   if(junctionSpeed>4.2){c.skyJunctionBrake=true;return{x:wx,z:wz};}
+   c.skyJunctionBrake=false;c.skyWayX=null;c.skyWayZ=null;wx=wz=null;
+  }else c.skyJunctionBrake=false;
   if(wx===null){
    if(onPad&&centerDist>2.4){wx=col;wz=row;}
    else{
